@@ -1,0 +1,2 @@
+# libzedmd
+ZeDMD communication library
