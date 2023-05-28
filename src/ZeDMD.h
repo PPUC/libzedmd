@@ -10,6 +10,9 @@
 #define ZEDMD_VERSION ZEDMD_STR(ZEDMD_VERSION_MAJOR) "." ZEDMD_STR(ZEDMD_VERSION_MINOR) "." ZEDMD_STR(ZEDMD_VERSION_PATCH)
 #define ZEDMD_MINOR_VERSION ZEDMD_STR(ZEDMD_VERSION_MAJOR) "." ZEDMD_STR(ZEDMD_VERSION_MINOR)
 
+#define ZEDMD_MAX_WIDTH 256
+#define ZEDMD_MAX_HEIGHT 64
+
 #include <inttypes.h>
 #include "ZeDMDComm.h"
 
@@ -19,8 +22,11 @@ public:
    ZeDMD();
    ~ZeDMD();
 
+   void IgnoreDevice(const char* ignore_device);
    void Open(int width, int height);
+   void Open();
 
+   void SetFrameSize(uint8_t width, uint8_t height);
    void SetPalette(uint8_t* pPalette);
 
    void RenderGray2(uint8_t* frame);

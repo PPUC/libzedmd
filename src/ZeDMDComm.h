@@ -60,6 +60,8 @@ public:
    ZeDMDComm();
    ~ZeDMDComm();
 
+   void IgnoreDevice(const char* ignore_device);
+
    bool Connect();
    void Disconnect();
 
@@ -73,6 +75,8 @@ private:
    void Reset();
    bool StreamBytes(ZeDMDFrame* pFrame);
 
+   char m_ignoredDevices[10][32] = {0};
+   uint8_t m_ignoredDevicesCounter = 0;
    SerialPort m_serialPort;
    std::queue<ZeDMDFrame> m_frames;
    std::thread* m_pThread;

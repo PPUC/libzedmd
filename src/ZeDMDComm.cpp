@@ -101,6 +101,15 @@ void ZeDMDComm::QueueCommand(char command)
    QueueCommand(command, NULL, 0);
 }
 
+void ZeDMDComm::IgnoreDevice(const char* ignore_device)
+{
+   if (sizeof(ignore_device) < 32 && m_ignoredDevicesCounter < 10)
+   {
+      strcpy(&m_ignoredDevices[m_ignoredDevicesCounter++][0], ignore_device);
+   }
+
+}
+
 bool ZeDMDComm::Connect()
 {
 #ifndef __ANDROID__
@@ -114,6 +123,13 @@ bool ZeDMDComm::Connect()
 #else
       sprintf(szDevice, "/dev/ttyUSB%d", i);
 #endif
+
+      for (int j = 0; j < m_ignoredDevicesCounter; j++)
+      {
+        if (strcmp(szDevice, m_ignoredDevices[j]) == 0) {
+            continue;
+        }
+      }
 
       if (Connect(szDevice))
          return true;

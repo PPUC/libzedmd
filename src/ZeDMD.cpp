@@ -28,22 +28,31 @@ ZeDMD::~ZeDMD()
       delete m_pPlanes;
 }
 
-void ZeDMD::Open(int width, int height)
+void ZeDMD::IgnoreDevice(const char* ignore_device)
 {
-   m_available = m_zedmdComm.Connect();
+   m_zedmdComm.IgnoreDevice(ignore_device);
+}
 
-   if (m_available) {
+void ZeDMD::SetFrameSize(uint8_t width, uint8_t height)
+{
       m_width = width;
       m_height = height;
-
-      m_pFrameBuffer = (uint8_t*)malloc(m_width * m_height * 3);
-      m_pCommandBuffer = (uint8_t*)malloc(m_width * m_height * 3);
-      m_pPlanes = (uint8_t*)malloc(m_width * m_height * 3);
 
       uint8_t size[4] = { (uint8_t)(width & 0xFF), (uint8_t)((width >> 8) & 0xFF),
                         (uint8_t)(height & 0xFF), (uint8_t)((height >> 8) & 0xFF) };
 
       m_zedmdComm.QueueCommand(ZEDMD_COMMAND::FrameSize, size, 4);
+}
+
+void ZeDMD::Open()
+{
+   m_available = m_zedmdComm.Connect();
+
+   if (m_available) {
+
+      m_pFrameBuffer = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
+      m_pCommandBuffer = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
+      m_pPlanes = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
 
       if (m_debug) {
          m_zedmdComm.QueueCommand(ZEDMD_COMMAND::EnableDebug);
@@ -62,6 +71,12 @@ void ZeDMD::Open(int width, int height)
 
       m_zedmdComm.Run();
    }
+}
+
+void ZeDMD::Open(int width, int height)
+{
+   Open();
+   SetFrameSize(width, height);
 }
 
 void ZeDMD::SetPalette(uint8_t* pPalette)
