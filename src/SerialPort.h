@@ -9,6 +9,8 @@
 #include <jni.h>
 #endif
 
+#include <inttypes.h>
+
 class SerialPort {
 public:
    void SetReadTimeout(int timeout);

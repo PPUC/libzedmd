@@ -1,10 +1,11 @@
 #pragma once
 
-#include "SerialPort.h"
-
 #include <thread>
 #include <queue>
 #include <string>
+#include <inttypes.h>
+
+#include "SerialPort.h"
 
 typedef enum {
     FrameSize = 0x02,
