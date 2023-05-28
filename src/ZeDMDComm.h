@@ -32,10 +32,12 @@ struct ZeDMDFrame {
 #define ZEDMD_BAUD_RATE 921600
 #define ZEDMD_SERIAL_TIMEOUT 200
 
-#ifndef __APPLE__
-#define ZEDMD_MAX_SERIAL_WRITE_AT_ONCE 2048
+#if defined (_WIN32) || defined (_WIN64)
+   #define ZEDMD_MAX_SERIAL_WRITE_AT_ONCE 8192
+#elif defined (__linux__) || defined(__APPLE__)
+   #define ZEDMD_MAX_SERIAL_WRITE_AT_ONCE 256
 #else
-#define ZEDMD_MAX_SERIAL_WRITE_AT_ONCE 256
+   #define ZEDMD_MAX_SERIAL_WRITE_AT_ONCE 2048
 #endif
 
 #define ZEDMD_FRAME_SIZE_SLOW_THRESHOLD 4096
@@ -45,9 +47,9 @@ struct ZeDMDFrame {
 #define ZEDMD_FRAME_QUEUE_SIZE_SLOW 4
 
 #ifndef __ANDROID__
-#define ZEDMD_FRAME_QUEUE_SIZE_DEFAULT 32
+   #define ZEDMD_FRAME_QUEUE_SIZE_DEFAULT 32
 #else
-#define ZEDMD_FRAME_QUEUE_SIZE_DEFAULT 8
+   #define ZEDMD_FRAME_QUEUE_SIZE_DEFAULT 8
 #endif
 
 class ZeDMDComm
