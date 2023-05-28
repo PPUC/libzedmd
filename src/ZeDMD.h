@@ -23,8 +23,8 @@ public:
    ~ZeDMD();
 
    void IgnoreDevice(const char* ignore_device);
-   void Open(int width, int height);
-   void Open();
+   bool Open(int width, int height);
+   bool Open();
 
    void SetFrameSize(uint8_t width, uint8_t height);
    void SetPalette(uint8_t* pPalette);

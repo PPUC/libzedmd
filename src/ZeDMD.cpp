@@ -44,7 +44,7 @@ void ZeDMD::SetFrameSize(uint8_t width, uint8_t height)
       m_zedmdComm.QueueCommand(ZEDMD_COMMAND::FrameSize, size, 4);
 }
 
-void ZeDMD::Open()
+bool ZeDMD::Open()
 {
    m_available = m_zedmdComm.Connect();
 
@@ -71,12 +71,18 @@ void ZeDMD::Open()
 
       m_zedmdComm.Run();
    }
+
+   return m_available;
 }
 
-void ZeDMD::Open(int width, int height)
+bool ZeDMD::Open(int width, int height)
 {
-   Open();
-   SetFrameSize(width, height);
+   if (Open())
+   {
+      SetFrameSize(width, height);
+   }
+
+   return m_available;
 }
 
 void ZeDMD::SetPalette(uint8_t* pPalette)
