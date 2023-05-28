@@ -28,6 +28,7 @@ public:
 
    void SetFrameSize(uint8_t width, uint8_t height);
    void SetPalette(uint8_t* pPalette);
+   void SetDefaultPalette(int bitDepth);
 
    void RenderGray2(uint8_t* frame);
    void RenderGray4(uint8_t* frame);
@@ -52,8 +53,11 @@ private:
    uint8_t* m_pPlanes;
 
    uint8_t m_palette[64 * 3];
-
-   int m_numColors;
+   uint8_t m_DmdDefaultPalette2Bit[12] = { 0, 0, 0, 144, 34, 0, 192, 76, 0, 255, 127 ,0 };
+   uint8_t m_DmdDefaultPalette4Bit[48] = { 0, 0, 0, 51, 25, 0, 64, 32, 0, 77, 38, 0,
+                                           89, 44, 0, 102, 51, 0, 115, 57, 0, 128, 64, 0,
+                                           140, 70, 0, 153, 76, 0, 166, 83, 0, 179, 89, 0,
+                                           191, 95, 0, 204, 102, 0, 230, 114, 0, 255, 127, 0 };
 
    bool m_debug = false;
    int m_rgbOrder = -1;

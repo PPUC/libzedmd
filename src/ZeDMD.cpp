@@ -5,8 +5,6 @@ ZeDMD::ZeDMD()
    m_width = 0;
    m_height = 0;
 
-   m_numColors = 0;
-
    memset(&m_palette, 0, sizeof(m_palette));
 
    m_pFrameBuffer = NULL;
@@ -87,10 +85,18 @@ bool ZeDMD::Open(int width, int height)
 
 void ZeDMD::SetPalette(uint8_t* pPalette)
 {
-   if (!m_available)
-      return;
-
    memcpy(&m_palette, pPalette, sizeof(m_palette));
+}
+
+void ZeDMD::SetDefaultPalette(int bitDepth) {
+   switch (bitDepth) {
+      case 2:
+        SetPalette(m_DmdDefaultPalette2Bit);
+        break;
+
+      default:
+        SetPalette(m_DmdDefaultPalette4Bit);
+    }
 }
 
 void ZeDMD::RenderGray2(uint8_t* pFrame)
