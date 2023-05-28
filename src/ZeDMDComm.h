@@ -4,7 +4,7 @@
 #include <queue>
 #include <string>
 #include <inttypes.h>
-
+#include <mutex>
 #include "SerialPort.h"
 
 typedef enum {
@@ -80,4 +80,5 @@ private:
    SerialPort m_serialPort;
    std::queue<ZeDMDFrame> m_frames;
    std::thread* m_pThread;
+   std::mutex m_frameQueueMutex;
 };

@@ -24,13 +24,17 @@ void ZeDMDComm::Run()
 	   int maxQueuedFrames = ZEDMD_FRAME_QUEUE_SIZE_MAX;
 
       while (m_serialPort.IsOpen()) {
+         m_frameQueueMutex.lock();
+
          if (m_frames.empty()) {
+            m_frameQueueMutex.unlock();
             std::this_thread::sleep_for(std::chrono::milliseconds(8));
             continue;
          }
 
          ZeDMDFrame frame = m_frames.front();
          m_frames.pop();
+         m_frameQueueMutex.unlock();
 
          if (frame.size < ZEDMD_FRAME_SIZE_COMMAND_LIMIT) {
               sleep = false;
@@ -40,17 +44,21 @@ void ZeDMDComm::Run()
             sleep = false;
             maxQueuedFrames = ZEDMD_FRAME_QUEUE_SIZE_SLOW;
          }
-         else
+         else {
             maxQueuedFrames = ZEDMD_FRAME_QUEUE_SIZE_DEFAULT;
+         }
 
          sleep = !StreamBytes(&frame) || sleep;
 
-         if (sleep)
+         if (sleep) {
             std::this_thread::sleep_for(std::chrono::milliseconds(8));
+         }
 
-         if (frame.data)
+         if (frame.data) {
             free(frame.data);
+         }
 
+         m_frameQueueMutex.lock();
          while (m_frames.size() >= maxQueuedFrames) {
             frame = m_frames.front();
             m_frames.pop();
@@ -64,10 +72,11 @@ void ZeDMDComm::Run()
                 }
                 m_frames.push(frame);
             }
-            else
-                if (frame.data)
-                   free(frame.data);
+            else if (frame.data) {
+               free(frame.data);
+            }
          }
+         m_frameQueueMutex.unlock();
       }
 
       //PLOGI.printf("ZeDMD run thread finished");
@@ -76,8 +85,9 @@ void ZeDMDComm::Run()
 
 void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size)
 {
-   if (!m_serialPort.IsOpen())
+   if (!m_serialPort.IsOpen()) {
       return;
+   }
 
    ZeDMDFrame frame = { 0 };
    frame.command = command;
@@ -88,7 +98,9 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size)
       memcpy(frame.data, data, size);
    }
 
+   m_frameQueueMutex.lock();
    m_frames.push(frame);
+   m_frameQueueMutex.unlock();
 }
 
 void ZeDMDComm::QueueCommand(char command, uint8_t value)
