@@ -8,19 +8,33 @@
 #include "SerialPort.h"
 
 typedef enum {
-    FrameSize = 0x02,
-    Handshake = 0x0c,
-    Compression = 0x0e,
-    Chunk = 0x0d,
-    DisableDebug = 0x62,
-    EnableDebug = 0x63,
-    Brightness = 0x16,
-    RGBOrder = 0x17,
-    SaveSettings = 0x1e,
-    RGB24 = 0x03,
-    Gray2 = 0x08,
-    ColGray4 = 0x09,
-    ColGray6 = 0x0b,
+   FrameSize = 0x02,
+   Handshake = 0x0c,
+   Chunk = 0x0d,
+   Compression = 0x0e,
+   EnableCompression = 0x0e,
+   DisableCompression = 0x0f,
+   EnableUpscaling = 0x14,
+   DisableUpscaling = 0x15,
+   Brightness = 0x16,
+   RGBOrder = 0x17,
+   GetBrightness = 0x18,
+   GetRGBOrder = 0x19,
+   EnableFrameTimeout = 0x1a,
+   DisableFrameTimeout = 0x1b,
+   SaveSettings = 0x1e,
+   Reset = 0x1f,
+   GetVersion = 0x20,
+   GetResolution = 0x21,
+
+   RGB24 = 0x03,
+   Gray2 = 0x08,
+   ColGray4 = 0x09,
+   ColGray6 = 0x0b,
+   ClearScreen = 0x0a,
+
+   DisableDebug = 0x62,
+   EnableDebug = 0x63,
 } ZEDMD_COMMAND;
 
 struct ZeDMDFrame {
