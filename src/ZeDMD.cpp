@@ -99,6 +99,17 @@ void ZeDMD::SetDefaultPalette(int bitDepth) {
     }
 }
 
+uint8_t* ZeDMD::GetDefaultPalette(int bitDepth) {
+   switch (bitDepth) {
+      case 2:
+        return m_DmdDefaultPalette2Bit;
+        break;
+
+      default:
+         return m_DmdDefaultPalette4Bit;
+    }
+}
+
 void ZeDMD::RenderGray2(uint8_t* pFrame)
 {
    if (!m_available || !UpdateFrameBuffer8(pFrame))

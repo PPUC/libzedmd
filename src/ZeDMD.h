@@ -29,6 +29,7 @@ public:
    void SetFrameSize(uint8_t width, uint8_t height);
    void SetPalette(uint8_t* pPalette);
    void SetDefaultPalette(int bitDepth);
+   uint8_t* GetDefaultPalette(int bitDepth);
 
    void RenderGray2(uint8_t* frame);
    void RenderGray4(uint8_t* frame);
