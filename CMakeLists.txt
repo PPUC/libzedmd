@@ -51,21 +51,22 @@ set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_VISIBILITY_PRESET hidden)
 
-set(ADDITIONAL_SOURCES
+set(MINIZ_SOURCES
    src/miniz/miniz.h
    src/miniz/miniz.c
 )
 
-if (!USE_ANDROID)
-    set(ADDITIONAL_SOURCES
-      ${ADDITIONAL_SOURCES}
+if(USE_ANDROID)
+else()
+    set(SERIALIB_SOURCES
       src/serialib/serialib.h
       src/serialib/serialib.cpp
     )
 endif()
 
 set(LIBRARY_SOURCES
-   ${ADDITIONAL_SOURCES}
+   ${MINIZ_SOURCES}
+   ${SERIALIB_SOURCES}
    src/SerialPort.h
    src/SerialPort.cpp
    src/ZeDMDComm.h
