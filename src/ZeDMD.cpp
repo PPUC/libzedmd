@@ -272,7 +272,7 @@ void ZeDMD::Split(uint8_t *pPlanes, int width, int height, int bitlen, uint8_t *
 {
    int planeSize = width * height / 8;
    int pos = 0;
-   uint8_t bd[bitlen];
+   uint8_t *bd = (uint8_t*) malloc(bitlen);
 
    for (int y = 0; y < height; y++)
    {
@@ -297,6 +297,8 @@ void ZeDMD::Split(uint8_t *pPlanes, int width, int height, int bitlen, uint8_t *
          pos++;
       }
    }
+
+   free(bd);
 }
 
 bool ZeDMD::CmpColor(uint8_t *px1, uint8_t *px2, uint8_t colors)
@@ -468,11 +470,20 @@ int ZeDMD::Scale(uint8_t *pScaledFrame, uint8_t *pFrame, uint8_t colors)
    {
       // we implement scale2x http://www.scale2x.it/algorithm
       uint16_t row = m_width * colors;
+      uint8_t *a = (uint8_t*) malloc(colors);
+      uint8_t *b = (uint8_t*) malloc(colors);
+      uint8_t *c = (uint8_t*) malloc(colors);
+      uint8_t *d = (uint8_t*) malloc(colors);
+      uint8_t *e = (uint8_t*) malloc(colors);
+      uint8_t *f = (uint8_t*) malloc(colors);
+      uint8_t *g = (uint8_t*) malloc(colors);
+      uint8_t *h = (uint8_t*) malloc(colors);
+      uint8_t *i = (uint8_t*) malloc(colors);
+
       for (int x = 0; x < m_height; x++)
       {
          for (int y = 0; y < m_width; y++)
          {
-            uint8_t a[colors], b[colors], c[colors], d[colors], e[colors], f[colors], g[colors], h[colors], i[colors];
             for (uint8_t tc = 0; tc < colors; tc++)
             {
                if (y == 0 && x == 0)
@@ -569,6 +580,16 @@ int ZeDMD::Scale(uint8_t *pScaledFrame, uint8_t *pFrame, uint8_t colors)
             }
          }
       }
+
+      free(a);
+      free(b);
+      free(c);
+      free(d);
+      free(e);
+      free(f);
+      free(g);
+      free(h);
+      free(i);
    }
    else // offset!=0
    {

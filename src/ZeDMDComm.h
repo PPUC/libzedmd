@@ -24,7 +24,7 @@ typedef enum
    EnableFlowControlV2 = 0x1a,
    SaveSettings = 0x1e,
    Reset = 0x1f,
-   GetVersion = 0x20,
+   GetVersionBytes = 0x20,
    GetResolution = 0x21,
 
    RGB24 = 0x03,
