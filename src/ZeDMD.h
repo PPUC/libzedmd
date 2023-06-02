@@ -13,10 +13,16 @@
 #define ZEDMD_MAX_WIDTH 256
 #define ZEDMD_MAX_HEIGHT 64
 
+#if defined(_WIN32) || defined(_WIN64)
+#define ZEDMDAPI __declspec(dllexport)
+#else
+#define ZEDMDAPI __attribute__ ((visibility ("default")))
+#endif
+
 #include <inttypes.h>
 #include "ZeDMDComm.h"
 
-class ZeDMD
+class ZEDMDAPI ZeDMD
 {
 public:
    ZeDMD();
