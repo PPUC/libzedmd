@@ -1,4 +1,5 @@
 #include "ZeDMD.h"
+#include "ZeDMDComm.h"
 
 ZeDMD::ZeDMD()
 {
@@ -11,11 +12,14 @@ ZeDMD::ZeDMD()
    m_pScaledFrameBuffer = NULL;
    m_pCommandBuffer = NULL;
    m_pPlanes = NULL;
+
+   m_pZeDMDComm = new ZeDMDComm();
 }
 
 ZeDMD::~ZeDMD()
 {
-   m_zedmdComm.Disconnect();
+   m_pZeDMDComm->Disconnect();
+   free(m_pZeDMDComm);
 
    if (m_pFrameBuffer)
       delete m_pFrameBuffer;
@@ -30,17 +34,29 @@ ZeDMD::~ZeDMD()
       delete m_pPlanes;
 }
 
+void ZeDMD::SetLogMessageCallback(ZeDMD_LogMessageCallback callback, const void* userData)
+{
+   m_pZeDMDComm->SetLogMessageCallback(callback, userData);
+}
+
+#ifdef __ANDROID__
+void ZeDMD::SetAndroidGetJNIEnvFunc(ZeDMD_AndroidGetJNIEnvFunc func)
+{
+   m_pZeDMDComm->SetAndroidGetJNIEnvFunc(func);
+}
+#endif
+
 void ZeDMD::IgnoreDevice(const char *ignore_device)
 {
-   m_zedmdComm.IgnoreDevice(ignore_device);
+   m_pZeDMDComm->IgnoreDevice(ignore_device);
 }
 
 void ZeDMD::SetFrameSize(uint8_t width, uint8_t height)
 {
    m_width = width;
    m_height = height;
-   int frameWidth = m_zedmdComm.GetWidth();
-   int frameHeight = m_zedmdComm.GetHeight();
+   int frameWidth = m_pZeDMDComm->GetWidth();
+   int frameHeight = m_pZeDMDComm->GetHeight();
    uint8_t size[4];
 
    if ((m_downscaling && (width > frameWidth || height > frameHeight)) || (m_upscaling && (width < frameWidth || height < frameHeight)))
@@ -58,17 +74,32 @@ void ZeDMD::SetFrameSize(uint8_t width, uint8_t height)
       size[3] = (uint8_t)((height >> 8) & 0xFF);
    }
 
-   m_zedmdComm.QueueCommand(ZEDMD_COMMAND::FrameSize, size, 4);
+   m_pZeDMDComm->QueueCommand(ZEDMD_COMMAND::FrameSize, size, 4);
 }
 
 void ZeDMD::EnableDebug()
 {
-   m_zedmdComm.QueueCommand(ZEDMD_COMMAND::EnableDebug);
+   m_pZeDMDComm->QueueCommand(ZEDMD_COMMAND::EnableDebug);
 }
 
 void ZeDMD::DisableDebug()
 {
-   m_zedmdComm.QueueCommand(ZEDMD_COMMAND::DisableDebug);
+   m_pZeDMDComm->QueueCommand(ZEDMD_COMMAND::DisableDebug);
+}
+
+void ZeDMD::SetRGBOrder(int rgbOrder)
+{
+   m_pZeDMDComm->QueueCommand(ZEDMD_COMMAND::RGBOrder, rgbOrder);
+}
+
+void ZeDMD::SetBrightness(int brightness)
+{
+   m_pZeDMDComm->QueueCommand(ZEDMD_COMMAND::Brightness, brightness);
+}
+
+void ZeDMD::SaveSettings()
+{
+   m_pZeDMDComm->QueueCommand(ZEDMD_COMMAND::SaveSettings);
 }
 
 void ZeDMD::EnablePreDownscaling()
@@ -93,45 +124,26 @@ void ZeDMD::DisablePreUpscaling()
 
 void ZeDMD::EnableUpscaling()
 {
-   m_zedmdComm.QueueCommand(ZEDMD_COMMAND::EnableUpscaling);
+   m_pZeDMDComm->QueueCommand(ZEDMD_COMMAND::EnableUpscaling);
 }
 
 void ZeDMD::DisableUpscaling()
 {
-   m_zedmdComm.QueueCommand(ZEDMD_COMMAND::DisableUpscaling);
+   m_pZeDMDComm->QueueCommand(ZEDMD_COMMAND::DisableUpscaling);
 }
 
 bool ZeDMD::Open()
 {
-   m_available = m_zedmdComm.Connect();
+   m_available = m_pZeDMDComm->Connect();
 
    if (m_available)
    {
-
       m_pFrameBuffer = (uint8_t *)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
       m_pScaledFrameBuffer = (uint8_t *)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
       m_pCommandBuffer = (uint8_t *)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
       m_pPlanes = (uint8_t *)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
 
-      if (m_debug)
-      {
-         m_zedmdComm.QueueCommand(ZEDMD_COMMAND::EnableDebug);
-         // PLOGI.printf("ZeDMD debug enabled");
-      }
-
-      if (m_rgbOrder != -1)
-      {
-         m_zedmdComm.QueueCommand(ZEDMD_COMMAND::RGBOrder, m_rgbOrder);
-         // PLOGI.printf("ZeDMD RGB order override: rgbOrder=%d", rgbOrder);
-      }
-
-      if (m_brightness != -1)
-      {
-         m_zedmdComm.QueueCommand(ZEDMD_COMMAND::Brightness, m_brightness);
-         // PLOGI.printf("ZeDMD brightness override: brightness=%d", brightness);
-      }
-
-      m_zedmdComm.Run();
+      m_pZeDMDComm->Run();
    }
 
    return m_available;
@@ -184,12 +196,12 @@ void ZeDMD::RenderGray2(uint8_t *pFrame)
       return;
 
    int bufferSize = Scale(m_pScaledFrameBuffer, m_pFrameBuffer, 1) / 8 * 2;
-   Split(m_pPlanes, m_zedmdComm.GetWidth(), m_zedmdComm.GetHeight(), 2, m_pScaledFrameBuffer);
+   Split(m_pPlanes, m_pZeDMDComm->GetWidth(), m_pZeDMDComm->GetHeight(), 2, m_pScaledFrameBuffer);
 
    memcpy(m_pCommandBuffer, &m_palette, 12);
    memcpy(m_pCommandBuffer + 12, m_pPlanes, bufferSize);
 
-   m_zedmdComm.QueueCommand(ZEDMD_COMMAND::Gray2, m_pCommandBuffer, 12 + bufferSize);
+   m_pZeDMDComm->QueueCommand(ZEDMD_COMMAND::Gray2, m_pCommandBuffer, 12 + bufferSize);
 }
 
 void ZeDMD::RenderGray4(uint8_t *pFrame)
@@ -198,12 +210,12 @@ void ZeDMD::RenderGray4(uint8_t *pFrame)
       return;
 
    int bufferSize = Scale(m_pScaledFrameBuffer, m_pFrameBuffer, 1) / 8 * 4;
-   Split(m_pPlanes, m_zedmdComm.GetWidth(), m_zedmdComm.GetHeight(), 4, m_pScaledFrameBuffer);
+   Split(m_pPlanes, m_pZeDMDComm->GetWidth(), m_pZeDMDComm->GetHeight(), 4, m_pScaledFrameBuffer);
 
    memcpy(m_pCommandBuffer, m_palette, 48);
    memcpy(m_pCommandBuffer + 48, m_pPlanes, bufferSize);
 
-   m_zedmdComm.QueueCommand(ZEDMD_COMMAND::ColGray4, m_pCommandBuffer, 48 + bufferSize);
+   m_pZeDMDComm->QueueCommand(ZEDMD_COMMAND::ColGray4, m_pCommandBuffer, 48 + bufferSize);
 }
 
 void ZeDMD::RenderColoredGray6(uint8_t *pFrame, uint8_t *pPalette, uint8_t *pRotations)
@@ -223,7 +235,7 @@ void ZeDMD::RenderColoredGray6(uint8_t *pFrame, uint8_t *pPalette, uint8_t *pRot
       return;
 
    int bufferSize = Scale(m_pScaledFrameBuffer, m_pFrameBuffer, 1) / 8 * 6;
-   Split(m_pPlanes, m_zedmdComm.GetWidth(), m_zedmdComm.GetHeight(), 6, m_pScaledFrameBuffer);
+   Split(m_pPlanes, m_pZeDMDComm->GetWidth(), m_pZeDMDComm->GetHeight(), 6, m_pScaledFrameBuffer);
 
    memcpy(m_pCommandBuffer, pPalette, 192);
    memcpy(m_pCommandBuffer + 192, m_pPlanes, bufferSize);
@@ -233,7 +245,7 @@ void ZeDMD::RenderColoredGray6(uint8_t *pFrame, uint8_t *pPalette, uint8_t *pRot
    else
       memset(m_pCommandBuffer + 192 + bufferSize, 255, 24);
 
-   m_zedmdComm.QueueCommand(ZEDMD_COMMAND::ColGray6, m_pCommandBuffer, 192 + bufferSize + 24);
+   m_pZeDMDComm->QueueCommand(ZEDMD_COMMAND::ColGray6, m_pCommandBuffer, 192 + bufferSize + 24);
 }
 
 void ZeDMD::RenderRgb24(uint8_t *pFrame)
@@ -243,7 +255,7 @@ void ZeDMD::RenderRgb24(uint8_t *pFrame)
 
    int bufferSize = Scale(m_pCommandBuffer, pFrame, 3);
 
-   m_zedmdComm.QueueCommand(ZEDMD_COMMAND::RGB24, m_pFrameBuffer, bufferSize);
+   m_pZeDMDComm->QueueCommand(ZEDMD_COMMAND::RGB24, m_pFrameBuffer, bufferSize);
 }
 
 bool ZeDMD::UpdateFrameBuffer8(uint8_t *pFrame)
@@ -329,8 +341,8 @@ int ZeDMD::Scale(uint8_t *pScaledFrame, uint8_t *pFrame, uint8_t colors)
    int xoffset = 0;
    int yoffset = 0;
    int scale = 0; // 0 - no scale, 1 - half scale, 2 - double scale
-   int frameWidth = m_zedmdComm.GetWidth();
-   int frameHeight = m_zedmdComm.GetHeight();
+   int frameWidth = m_pZeDMDComm->GetWidth();
+   int frameHeight = m_pZeDMDComm->GetHeight();
    int bufferSize = frameWidth * frameHeight * colors;
 
    if (m_upscaling && m_width == 192 && frameWidth == 256)

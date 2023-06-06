@@ -2,15 +2,21 @@
 
 #ifndef __ANDROID__
 #include "serialib/serialib.h"
-#else
-#include <jni.h>
 #endif
 
 #include <inttypes.h>
 
+#ifdef __ANDROID__
+typedef void* (*AndroidGetJNIEnvFunc)();
+#endif
+
 class SerialPort
 {
 public:
+#ifdef __ANDROID__
+   void SetAndroidGetJNIEnvFunc(AndroidGetJNIEnvFunc func);
+#endif
+
    void SetReadTimeout(int timeout);
    void SetWriteTimeout(int timeout);
    bool Open(const char *pDevice, int baudRate, int dataBits, int stopBits, int parity);
@@ -32,5 +38,7 @@ private:
    int m_writeTimeout = 0;
 #ifndef __ANDROID__
    serialib m_seriallib;
+#else
+   AndroidGetJNIEnvFunc m_androidGetJNIEnvFunc = nullptr;
 #endif
 };
