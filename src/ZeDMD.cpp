@@ -1,10 +1,11 @@
 #include "ZeDMD.h"
 #include "ZeDMDComm.h"
+#include "miniz/miniz.h"
 
 ZeDMD::ZeDMD()
 {
-   m_width = 0;
-   m_height = 0;
+   m_romWidth = 0;
+   m_romHeight = 0;
 
    memset(&m_palette, 0, sizeof(m_palette));
 
@@ -81,8 +82,8 @@ void ZeDMD::IgnoreDevice(const char *ignore_device)
 
 void ZeDMD::SetFrameSize(uint8_t width, uint8_t height)
 {
-   m_width = width;
-   m_height = height;
+   m_romWidth = width;
+   m_romHeight = height;
 
    if (m_usb) {
       int frameWidth = m_pZeDMDComm->GetWidth();
@@ -310,19 +311,19 @@ void ZeDMD::RenderRgb24(uint8_t *pFrame)
 
 bool ZeDMD::UpdateFrameBuffer8(uint8_t *pFrame)
 {
-   if (!memcmp(m_pFrameBuffer, pFrame, m_width * m_height))
+   if (!memcmp(m_pFrameBuffer, pFrame, m_romWidth * m_romHeight))
       return false;
 
-   memcpy(m_pFrameBuffer, pFrame, m_width * m_height);
+   memcpy(m_pFrameBuffer, pFrame, m_romWidth * m_romHeight);
    return true;
 }
 
 bool ZeDMD::UpdateFrameBuffer24(uint8_t *pFrame)
 {
-   if (!memcmp(m_pFrameBuffer, pFrame, m_width * m_height * 3))
+   if (!memcmp(m_pFrameBuffer, pFrame, m_romWidth * m_romHeight * 3))
       return false;
 
-   memcpy(m_pFrameBuffer, pFrame, m_width * m_height * 3);
+   memcpy(m_pFrameBuffer, pFrame, m_romWidth * m_romHeight * 3);
    return true;
 }
 
@@ -402,29 +403,29 @@ int ZeDMD::Scale(uint8_t *pScaledFrame, uint8_t *pFrame, uint8_t colors, int *wi
    int frameHeight = m_pZeDMDComm->GetHeight();
    int bufferSize = frameWidth * frameHeight * colors;
 
-   if (m_upscaling && m_width == 192 && frameWidth == 256)
+   if (m_upscaling && m_romWidth == 192 && frameWidth == 256)
    {
       (*width) = frameWidth;
       (*height) = frameHeight;
 
       xoffset = 32;
    }
-   else if (m_downscaling && m_width == 192)
+   else if (m_downscaling && m_romWidth == 192)
    {
-      (*width) = m_width;
-      (*height) = m_height;
+      (*width) = m_romWidth;
+      (*height) = m_romHeight;
 
       xoffset = 16;
       scale = 1;
    }
-   else if (m_upscaling && m_height == 16 && frameHeight == 32)
+   else if (m_upscaling && m_romHeight == 16 && frameHeight == 32)
    {
       (*width) = frameWidth;
       (*height) = frameHeight;
 
       yoffset = 8;
    }
-   else if (m_upscaling && m_height == 16 && frameHeight == 64)
+   else if (m_upscaling && m_romHeight == 16 && frameHeight == 64)
    {
       (*width) = frameWidth;
       (*height) = frameHeight;
@@ -432,14 +433,14 @@ int ZeDMD::Scale(uint8_t *pScaledFrame, uint8_t *pFrame, uint8_t colors, int *wi
       yoffset = 16;
       scale = 2;
    }
-   else if (m_downscaling && m_width == 256 && frameWidth == 128)
+   else if (m_downscaling && m_romWidth == 256 && frameWidth == 128)
    {
-      (*width) = m_width;
-      (*height) = m_height;
+      (*width) = m_romWidth;
+      (*height) = m_romHeight;
 
       scale = 1;
    }
-   else if (m_upscaling && m_width == 128 && frameWidth == 256)
+   else if (m_upscaling && m_romWidth == 128 && frameWidth == 256)
    {
       (*width) = frameWidth;
       (*height) = frameHeight;
@@ -448,8 +449,8 @@ int ZeDMD::Scale(uint8_t *pScaledFrame, uint8_t *pFrame, uint8_t colors, int *wi
    }
    else
    {
-      (*width) = m_width;
-      (*height) = m_height;
+      (*width) = m_romWidth;
+      (*height) = m_romHeight;
 
       memcpy(pScaledFrame, pFrame, bufferSize);
       return bufferSize;
@@ -460,20 +461,20 @@ int ZeDMD::Scale(uint8_t *pScaledFrame, uint8_t *pFrame, uint8_t colors, int *wi
    if (scale == 1)
    {
       // for half scaling we take the 4 points and look if there is one colour repeated
-      for (int y = 0; y < m_height; y += 2)
+      for (int y = 0; y < m_romHeight; y += 2)
       {
-         for (int x = 0; x < m_width; x += 2)
+         for (int x = 0; x < m_romWidth; x += 2)
          {
-            uint16_t upper_left = y * m_width * colors + x * colors;
+            uint16_t upper_left = y * m_romWidth * colors + x * colors;
             uint16_t upper_right = upper_left + colors;
-            uint16_t lower_left = upper_left + m_width * colors;
+            uint16_t lower_left = upper_left + m_romWidth * colors;
             uint16_t lower_right = lower_left + colors;
             uint16_t target = (xoffset + (x / 2) + (y / 2) * frameWidth) * colors;
 
             // Prefer most outer upper_lefts.
-            if (x < m_width / 2)
+            if (x < m_romWidth / 2)
             {
-               if (y < m_height / 2)
+               if (y < m_romHeight / 2)
                {
                   if (CmpColor(&pFrame[upper_left], &pFrame[upper_right], colors) || CmpColor(&pFrame[upper_left], &pFrame[lower_left], colors) || CmpColor(&pFrame[upper_left], &pFrame[lower_right], colors))
                   {
@@ -514,7 +515,7 @@ int ZeDMD::Scale(uint8_t *pScaledFrame, uint8_t *pFrame, uint8_t colors, int *wi
             }
             else
             {
-               if (y < m_height / 2)
+               if (y < m_romHeight / 2)
                {
                   if (CmpColor(&pFrame[upper_right], &pFrame[upper_left], colors) || CmpColor(&pFrame[upper_right], &pFrame[lower_right], colors) || CmpColor(&pFrame[upper_right], &pFrame[lower_left], colors))
                   {
@@ -559,7 +560,7 @@ int ZeDMD::Scale(uint8_t *pScaledFrame, uint8_t *pFrame, uint8_t colors, int *wi
    else if (scale == 2)
    {
       // we implement scale2x http://www.scale2x.it/algorithm
-      uint16_t row = m_width * colors;
+      uint16_t row = m_romWidth * colors;
       uint8_t *a = (uint8_t*) malloc(colors);
       uint8_t *b = (uint8_t*) malloc(colors);
       uint8_t *c = (uint8_t*) malloc(colors);
@@ -570,9 +571,9 @@ int ZeDMD::Scale(uint8_t *pScaledFrame, uint8_t *pFrame, uint8_t colors, int *wi
       uint8_t *h = (uint8_t*) malloc(colors);
       uint8_t *i = (uint8_t*) malloc(colors);
 
-      for (int x = 0; x < m_height; x++)
+      for (int x = 0; x < m_romHeight; x++)
       {
-         for (int y = 0; y < m_width; y++)
+         for (int y = 0; y < m_romWidth; y++)
          {
             for (uint8_t tc = 0; tc < colors; tc++)
             {
@@ -583,26 +584,26 @@ int ZeDMD::Scale(uint8_t *pScaledFrame, uint8_t *pFrame, uint8_t colors, int *wi
                   g[tc] = h[tc] = pFrame[row + tc];
                   i[tc] = pFrame[row + colors + tc];
                }
-               else if ((y == 0) && (x == m_height - 1))
+               else if ((y == 0) && (x == m_romHeight - 1))
                {
                   a[tc] = b[tc] = pFrame[(x - 1) * row + tc];
                   c[tc] = pFrame[(x - 1) * row + colors + tc];
                   d[tc] = g[tc] = h[tc] = e[tc] = pFrame[x * row + tc];
                   f[tc] = i[tc] = pFrame[x * row + colors + tc];
                }
-               else if ((y == m_width - 1) && (x == 0))
+               else if ((y == m_romWidth - 1) && (x == 0))
                {
                   a[tc] = d[tc] = pFrame[y * colors - colors + tc];
                   b[tc] = c[tc] = f[tc] = e[tc] = pFrame[y * colors + tc];
                   g[tc] = pFrame[row + y * colors - colors + tc];
                   h[tc] = i[tc] = pFrame[row + y * colors + tc];
                }
-               else if ((y == m_width - 1) && (x == m_height - 1))
+               else if ((y == m_romWidth - 1) && (x == m_romHeight - 1))
                {
                   a[tc] = pFrame[x * row - 2 * colors + tc];
                   b[tc] = c[tc] = pFrame[x * row - colors + tc];
-                  d[tc] = g[tc] = pFrame[m_height * row - 2 * colors + tc];
-                  e[tc] = f[tc] = h[tc] = i[tc] = pFrame[m_height * row - colors + tc];
+                  d[tc] = g[tc] = pFrame[m_romHeight * row - 2 * colors + tc];
+                  e[tc] = f[tc] = h[tc] = i[tc] = pFrame[m_romHeight * row - colors + tc];
                }
                else if (y == 0)
                {
@@ -613,7 +614,7 @@ int ZeDMD::Scale(uint8_t *pScaledFrame, uint8_t *pFrame, uint8_t colors, int *wi
                   g[tc] = h[tc] = pFrame[(x + 1) * row + tc];
                   i[tc] = pFrame[(x + 1) * row + colors + tc];
                }
-               else if (y == m_width - 1)
+               else if (y == m_romWidth - 1)
                {
                   a[tc] = pFrame[x * row - 2 * colors + tc];
                   b[tc] = c[tc] = pFrame[x * row - colors + tc];
@@ -631,7 +632,7 @@ int ZeDMD::Scale(uint8_t *pScaledFrame, uint8_t *pFrame, uint8_t colors, int *wi
                   h[tc] = pFrame[row + y * colors + tc];
                   i[tc] = pFrame[row + y * colors + colors + tc];
                }
-               else if (x == m_height - 1)
+               else if (x == m_romHeight - 1)
                {
                   a[tc] = pFrame[(x - 1) * row + y * colors - colors + tc];
                   b[tc] = pFrame[(x - 1) * row + y * colors + tc];
@@ -683,13 +684,13 @@ int ZeDMD::Scale(uint8_t *pScaledFrame, uint8_t *pFrame, uint8_t colors, int *wi
    }
    else // offset!=0
    {
-      for (int y = 0; y < m_height; y++)
+      for (int y = 0; y < m_romHeight; y++)
       {
-         for (int x = 0; x < m_width; x++)
+         for (int x = 0; x < m_romWidth; x++)
          {
             for (uint8_t c = 0; c < colors; c++)
             {
-               pScaledFrame[((yoffset + y) * frameWidth + xoffset + x) * colors + c] = pFrame[(y * m_width + x) * colors + c];
+               pScaledFrame[((yoffset + y) * frameWidth + xoffset + x) * colors + c] = pFrame[(y * m_romWidth + x) * colors + c];
             }
          }
       }

@@ -91,8 +91,8 @@ private:
 
    ZeDMDComm* m_pZeDMDComm;
 
-   int m_width;
-   int m_height;
+   int m_romWidth;
+   int m_romHeight;
 
    bool m_usb = false;
    bool m_wifi = false;
