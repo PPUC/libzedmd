@@ -15,12 +15,23 @@
 
 #if defined(_WIN32) || defined(_WIN64)
 #define ZEDMDAPI __declspec(dllexport)
+#define CALLBACK __stdcall
 #else
 #define ZEDMDAPI __attribute__ ((visibility ("default")))
+#define CALLBACK
 #endif
 
 #include <inttypes.h>
-#include "ZeDMDComm.h"
+#include <stdio.h>
+#include <stdarg.h>
+
+#ifdef __ANDROID__
+typedef void* (*ZeDMD_AndroidGetJNIEnvFunc)();
+#endif
+
+typedef void (CALLBACK *ZeDMD_LogMessageCallback)(const char* format, va_list args, const void* userData);
+
+class ZeDMDComm;
 
 class ZEDMDAPI ZeDMD
 {
@@ -28,16 +39,26 @@ public:
    ZeDMD();
    ~ZeDMD();
 
+#ifdef __ANDROID__
+   void SetAndroidGetJNIEnvFunc(ZeDMD_AndroidGetJNIEnvFunc func);
+#endif
+
+   void SetLogMessageCallback(ZeDMD_LogMessageCallback callback, const void* userData);
+
    void IgnoreDevice(const char *ignore_device);
    bool Open(int width, int height);
    bool Open();
 
    void SetFrameSize(uint8_t width, uint8_t height);
    void SetPalette(uint8_t *pPalette);
+   void SetPaletteWithRGB(int bitDepth, uint8_t r, uint8_t g, uint8_t b);
    void SetDefaultPalette(int bitDepth);
    uint8_t *GetDefaultPalette(int bitDepth);
    void EnableDebug();
    void DisableDebug();
+   void SetRGBOrder(int rgbOrder);
+   void SetBrightness(int brightness);
+   void SaveSettings();
    void EnablePreDownscaling();
    void DisablePreDownscaling();
    void EnablePreUpscaling();
@@ -52,14 +73,14 @@ public:
 
 private:
    bool UpdateFrameBuffer8(uint8_t *pFrame);
-   bool UpdateFrameBuffer24(uint8_t *PFNGLFRAMEBUFFERTEXTURE3DPROC);
+   bool UpdateFrameBuffer24(uint8_t *pFrame);
 
    void Split(uint8_t *planes, int width, int height, int bitlen, uint8_t *frame);
    bool CmpColor(uint8_t *px1, uint8_t *px2, uint8_t colors);
    void SetColor(uint8_t *px1, uint8_t *px2, uint8_t colors);
    int Scale(uint8_t *pScaledFrame, uint8_t *pFrame, uint8_t colors);
 
-   ZeDMDComm m_zedmdComm;
+   ZeDMDComm* m_pZeDMDComm;
 
    int m_width;
    int m_height;
@@ -79,8 +100,4 @@ private:
                                           89, 44, 0, 102, 51, 0, 115, 57, 0, 128, 64, 0,
                                           140, 70, 0, 153, 76, 0, 166, 83, 0, 179, 89, 0,
                                           191, 95, 0, 204, 102, 0, 230, 114, 0, 255, 127, 0};
-
-   bool m_debug = false;
-   int m_rgbOrder = -1;
-   int m_brightness = -1;
 };

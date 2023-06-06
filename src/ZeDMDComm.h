@@ -5,7 +5,15 @@
 #include <string>
 #include <inttypes.h>
 #include <mutex>
+#include <stdio.h>
+#include <stdarg.h>
 #include "SerialPort.h"
+
+#if defined(_WIN32) || defined(_WIN64)
+#define CALLBACK __stdcall
+#else
+#define CALLBACK
+#endif
 
 typedef enum
 {
@@ -71,6 +79,12 @@ struct ZeDMDFrame
 #define ZEDMD_FRAME_QUEUE_SIZE_DEFAULT 8
 #endif
 
+#ifdef __ANDROID__
+typedef void* (*ZeDMD_AndroidGetJNIEnvFunc)();
+#endif
+
+typedef void (CALLBACK *ZeDMD_LogMessageCallback)(const char* format, va_list args, const void* userData);
+
 class ZeDMDComm
 {
 public:
@@ -80,6 +94,12 @@ public:
 public:
    ZeDMDComm();
    ~ZeDMDComm();
+
+#ifdef __ANDROID__
+   void SetAndroidGetJNIEnvFunc(ZeDMD_AndroidGetJNIEnvFunc func);
+#endif
+
+   void SetLogMessageCallback(ZeDMD_LogMessageCallback callback, const void* userData);
 
    void IgnoreDevice(const char *ignore_device);
 
@@ -95,9 +115,14 @@ public:
    int GetHeight();
 
 private:
+   void LogMessage(const char* format, ...);
+
    bool Connect(char *pName);
    void Reset();
    bool StreamBytes(ZeDMDFrame *pFrame);
+
+   ZeDMD_LogMessageCallback m_logMessageCallback = nullptr;
+   const void* m_logMessageUserData = nullptr;
 
    int m_width = 128;
    int m_height = 32;

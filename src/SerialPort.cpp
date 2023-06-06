@@ -1,8 +1,11 @@
 #include "SerialPort.h"
 
-#ifdef __ANDROID__
-static jobject gSingletonInstance;
+#include <string.h>
 
+#ifdef __ANDROID__
+#include <jni.h>
+
+static jobject gSingletonInstance;
 static jmethodID gOpenMethod;
 static jmethodID gIsOpenMethod;
 static jmethodID gCloseMethod;
@@ -16,10 +19,12 @@ static jmethodID gReadBytesMethod;
 
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *pjvm, void *reserved)
 {
-   JNIEnv *env = (JNIEnv *)SDL_AndroidGetJNIEnv();
+   JNIEnv* env;
+   if (pjvm->GetEnv((void **)&env, JNI_VERSION_1_6) != JNI_OK)
+      return JNI_ERR;
 
-   jclass serialPortClass = env->FindClass("org/vpinball/app/SerialPort");
-   jmethodID getInstanceMethod = env->GetStaticMethodID(serialPortClass, "getInstance", "()Lorg/vpinball/app/SerialPort;");
+   jclass serialPortClass = env->FindClass("org/ppuc/zedmd/SerialPort");
+   jmethodID getInstanceMethod = env->GetStaticMethodID(serialPortClass, "getInstance", "()Lorg/ppuc/zedmd/SerialPort;");
    gSingletonInstance = env->NewGlobalRef(env->CallStaticObjectMethod(serialPortClass, getInstanceMethod));
 
    gOpenMethod = env->GetMethodID(serialPortClass, "open", "(IIII)Z");
@@ -36,6 +41,10 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *pjvm, void *reserved)
    return JNI_VERSION_1_6;
 }
 
+void SerialPort::SetAndroidGetJNIEnvFunc(AndroidGetJNIEnvFunc func)
+{
+   m_androidGetJNIEnvFunc = func;
+}
 #endif
 
 void SerialPort::SetReadTimeout(int timeout)
@@ -104,7 +113,7 @@ bool SerialPort::Open(const char *pDevice, int baudRate, int dataBits, int stopB
    }
    return (m_seriallib.openDevice(pDevice, baudRate, serialDataBits, serialParity, serialStopBits) == 1);
 #else
-   return ((JNIEnv *)SDL_AndroidGetJNIEnv())->CallBooleanMethod(gSingletonInstance, gOpenMethod, baudRate, dataBits, stopBits, parity);
+   return ((JNIEnv*)m_androidGetJNIEnvFunc())->CallBooleanMethod(gSingletonInstance, gOpenMethod, baudRate, dataBits, stopBits, parity);
 #endif
 }
 
@@ -113,7 +122,7 @@ bool SerialPort::IsOpen()
 #ifndef __ANDROID__
    return m_seriallib.isDeviceOpen();
 #else
-   return ((JNIEnv *)SDL_AndroidGetJNIEnv())->CallBooleanMethod(gSingletonInstance, gIsOpenMethod);
+   return ((JNIEnv*)m_androidGetJNIEnvFunc())->CallBooleanMethod(gSingletonInstance, gIsOpenMethod);
 #endif
 }
 
@@ -122,7 +131,7 @@ void SerialPort::Close()
 #ifndef __ANDROID__
    m_seriallib.closeDevice();
 #else
-   ((JNIEnv *)SDL_AndroidGetJNIEnv())->CallVoidMethod(gSingletonInstance, gCloseMethod);
+   ((JNIEnv*)m_androidGetJNIEnvFunc())->CallVoidMethod(gSingletonInstance, gCloseMethod);
 #endif
 }
 
@@ -131,7 +140,7 @@ int SerialPort::Available()
 #ifndef __ANDROID__
    return m_seriallib.available();
 #else
-   return ((JNIEnv *)SDL_AndroidGetJNIEnv())->CallIntMethod(gSingletonInstance, gAvailableMethod);
+   return ((JNIEnv*)m_androidGetJNIEnvFunc())->CallIntMethod(gSingletonInstance, gAvailableMethod);
 #endif
 }
 
@@ -140,7 +149,7 @@ void SerialPort::ClearDTR()
 #ifndef __ANDROID__
    m_seriallib.clearDTR();
 #else
-   ((JNIEnv *)SDL_AndroidGetJNIEnv())->CallVoidMethod(gSingletonInstance, gClearDTRMethod);
+   ((JNIEnv*)m_androidGetJNIEnvFunc())->CallVoidMethod(gSingletonInstance, gClearDTRMethod);
 #endif
 }
 
@@ -149,7 +158,7 @@ void SerialPort::SetDTR()
 #ifndef __ANDROID__
    m_seriallib.setDTR();
 #else
-   ((JNIEnv *)SDL_AndroidGetJNIEnv())->CallVoidMethod(gSingletonInstance, gSetDTRMethod);
+   ((JNIEnv*)m_androidGetJNIEnvFunc())->CallVoidMethod(gSingletonInstance, gSetDTRMethod);
 #endif
 }
 
@@ -158,7 +167,7 @@ void SerialPort::ClearRTS()
 #ifndef __ANDROID__
    m_seriallib.clearRTS();
 #else
-   ((JNIEnv *)SDL_AndroidGetJNIEnv())->CallVoidMethod(gSingletonInstance, gClearRTSMethod);
+   ((JNIEnv*)m_androidGetJNIEnvFunc())->CallVoidMethod(gSingletonInstance, gClearRTSMethod);
 #endif
 }
 
@@ -167,7 +176,7 @@ void SerialPort::SetRTS()
 #ifndef __ANDROID__
    m_seriallib.setRTS();
 #else
-   ((JNIEnv *)SDL_AndroidGetJNIEnv())->CallVoidMethod(gSingletonInstance, gSetRTSMethod);
+   ((JNIEnv*)m_androidGetJNIEnvFunc())->CallVoidMethod(gSingletonInstance, gSetRTSMethod);
 #endif
 }
 
@@ -176,7 +185,7 @@ int SerialPort::WriteBytes(uint8_t *pBytes, int size)
 #ifndef __ANDROID__
    return m_seriallib.writeBytes(pBytes, size);
 #else
-   JNIEnv *env = (JNIEnv *)SDL_AndroidGetJNIEnv();
+   JNIEnv* env = (JNIEnv*)m_androidGetJNIEnvFunc();
    jbyteArray jByteArray = env->NewByteArray(size);
    env->SetByteArrayRegion(jByteArray, 0, size, reinterpret_cast<const jbyte *>(pBytes));
    jint result = env->CallIntMethod(gSingletonInstance, gWriteBytesMethod, jByteArray, m_writeTimeout);
@@ -199,7 +208,7 @@ int SerialPort::ReadBytes(uint8_t *pBytes, int size)
 #ifndef __ANDROID__
    return m_seriallib.readBytes(pBytes, size, m_readTimeout);
 #else
-   JNIEnv *env = (JNIEnv *)SDL_AndroidGetJNIEnv();
+   JNIEnv* env = (JNIEnv*)m_androidGetJNIEnvFunc();
    jbyteArray jByteArray = env->NewByteArray(size);
    jint result = env->CallIntMethod(gSingletonInstance, gReadBytesMethod, jByteArray, m_readTimeout);
    jbyte *byteArrayData = env->GetByteArrayElements(jByteArray, NULL);

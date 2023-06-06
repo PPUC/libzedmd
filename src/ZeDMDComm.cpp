@@ -16,11 +16,35 @@ ZeDMDComm::~ZeDMDComm()
    }
 }
 
+#ifdef __ANDROID__
+void ZeDMDComm::SetAndroidGetJNIEnvFunc(ZeDMD_AndroidGetJNIEnvFunc func)
+{
+   m_serialPort.SetAndroidGetJNIEnvFunc(func);
+}
+#endif
+
+void ZeDMDComm::SetLogMessageCallback(ZeDMD_LogMessageCallback callback, const void* userData)
+{
+    m_logMessageCallback = callback;
+    m_logMessageUserData = userData;
+}
+
+void ZeDMDComm::LogMessage(const char* format, ...)
+{
+   if (!m_logMessageCallback)
+      return;
+
+   va_list args;
+   va_start(args, format);
+   (*(m_logMessageCallback))(format, args, m_logMessageUserData);
+   va_end(args);
+}
+
 void ZeDMDComm::Run()
 {
    m_pThread = new std::thread([this]()
                                {
-                                  // PLOGI.printf("ZeDMD run thread starting");
+                                  LogMessage("ZeDMD run thread starting");
 
                                   bool sleep = false;
                                   int maxQueuedFrames = ZEDMD_FRAME_QUEUE_SIZE_MAX;
@@ -107,7 +131,7 @@ void ZeDMDComm::Run()
                                      m_frameQueueMutex.unlock();
                                   }
 
-                                  // PLOGI.printf("ZeDMD run thread finished");
+                                  LogMessage("ZeDMD run thread finished");
                                });
 }
 
@@ -206,14 +230,20 @@ bool ZeDMDComm::Connect(char *pDevice)
 
    uint8_t data[8] = {0};
 
-   // Androis in general bu also ZeDMD HD require some time after opening the device.
+   // Android in general but also ZeDMD HD require some time after opening the device.
    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
    // ESP32 sends some information about itself before we could use the line.
    while (m_serialPort.Available() > 0)
-   {
       m_serialPort.ReadBytes(data, 8);
-   }
+
+#ifdef __ANDROID__
+   // Android returns a large buffer of 80 and 00, so wait and read again to clear
+   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+   while (m_serialPort.Available() > 0)
+      m_serialPort.ReadBytes(data, 8);
+#endif
 
    m_serialPort.WriteBytes((uint8_t *)CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
    m_serialPort.WriteChar(ZEDMD_COMMAND::Handshake);
@@ -253,11 +283,11 @@ bool ZeDMDComm::Connect(char *pDevice)
 
                      if (pDevice)
                      {
-                        // PLOGI.printf("ZeDMD found: device=%s, width=%d, height=%d", pDevice->c_str(), width, height);
+                        LogMessage("ZeDMD found: device=%s, width=%d, height=%d", pDevice, m_width, m_height);
                      }
                      else
                      {
-                        // PLOGI.printf("ZeDMD found: width=%d, height=%d", width, height);
+                        LogMessage("ZeDMD found: width=%d, height=%d", m_width, m_height);
                      }
 
                      return true;
@@ -327,7 +357,6 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame *pFrame)
          m_serialPort.WriteBytes(data + position, ((size - position) < ZEDMD_MAX_SERIAL_WRITE_AT_ONCE) ? (size - position) : ZEDMD_MAX_SERIAL_WRITE_AT_ONCE);
 
          uint8_t response;
-         ;
          do
          {
             response = m_serialPort.ReadByte();
@@ -338,8 +367,7 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame *pFrame)
          else
          {
             success = false;
-
-            // PLOGE.printf("Write bytes failure: response=%c", response);
+            LogMessage("Write bytes failure: response=%c", response);
          }
       }
 
@@ -354,7 +382,7 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame *pFrame)
    }
    else
    {
-      // printf("No Ready Signal\n");
+      LogMessage("No Ready Signal");
    }
 
    free(data);
