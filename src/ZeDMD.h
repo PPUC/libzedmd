@@ -24,6 +24,13 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
 
 #ifdef __ANDROID__
 typedef void* (*ZeDMD_AndroidGetJNIEnvFunc)();
@@ -48,6 +55,7 @@ public:
    void IgnoreDevice(const char *ignore_device);
    bool Open(int width, int height);
    bool Open();
+   bool OpenWiFi(const char *ip, int port);
 
    void SetFrameSize(uint8_t width, uint8_t height);
    void SetPalette(uint8_t *pPalette);
@@ -76,20 +84,23 @@ private:
    bool UpdateFrameBuffer24(uint8_t *pFrame);
 
    void Split(uint8_t *planes, int width, int height, int bitlen, uint8_t *frame);
+   void ConvertToRgb24(uint8_t *pFrameRgb24, uint8_t *pFrame, int size);
    bool CmpColor(uint8_t *px1, uint8_t *px2, uint8_t colors);
    void SetColor(uint8_t *px1, uint8_t *px2, uint8_t colors);
-   int Scale(uint8_t *pScaledFrame, uint8_t *pFrame, uint8_t colors);
+   int Scale(uint8_t *pScaledFrame, uint8_t *pFrame, uint8_t colors, int *width, int *height);
 
    ZeDMDComm* m_pZeDMDComm;
 
    int m_width;
    int m_height;
 
-   bool m_available;
+   bool m_usb = false;
+   bool m_wifi = false;
    bool m_downscaling = true;
    bool m_upscaling = true;
 
    uint8_t *m_pFrameBuffer;
+   uint8_t *m_pPreviousFrameBuffer;
    uint8_t *m_pScaledFrameBuffer;
    uint8_t *m_pCommandBuffer;
    uint8_t *m_pPlanes;
@@ -100,4 +111,6 @@ private:
                                           89, 44, 0, 102, 51, 0, 115, 57, 0, 128, 64, 0,
                                           140, 70, 0, 153, 76, 0, 166, 83, 0, 179, 89, 0,
                                           191, 95, 0, 204, 102, 0, 230, 114, 0, 255, 127, 0};
+   int m_wifiSocket;
+	struct sockaddr_in m_wifiServer;
 };
