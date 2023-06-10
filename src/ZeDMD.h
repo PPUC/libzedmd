@@ -56,6 +56,7 @@ public:
    bool Open(int width, int height);
    bool Open();
    bool OpenWiFi(const char *ip, int port);
+   void Close();
 
    void SetFrameSize(uint8_t width, uint8_t height);
    void SetPalette(uint8_t *pPalette);

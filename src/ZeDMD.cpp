@@ -51,10 +51,10 @@ void ZeDMD::SetAndroidGetJNIEnvFunc(ZeDMD_AndroidGetJNIEnvFunc func)
 }
 #endif
 
-bool ZeDMD::OpenWiFi(const char *ip, int port) {
-   if ( (m_wifiSocket = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
-		return false;
-	}
+bool ZeDMD::OpenWiFi(const char *ip, int port)
+{
+   if ( (m_wifiSocket = socket(AF_INET, SOCK_DGRAM, 0)) < 0 )
+      return false;
 
    m_wifiServer.sin_family      = AF_INET;
    m_wifiServer.sin_port        = htons(port);
@@ -71,6 +71,11 @@ bool ZeDMD::OpenWiFi(const char *ip, int port) {
    memset(m_pPreviousFrameBuffer, 255, ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
 
    return true;
+}
+
+void ZeDMD::Close()
+{
+   m_pZeDMDComm->Disconnect();
 }
 
 void ZeDMD::IgnoreDevice(const char *ignore_device)
