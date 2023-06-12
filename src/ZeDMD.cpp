@@ -1,6 +1,6 @@
 #include "ZeDMD.h"
 #include "ZeDMDComm.h"
-#include "miniz/miniz.h"
+#include "ZeDMDWiFi.h"
 
 ZeDMD::ZeDMD()
 {
@@ -10,12 +10,12 @@ ZeDMD::ZeDMD()
    memset(&m_palette, 0, sizeof(m_palette));
 
    m_pFrameBuffer = NULL;
-   m_pPreviousFrameBuffer = NULL;
    m_pScaledFrameBuffer = NULL;
    m_pCommandBuffer = NULL;
    m_pPlanes = NULL;
 
    m_pZeDMDComm = new ZeDMDComm();
+   m_pZeDMDWiFi = new ZeDMDWiFi();
 }
 
 ZeDMD::~ZeDMD()
@@ -23,11 +23,11 @@ ZeDMD::~ZeDMD()
    m_pZeDMDComm->Disconnect();
    free(m_pZeDMDComm);
 
+   m_pZeDMDWiFi->Disconnect();
+   free(m_pZeDMDWiFi);
+
    if (m_pFrameBuffer)
       delete m_pFrameBuffer;
-
-   if (m_pPreviousFrameBuffer)
-      delete m_pPreviousFrameBuffer;
 
    if (m_pScaledFrameBuffer)
       delete m_pScaledFrameBuffer;
@@ -42,6 +42,7 @@ ZeDMD::~ZeDMD()
 void ZeDMD::SetLogMessageCallback(ZeDMD_LogMessageCallback callback, const void* userData)
 {
    m_pZeDMDComm->SetLogMessageCallback(callback, userData);
+   m_pZeDMDWiFi->SetLogMessageCallback(callback, userData);
 }
 
 #ifdef __ANDROID__
@@ -50,28 +51,6 @@ void ZeDMD::SetAndroidGetJNIEnvFunc(ZeDMD_AndroidGetJNIEnvFunc func)
    m_pZeDMDComm->SetAndroidGetJNIEnvFunc(func);
 }
 #endif
-
-bool ZeDMD::OpenWiFi(const char *ip, int port) {
-   if ( (m_wifiSocket = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
-		return false;
-	}
-
-   m_wifiServer.sin_family      = AF_INET;
-   m_wifiServer.sin_port        = htons(port);
-   m_wifiServer.sin_addr.s_addr = inet_addr(ip);
-
-   m_wifi = true;
-
-   m_pFrameBuffer = (uint8_t *)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
-   m_pPreviousFrameBuffer = (uint8_t *)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
-   m_pScaledFrameBuffer = (uint8_t *)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
-   m_pCommandBuffer = (uint8_t *)malloc(ZEDMD_MAX_WIDTH * 4 + 1);
-   m_pPlanes = (uint8_t *)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
-
-   memset(m_pPreviousFrameBuffer, 255, ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
-
-   return true;
-}
 
 void ZeDMD::IgnoreDevice(const char *ignore_device)
 {
@@ -105,33 +84,33 @@ void ZeDMD::SetFrameSize(uint8_t width, uint8_t height)
          size[3] = (uint8_t)((height >> 8) & 0xFF);
       }
 
-      m_pZeDMDComm->QueueCommand(ZEDMD_COMMAND::FrameSize, size, 4);
+      m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::FrameSize, size, 4);
    }
 }
 
 void ZeDMD::EnableDebug()
 {
-   m_pZeDMDComm->QueueCommand(ZEDMD_COMMAND::EnableDebug);
+   m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::EnableDebug);
 }
 
 void ZeDMD::DisableDebug()
 {
-   m_pZeDMDComm->QueueCommand(ZEDMD_COMMAND::DisableDebug);
+   m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::DisableDebug);
 }
 
 void ZeDMD::SetRGBOrder(int rgbOrder)
 {
-   m_pZeDMDComm->QueueCommand(ZEDMD_COMMAND::RGBOrder, rgbOrder);
+   m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGBOrder, rgbOrder);
 }
 
 void ZeDMD::SetBrightness(int brightness)
 {
-   m_pZeDMDComm->QueueCommand(ZEDMD_COMMAND::Brightness, brightness);
+   m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::Brightness, brightness);
 }
 
 void ZeDMD::SaveSettings()
 {
-   m_pZeDMDComm->QueueCommand(ZEDMD_COMMAND::SaveSettings);
+   m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SaveSettings);
 }
 
 void ZeDMD::EnablePreDownscaling()
@@ -156,19 +135,37 @@ void ZeDMD::DisablePreUpscaling()
 
 void ZeDMD::EnableUpscaling()
 {
-   m_pZeDMDComm->QueueCommand(ZEDMD_COMMAND::EnableUpscaling);
+   m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::EnableUpscaling);
 }
 
 void ZeDMD::DisableUpscaling()
 {
-   m_pZeDMDComm->QueueCommand(ZEDMD_COMMAND::DisableUpscaling);
+   m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::DisableUpscaling);
+}
+
+bool ZeDMD::OpenWiFi(const char *ip, int port) {
+   m_wifi = m_pZeDMDWiFi->Connect(ip, port);
+
+   // @todo allow parallel mode for USB commands
+   if (m_wifi && !m_usb)
+   {
+      m_pFrameBuffer = (uint8_t *)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
+      m_pScaledFrameBuffer = (uint8_t *)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
+      m_pCommandBuffer = (uint8_t *)malloc(ZEDMD_MAX_WIDTH * 4 + 1);
+      m_pPlanes = (uint8_t *)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
+
+      m_pZeDMDWiFi->Run();
+   }
+
+   return m_wifi;
 }
 
 bool ZeDMD::Open()
 {
    m_usb = m_pZeDMDComm->Connect();
 
-   if (m_usb)
+   // @todo allow parallel connection for USB commands
+   if (m_usb && !m_wifi)
    {
       m_pFrameBuffer = (uint8_t *)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
       m_pScaledFrameBuffer = (uint8_t *)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
@@ -241,7 +238,11 @@ void ZeDMD::RenderGray2(uint8_t *pFrame)
       memcpy(m_pCommandBuffer, &m_palette, 12);
       memcpy(m_pCommandBuffer + 12, m_pPlanes, bufferSize);
 
-      m_pZeDMDComm->QueueCommand(ZEDMD_COMMAND::Gray2, m_pCommandBuffer, 12 + bufferSize);
+      m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::Gray2, m_pCommandBuffer, 12 + bufferSize);
+   }
+   else if (m_wifi) {
+      ConvertToRgb24(m_pPlanes, m_pScaledFrameBuffer, bufferSize);
+      m_pZeDMDWiFi->QueueCommand(ZEDMD_WIFI_COMMAND::UDP_RGB24, m_pPlanes, bufferSize * 3, width, height);
    }
 }
 
@@ -260,12 +261,12 @@ void ZeDMD::RenderGray4(uint8_t *pFrame)
    memcpy(m_pCommandBuffer, m_palette, 48);
    memcpy(m_pCommandBuffer + 48, m_pPlanes, bufferSize);
 
-   m_pZeDMDComm->QueueCommand(ZEDMD_COMMAND::ColGray4, m_pCommandBuffer, 48 + bufferSize);
+   m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::ColGray4, m_pCommandBuffer, 48 + bufferSize);
 }
 
 void ZeDMD::RenderColoredGray6(uint8_t *pFrame, uint8_t *pPalette, uint8_t *pRotations)
 {
-   if (!m_usb)
+   if (!m_usb && !m_wifi)
       return;
 
    bool change = UpdateFrameBuffer8(pFrame);
@@ -282,18 +283,26 @@ void ZeDMD::RenderColoredGray6(uint8_t *pFrame, uint8_t *pPalette, uint8_t *pRot
    int width;
    int height;
 
-   int bufferSize = Scale(m_pScaledFrameBuffer, m_pFrameBuffer, 1, &width, &height) / 8 * 6;
-   Split(m_pPlanes, width, height, 6, m_pScaledFrameBuffer);
+   int bufferSize = Scale(m_pScaledFrameBuffer, m_pFrameBuffer, 1, &width, &height);
+   if (m_usb) {
+      Split(m_pPlanes, width, height, 6, m_pScaledFrameBuffer);
 
-   memcpy(m_pCommandBuffer, pPalette, 192);
-   memcpy(m_pCommandBuffer + 192, m_pPlanes, bufferSize);
+      int bufferSize = bufferSize / 8 * 6;
 
-   if (pRotations)
-      memcpy(m_pCommandBuffer + 192 + bufferSize, pRotations, 24);
-   else
-      memset(m_pCommandBuffer + 192 + bufferSize, 255, 24);
+      memcpy(m_pCommandBuffer, pPalette, 192);
+      memcpy(m_pCommandBuffer + 192, m_pPlanes, bufferSize);
 
-   m_pZeDMDComm->QueueCommand(ZEDMD_COMMAND::ColGray6, m_pCommandBuffer, 192 + bufferSize + 24);
+      if (pRotations)
+         memcpy(m_pCommandBuffer + 192 + bufferSize, pRotations, 24);
+      else
+         memset(m_pCommandBuffer + 192 + bufferSize, 255, 24);
+
+      m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::ColGray6, m_pCommandBuffer, 192 + bufferSize + 24);
+   }
+   else if (m_wifi) {
+      ConvertToRgb24(m_pPlanes, m_pScaledFrameBuffer, bufferSize, pPalette);
+      m_pZeDMDWiFi->QueueCommand(ZEDMD_WIFI_COMMAND::UDP_RGB24, m_pPlanes, bufferSize * 3, width, height);
+   }
 }
 
 void ZeDMD::RenderRgb24(uint8_t *pFrame)
@@ -306,7 +315,12 @@ void ZeDMD::RenderRgb24(uint8_t *pFrame)
 
    int bufferSize = Scale(m_pCommandBuffer, pFrame, 3, &width, &height);
 
-   m_pZeDMDComm->QueueCommand(ZEDMD_COMMAND::RGB24, m_pFrameBuffer, bufferSize);
+   if (m_usb) {
+      m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB24, m_pFrameBuffer, bufferSize);
+   }
+   else if (m_wifi) {
+      m_pZeDMDWiFi->QueueCommand(ZEDMD_WIFI_COMMAND::UDP_RGB24, m_pFrameBuffer, bufferSize, width, height);
+   }
 }
 
 bool ZeDMD::UpdateFrameBuffer8(uint8_t *pFrame)
@@ -368,6 +382,13 @@ void ZeDMD::ConvertToRgb24(uint8_t *pFrameRgb24, uint8_t *pFrame, int size)
 {
    for (int i = 0; i < size; i++) {
       memcpy(&pFrameRgb24[i * 3], &m_palette[pFrame[i] * 3], 3);
+   }
+}
+
+void ZeDMD::ConvertToRgb24(uint8_t *pFrameRgb24, uint8_t *pFrame, int size, uint8_t *pPalette)
+{
+   for (int i = 0; i < size; i++) {
+      memcpy(&pFrameRgb24[i * 3], &pPalette[pFrame[i] * 3], 3);
    }
 }
 

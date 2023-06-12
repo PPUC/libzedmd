@@ -71,6 +71,8 @@ set(LIBRARY_SOURCES
    src/SerialPort.cpp
    src/ZeDMDComm.h
    src/ZeDMDComm.cpp
+   src/ZeDMDWiFi.h
+   src/ZeDMDWiFi.cpp
    src/ZeDMD.h
    src/ZeDMD.cpp
 )
