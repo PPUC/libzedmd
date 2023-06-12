@@ -52,6 +52,12 @@ void ZeDMD::SetAndroidGetJNIEnvFunc(ZeDMD_AndroidGetJNIEnvFunc func)
 }
 #endif
 
+void ZeDMD::Close()
+{
+   m_pZeDMDComm->Disconnect();
+   m_pZeDMDWiFi->Disconnect();
+}
+
 void ZeDMD::IgnoreDevice(const char *ignore_device)
 {
    if (m_usb) {
