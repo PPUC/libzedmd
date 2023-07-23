@@ -63,6 +63,7 @@ public:
    void SetPaletteWithRGB(int bitDepth, uint8_t r, uint8_t g, uint8_t b);
    void SetDefaultPalette(int bitDepth);
    uint8_t *GetDefaultPalette(int bitDepth);
+   void LedTest();
    void EnableDebug();
    void DisableDebug();
    void SetRGBOrder(int rgbOrder);
