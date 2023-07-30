@@ -23,6 +23,7 @@ typedef enum
    Compression = 0x0e,
    EnableCompression = 0x0e,
    DisableCompression = 0x0f,
+   LEDTest = 0x10,
    EnableUpscaling = 0x14,
    DisableUpscaling = 0x15,
    Brightness = 0x16,
