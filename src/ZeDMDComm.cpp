@@ -44,10 +44,10 @@ void ZeDMDComm::Run()
 {
    m_pThread = new std::thread([this]()
                                {
-                                  LogMessage("ZeDMD run thread starting");
+                                  LogMessage("ZeDMDComm run thread starting");
 
                                   bool sleep = false;
-                                  int maxQueuedFrames = ZEDMD_FRAME_QUEUE_SIZE_MAX;
+                                  int maxQueuedFrames = ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX;
 
                                   while (m_serialPort.IsOpen())
                                   {
@@ -63,33 +63,33 @@ void ZeDMDComm::Run()
                                      ZeDMDFrame frame = m_frames.front();
                                      m_frames.pop();
                                      m_frameQueueMutex.unlock();
-                                     if (frame.size < ZEDMD_FRAME_SIZE_COMMAND_LIMIT)
+                                     if (frame.size < ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT)
                                      {
                                         sleep = false;
-                                        maxQueuedFrames = ZEDMD_FRAME_QUEUE_SIZE_MAX;
+                                        maxQueuedFrames = ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX;
                                      }
-                                     else if (frame.size > ZEDMD_FRAME_SIZE_SLOW_THRESHOLD)
+                                     else if (frame.size > ZEDMD_COMM_FRAME_SIZE_SLOW_THRESHOLD)
                                      {
                                         // For 128x32 RGB24 we just limit the amount of queued frames.
                                         // For 256x64 Content we must also slow down the frequency.
                                         if (m_width == 256)
                                         {
                                            sleep = false;
-                                           maxQueuedFrames = ZEDMD_FRAME_QUEUE_SIZE_MAX;
+                                           maxQueuedFrames = ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX;
                                         }
                                         else
                                         {
                                            sleep = false;
-                                           maxQueuedFrames = ZEDMD_FRAME_QUEUE_SIZE_SLOW;
+                                           maxQueuedFrames = ZEDMD_COMM_FRAME_QUEUE_SIZE_SLOW;
                                         }
                                      }
                                      else
                                      {
-                                        maxQueuedFrames = ZEDMD_FRAME_QUEUE_SIZE_DEFAULT;
+                                        maxQueuedFrames = ZEDMD_COMM_FRAME_QUEUE_SIZE_DEFAULT;
                                      }
 
                                      bool success = StreamBytes(&frame);
-                                     if (!success && frame.size < ZEDMD_FRAME_SIZE_COMMAND_LIMIT)
+                                     if (!success && frame.size < ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT)
                                      {
                                         // Try to send the command again, in case the the wait for the (R)eady signal ran into a timeout.
                                         success = StreamBytes(&frame);
@@ -111,7 +111,7 @@ void ZeDMDComm::Run()
                                      {
                                         frame = m_frames.front();
                                         m_frames.pop();
-                                        if (frame.size < ZEDMD_FRAME_SIZE_COMMAND_LIMIT)
+                                        if (frame.size < ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT)
                                         {
                                            while (m_frames.size() > 0)
                                            {
@@ -131,7 +131,7 @@ void ZeDMDComm::Run()
                                      m_frameQueueMutex.unlock();
                                   }
 
-                                  LogMessage("ZeDMD run thread finished");
+                                  LogMessage("ZeDMDComm run thread finished");
                                });
 }
 
@@ -220,10 +220,10 @@ void ZeDMDComm::Disconnect()
 
 bool ZeDMDComm::Connect(char *pDevice)
 {
-   m_serialPort.SetReadTimeout(ZEDMD_SERIAL_READ_TIMEOUT);
-   m_serialPort.SetWriteTimeout(ZEDMD_SERIAL_WRITE_TIMEOUT);
+   m_serialPort.SetReadTimeout(ZEDMD_COMM_SERIAL_READ_TIMEOUT);
+   m_serialPort.SetWriteTimeout(ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
 
-   if (m_serialPort.Open(pDevice, ZEDMD_BAUD_RATE, 8, 1, 0) != 1)
+   if (m_serialPort.Open(pDevice, ZEDMD_COMM_BAUD_RATE, 8, 1, 0) != 1)
       return false;
 
    Reset();
@@ -246,7 +246,7 @@ bool ZeDMDComm::Connect(char *pDevice)
 #endif
 
    m_serialPort.WriteBytes((uint8_t *)CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
-   m_serialPort.WriteChar(ZEDMD_COMMAND::Handshake);
+   m_serialPort.WriteChar(ZEDMD_COMM_COMMAND::Handshake);
    std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
    if (m_serialPort.ReadBytes(data, 8))
@@ -261,20 +261,20 @@ bool ZeDMDComm::Connect(char *pDevice)
          if (m_serialPort.ReadByte() == 'R')
          {
             m_serialPort.WriteBytes((uint8_t *)CTRL_CHARS_HEADER, 6);
-            m_serialPort.WriteChar(ZEDMD_COMMAND::Compression);
+            m_serialPort.WriteChar(ZEDMD_COMM_COMMAND::Compression);
             std::this_thread::sleep_for(std::chrono::milliseconds(4));
 
             if (m_serialPort.ReadByte() == 'A' && m_serialPort.ReadByte() == 'R')
             {
                m_serialPort.WriteBytes((uint8_t *)CTRL_CHARS_HEADER, 6);
-               m_serialPort.WriteChar(ZEDMD_COMMAND::Chunk);
-               m_serialPort.WriteChar(ZEDMD_MAX_SERIAL_WRITE_AT_ONCE / 256);
+               m_serialPort.WriteChar(ZEDMD_COMM_COMMAND::Chunk);
+               m_serialPort.WriteChar(ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE / 256);
                std::this_thread::sleep_for(std::chrono::milliseconds(4));
 
                if (m_serialPort.ReadByte() == 'A' && m_serialPort.ReadByte() == 'R')
                {
                   m_serialPort.WriteBytes((uint8_t *)CTRL_CHARS_HEADER, 6);
-                  m_serialPort.WriteChar(ZEDMD_COMMAND::EnableFlowControlV2);
+                  m_serialPort.WriteChar(ZEDMD_COMM_COMMAND::EnableFlowControlV2);
                   std::this_thread::sleep_for(std::chrono::milliseconds(4));
 
                   if (m_serialPort.ReadByte() == 'A')
@@ -354,7 +354,7 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame *pFrame)
 
       while (position < size && success)
       {
-         m_serialPort.WriteBytes(data + position, ((size - position) < ZEDMD_MAX_SERIAL_WRITE_AT_ONCE) ? (size - position) : ZEDMD_MAX_SERIAL_WRITE_AT_ONCE);
+         m_serialPort.WriteBytes(data + position, ((size - position) < ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE) ? (size - position) : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
 
          uint8_t response;
          do
@@ -363,7 +363,7 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame *pFrame)
          } while (response == flowControlCounter);
 
          if (response == 'A')
-            position += ZEDMD_MAX_SERIAL_WRITE_AT_ONCE;
+            position += ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE;
          else
          {
             success = false;
