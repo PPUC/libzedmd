@@ -96,7 +96,7 @@ void ZeDMD::SetFrameSize(uint8_t width, uint8_t height)
 
 void ZeDMD::LedTest()
 {
-    m_pZeDMDComm->QueueCommand(ZEDMD_COMMAND::LEDTest);
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::LEDTest);
 }
 
 void ZeDMD::EnableDebug()
