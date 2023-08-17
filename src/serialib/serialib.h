@@ -34,7 +34,8 @@ This is a licence-free software, it can be used by anyone who try to build a bet
     #define NO_POSIX_TIME
 #endif
     // Accessing to the serial port under Windows
-    #include <windows.h>
+#define _WINSOCKAPI_ // to avoid winsock2 problems
+#include <windows.h>
 #endif
 
 // Include for Linux

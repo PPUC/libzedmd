@@ -3062,6 +3062,7 @@ extern "C" {
 #if defined(_MSC_VER) || defined(__MINGW64__)
 
 #define WIN32_LEAN_AND_MEAN
+#define _WINSOCKAPI_ // to avoid winsock2 problems
 #include <windows.h>
 
 static WCHAR* mz_utf8z_to_widechar(const char* str)
