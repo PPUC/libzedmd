@@ -4,24 +4,24 @@
  * Please add functionality as needed.
  * https://stackoverflow.com/a/826027/1202830
  */
-//#if defined(_WIN32) || defined(_WIN64)
+// #if defined(_WIN32) || defined(_WIN64)
 
 #include <stdlib.h>
 #include <io.h>
 #include <string.h>
 #include <stdio.h>
 #include <process.h> /* for getpid() and the exec..() family */
-#include <direct.h> /* for _getcwd() and _chdir() */
+#include <direct.h>	 /* for _getcwd() and _chdir() */
 
 #define srandom srand
 #define random rand
 
- /* Values for the second argument to access.
-	These may be OR'd together.  */
-#define R_OK    4       /* Test for read permission.  */
-#define W_OK    2       /* Test for write permission.  */
-	//#define   X_OK    1       /* execute permission - unsupported in windows*/
-#define F_OK    0       /* Test for existence.  */
+/* Values for the second argument to access.
+   These may be OR'd together.  */
+#define R_OK 4 /* Test for read permission.  */
+#define W_OK 2 /* Test for write permission.  */
+			   // #define   X_OK    1       /* execute permission - unsupported in windows*/
+#define F_OK 0 /* Test for existence.  */
 
 #define access _access
 #define dup2 _dup2
@@ -53,6 +53,6 @@ typedef unsigned __int8   uint8_t;
 typedef unsigned __int16  uint16_t;
 typedef unsigned __int32  uint32_t;
 typedef unsigned __int64  uint64_t;*/
-int getopt(int nargc, char* const nargv[], const char* ostr);
+int getopt(int nargc, char *const nargv[], const char *ostr);
 
-//#endif 
+// #endif
