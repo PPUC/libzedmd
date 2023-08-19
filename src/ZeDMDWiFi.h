@@ -2,10 +2,8 @@
 
 #if defined(_WIN32) || defined(_WIN64)
 #include <winsock2.h>
-#include "WinUnistd.h"
 #define CALLBACK __stdcall
 #else
-#include <unistd.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
