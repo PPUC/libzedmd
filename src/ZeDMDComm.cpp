@@ -23,13 +23,13 @@ void ZeDMDComm::SetAndroidGetJNIEnvFunc(ZeDMD_AndroidGetJNIEnvFunc func)
 }
 #endif
 
-void ZeDMDComm::SetLogMessageCallback(ZeDMD_LogMessageCallback callback, const void* userData)
+void ZeDMDComm::SetLogMessageCallback(ZeDMD_LogMessageCallback callback, const void *userData)
 {
-    m_logMessageCallback = callback;
-    m_logMessageUserData = userData;
+   m_logMessageCallback = callback;
+   m_logMessageUserData = userData;
 }
 
-void ZeDMDComm::LogMessage(const char* format, ...)
+void ZeDMDComm::LogMessage(const char *format, ...)
 {
    if (!m_logMessageCallback)
       return;
@@ -131,8 +131,7 @@ void ZeDMDComm::Run()
                                      m_frameQueueMutex.unlock();
                                   }
 
-                                  LogMessage("ZeDMDComm run thread finished");
-                               });
+                                  LogMessage("ZeDMDComm run thread finished"); });
 }
 
 void ZeDMDComm::QueueCommand(char command, uint8_t *data, int size)

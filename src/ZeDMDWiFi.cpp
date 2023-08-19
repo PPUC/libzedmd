@@ -16,13 +16,13 @@ ZeDMDWiFi::~ZeDMDWiFi()
    }
 }
 
-void ZeDMDWiFi::SetLogMessageCallback(ZeDMD_LogMessageCallback callback, const void* userData)
+void ZeDMDWiFi::SetLogMessageCallback(ZeDMD_LogMessageCallback callback, const void *userData)
 {
-    m_logMessageCallback = callback;
-    m_logMessageUserData = userData;
+   m_logMessageCallback = callback;
+   m_logMessageUserData = userData;
 }
 
-void ZeDMDWiFi::LogMessage(const char* format, ...)
+void ZeDMDWiFi::LogMessage(const char *format, ...)
 {
    if (!m_logMessageCallback)
       return;
@@ -124,8 +124,7 @@ void ZeDMDWiFi::Run()
                                      m_frameQueueMutex.unlock();
                                   }
 
-                                  LogMessage("ZeDMDWiFi run thread finished");
-                               });
+                                  LogMessage("ZeDMDWiFi run thread finished"); });
 }
 
 void ZeDMDWiFi::QueueCommand(char command, uint8_t *data, int size, int width, uint8_t height)
@@ -157,13 +156,15 @@ void ZeDMDWiFi::QueueCommand(char command)
    QueueCommand(command, NULL, 0, 0, 0);
 }
 
-bool ZeDMDWiFi::Connect(const char *ip, int port) {
-   if ( (m_wifiSocket = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
-		return false;
-	}
+bool ZeDMDWiFi::Connect(const char *ip, int port)
+{
+   if ((m_wifiSocket = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
+   {
+      return false;
+   }
 
-   m_wifiServer.sin_family      = AF_INET;
-   m_wifiServer.sin_port        = htons(port);
+   m_wifiServer.sin_family = AF_INET;
+   m_wifiServer.sin_port = htons(port);
    m_wifiServer.sin_addr.s_addr = inet_addr(ip);
 
    return true;
@@ -186,31 +187,35 @@ bool ZeDMDWiFi::StreamBytes(ZeDMDWiFiFrame *pFrame)
    uint8_t *data = (uint8_t *)malloc(pFrame->size + 3);
 
    data[0] = pFrame->command; // command
-   //data[1] = 128 | m_frameCounter; // compressed + frameCounter
+   // data[1] = 128 | m_frameCounter; // compressed + frameCounter
    data[1] = m_frameCounter; // compressed + frameCounter
 
-   for (uint8_t y = 0; y <  pFrame->height; y++) {
-      if (pFrame->command != m_previousFrame.command || pFrame->width != m_previousFrame.width || pFrame->height != m_previousFrame.height || 0 != memcmp(pFrame->data + (y *  pFrame->width * 3), &(m_previousFrame.data[y * pFrame->width]), pFrame->width * 3)) {
+   for (uint8_t y = 0; y < pFrame->height; y++)
+   {
+      if (pFrame->command != m_previousFrame.command || pFrame->width != m_previousFrame.width || pFrame->height != m_previousFrame.height || 0 != memcmp(pFrame->data + (y * pFrame->width * 3), &(m_previousFrame.data[y * pFrame->width]), pFrame->width * 3))
+      {
          data[2] = y;
 
-         memcpy(&data[3], pFrame->data + (y *  pFrame->width * 3),  pFrame->width * 3);
-         sendto(m_wifiSocket, data,  pFrame->width * 3 + 3, 0, (struct sockaddr *)&m_wifiServer, sizeof(m_wifiServer));
+         memcpy(&data[3], pFrame->data + (y * pFrame->width * 3), pFrame->width * 3);
+         sendto(m_wifiSocket, data, pFrame->width * 3 + 3, 0, (struct sockaddr *)&m_wifiServer, sizeof(m_wifiServer));
 
-         //mz_ulong compressedSize = width * 3;
-         //int status = mz_compress(&data[3], &compressedSize, pFrame->data + (y * width * 3), width * 3);
+         // mz_ulong compressedSize = width * 3;
+         // int status = mz_compress(&data[3], &compressedSize, pFrame->data + (y * width * 3), width * 3);
 
-         //if (status == MZ_OK) {
-            //sendto(m_wifiSocket, data, compressedSize + 3, 0, (struct sockaddr *)&m_wifiServer, sizeof(m_wifiServer));
+         // if (status == MZ_OK) {
+         // sendto(m_wifiSocket, data, compressedSize + 3, 0, (struct sockaddr *)&m_wifiServer, sizeof(m_wifiServer));
          //}
       }
    }
 
    data[1] = 64 + (m_frameCounter++);
-   if (m_frameCounter >= 64) {
+   if (m_frameCounter >= 64)
+   {
       m_frameCounter = 0;
    }
 
-   for (int i = 0; i < 3; i++) {
+   for (int i = 0; i < 3; i++)
+   {
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
       sendto(m_wifiSocket, data, 2, 0, (struct sockaddr *)&m_wifiServer, sizeof(m_wifiServer));
    }
@@ -223,7 +228,7 @@ bool ZeDMDWiFi::StreamBytes(ZeDMDWiFiFrame *pFrame)
    m_previousFrame.data = (uint8_t *)malloc(pFrame->size);
    memcpy(m_previousFrame.data, pFrame->data, pFrame->size);
 
-   //std::this_thread::sleep_for(std::chrono::milliseconds(4));
+   // std::this_thread::sleep_for(std::chrono::milliseconds(4));
 
    return true;
 }

@@ -81,10 +81,10 @@ struct ZeDMDFrame
 #endif
 
 #ifdef __ANDROID__
-typedef void* (*ZeDMD_AndroidGetJNIEnvFunc)();
+typedef void *(*ZeDMD_AndroidGetJNIEnvFunc)();
 #endif
 
-typedef void (CALLBACK *ZeDMD_LogMessageCallback)(const char* format, va_list args, const void* userData);
+typedef void(CALLBACK *ZeDMD_LogMessageCallback)(const char *format, va_list args, const void *userData);
 
 class ZeDMDComm
 {
@@ -100,7 +100,7 @@ public:
    void SetAndroidGetJNIEnvFunc(ZeDMD_AndroidGetJNIEnvFunc func);
 #endif
 
-   void SetLogMessageCallback(ZeDMD_LogMessageCallback callback, const void* userData);
+   void SetLogMessageCallback(ZeDMD_LogMessageCallback callback, const void *userData);
 
    void IgnoreDevice(const char *ignore_device);
 
@@ -116,14 +116,14 @@ public:
    int GetHeight();
 
 private:
-   void LogMessage(const char* format, ...);
+   void LogMessage(const char *format, ...);
 
    bool Connect(char *pName);
    void Reset();
    bool StreamBytes(ZeDMDFrame *pFrame);
 
    ZeDMD_LogMessageCallback m_logMessageCallback = nullptr;
-   const void* m_logMessageUserData = nullptr;
+   const void *m_logMessageUserData = nullptr;
 
    int m_width = 128;
    int m_height = 32;

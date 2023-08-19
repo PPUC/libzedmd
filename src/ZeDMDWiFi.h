@@ -41,7 +41,7 @@ struct ZeDMDWiFiFrame
 #define ZEDMD_WIFI_FRAME_QUEUE_SIZE_SLOW 4
 #define ZEDMD_WIFI_FRAME_QUEUE_SIZE_DEFAULT 8
 
-typedef void (CALLBACK *ZeDMD_LogMessageCallback)(const char* format, va_list args, const void* userData);
+typedef void(CALLBACK *ZeDMD_LogMessageCallback)(const char *format, va_list args, const void *userData);
 
 class ZeDMDWiFi
 {
@@ -49,7 +49,7 @@ public:
    ZeDMDWiFi();
    ~ZeDMDWiFi();
 
-   void SetLogMessageCallback(ZeDMD_LogMessageCallback callback, const void* userData);
+   void SetLogMessageCallback(ZeDMD_LogMessageCallback callback, const void *userData);
 
    bool Connect(const char *ip, int port);
    void Disconnect();
@@ -63,13 +63,13 @@ public:
    int GetHeight();
 
 private:
-   void LogMessage(const char* format, ...);
+   void LogMessage(const char *format, ...);
 
    void Reset();
    bool StreamBytes(ZeDMDWiFiFrame *pFrame);
 
    ZeDMD_LogMessageCallback m_logMessageCallback = nullptr;
-   const void* m_logMessageUserData = nullptr;
+   const void *m_logMessageUserData = nullptr;
 
    int m_width = 128;
    int m_height = 32;
@@ -78,7 +78,7 @@ private:
    ZeDMDWiFiFrame m_previousFrame = {0};
 
    int m_wifiSocket;
-	struct sockaddr_in m_wifiServer;
+   struct sockaddr_in m_wifiServer;
 
    std::queue<ZeDMDWiFiFrame> m_frames;
    std::thread *m_pThread;
