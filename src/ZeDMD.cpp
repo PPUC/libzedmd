@@ -39,7 +39,7 @@ ZeDMD::~ZeDMD()
       delete m_pPlanes;
 }
 
-void ZeDMD::SetLogMessageCallback(ZeDMD_LogMessageCallback callback, const void* userData)
+void ZeDMD::SetLogMessageCallback(ZeDMD_LogMessageCallback callback, const void *userData)
 {
    m_pZeDMDComm->SetLogMessageCallback(callback, userData);
    m_pZeDMDWiFi->SetLogMessageCallback(callback, userData);
@@ -60,7 +60,8 @@ void ZeDMD::Close()
 
 void ZeDMD::IgnoreDevice(const char *ignore_device)
 {
-   if (m_usb) {
+   if (m_usb)
+   {
       m_pZeDMDComm->IgnoreDevice(ignore_device);
    }
 }
@@ -70,7 +71,8 @@ void ZeDMD::SetFrameSize(uint8_t width, uint8_t height)
    m_romWidth = width;
    m_romHeight = height;
 
-   if (m_usb) {
+   if (m_usb)
+   {
       int frameWidth = m_pZeDMDComm->GetWidth();
       int frameHeight = m_pZeDMDComm->GetHeight();
       uint8_t size[4];
@@ -96,7 +98,7 @@ void ZeDMD::SetFrameSize(uint8_t width, uint8_t height)
 
 void ZeDMD::LedTest()
 {
-    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::LEDTest);
+   m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::LEDTest);
 }
 
 void ZeDMD::EnableDebug()
@@ -154,7 +156,8 @@ void ZeDMD::DisableUpscaling()
    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::DisableUpscaling);
 }
 
-bool ZeDMD::OpenWiFi(const char *ip, int port) {
+bool ZeDMD::OpenWiFi(const char *ip, int port)
+{
    m_wifi = m_pZeDMDWiFi->Connect(ip, port);
 
    // @todo allow parallel mode for USB commands
@@ -232,7 +235,8 @@ uint8_t *ZeDMD::GetDefaultPalette(int bitDepth)
 
 void ZeDMD::RenderGray2(uint8_t *pFrame)
 {
-   if (!(m_usb || m_wifi) || !UpdateFrameBuffer8(pFrame)) {
+   if (!(m_usb || m_wifi) || !UpdateFrameBuffer8(pFrame))
+   {
       return;
    }
 
@@ -241,7 +245,8 @@ void ZeDMD::RenderGray2(uint8_t *pFrame)
 
    int bufferSize = Scale(m_pScaledFrameBuffer, m_pFrameBuffer, 1, &width, &height);
 
-   if (m_usb) {
+   if (m_usb)
+   {
       Split(m_pPlanes, width, height, 2, m_pScaledFrameBuffer);
 
       bufferSize = bufferSize / 8 * 2;
@@ -251,7 +256,8 @@ void ZeDMD::RenderGray2(uint8_t *pFrame)
 
       m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::Gray2, m_pCommandBuffer, 12 + bufferSize);
    }
-   else if (m_wifi) {
+   else if (m_wifi)
+   {
       ConvertToRgb24(m_pPlanes, m_pScaledFrameBuffer, bufferSize);
       m_pZeDMDWiFi->QueueCommand(ZEDMD_WIFI_COMMAND::UDP_RGB24, m_pPlanes, bufferSize * 3, width, height);
    }
@@ -259,7 +265,8 @@ void ZeDMD::RenderGray2(uint8_t *pFrame)
 
 void ZeDMD::RenderGray4(uint8_t *pFrame)
 {
-   if (!(m_usb || m_wifi) || !UpdateFrameBuffer8(pFrame)) {
+   if (!(m_usb || m_wifi) || !UpdateFrameBuffer8(pFrame))
+   {
       return;
    }
 
@@ -295,7 +302,8 @@ void ZeDMD::RenderColoredGray6(uint8_t *pFrame, uint8_t *pPalette, uint8_t *pRot
    int height;
 
    int bufferSize = Scale(m_pScaledFrameBuffer, m_pFrameBuffer, 1, &width, &height);
-   if (m_usb) {
+   if (m_usb)
+   {
       Split(m_pPlanes, width, height, 6, m_pScaledFrameBuffer);
 
       int bufferSize = bufferSize / 8 * 6;
@@ -310,7 +318,8 @@ void ZeDMD::RenderColoredGray6(uint8_t *pFrame, uint8_t *pPalette, uint8_t *pRot
 
       m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::ColGray6, m_pCommandBuffer, 192 + bufferSize + 24);
    }
-   else if (m_wifi) {
+   else if (m_wifi)
+   {
       ConvertToRgb24(m_pPlanes, m_pScaledFrameBuffer, bufferSize, pPalette);
       m_pZeDMDWiFi->QueueCommand(ZEDMD_WIFI_COMMAND::UDP_RGB24, m_pPlanes, bufferSize * 3, width, height);
    }
@@ -326,10 +335,12 @@ void ZeDMD::RenderRgb24(uint8_t *pFrame)
 
    int bufferSize = Scale(m_pCommandBuffer, pFrame, 3, &width, &height);
 
-   if (m_usb) {
+   if (m_usb)
+   {
       m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB24, m_pFrameBuffer, bufferSize);
    }
-   else if (m_wifi) {
+   else if (m_wifi)
+   {
       m_pZeDMDWiFi->QueueCommand(ZEDMD_WIFI_COMMAND::UDP_RGB24, m_pFrameBuffer, bufferSize, width, height);
    }
 }
@@ -360,7 +371,7 @@ void ZeDMD::Split(uint8_t *pPlanes, int width, int height, int bitlen, uint8_t *
 {
    int planeSize = width * height / 8;
    int pos = 0;
-   uint8_t *bd = (uint8_t*) malloc(bitlen);
+   uint8_t *bd = (uint8_t *)malloc(bitlen);
 
    for (int y = 0; y < height; y++)
    {
@@ -391,14 +402,16 @@ void ZeDMD::Split(uint8_t *pPlanes, int width, int height, int bitlen, uint8_t *
 
 void ZeDMD::ConvertToRgb24(uint8_t *pFrameRgb24, uint8_t *pFrame, int size)
 {
-   for (int i = 0; i < size; i++) {
+   for (int i = 0; i < size; i++)
+   {
       memcpy(&pFrameRgb24[i * 3], &m_palette[pFrame[i] * 3], 3);
    }
 }
 
 void ZeDMD::ConvertToRgb24(uint8_t *pFrameRgb24, uint8_t *pFrame, int size, uint8_t *pPalette)
 {
-   for (int i = 0; i < size; i++) {
+   for (int i = 0; i < size; i++)
+   {
       memcpy(&pFrameRgb24[i * 3], &pPalette[pFrame[i] * 3], 3);
    }
 }
@@ -593,15 +606,15 @@ int ZeDMD::Scale(uint8_t *pScaledFrame, uint8_t *pFrame, uint8_t colors, int *wi
    {
       // we implement scale2x http://www.scale2x.it/algorithm
       uint16_t row = m_romWidth * colors;
-      uint8_t *a = (uint8_t*) malloc(colors);
-      uint8_t *b = (uint8_t*) malloc(colors);
-      uint8_t *c = (uint8_t*) malloc(colors);
-      uint8_t *d = (uint8_t*) malloc(colors);
-      uint8_t *e = (uint8_t*) malloc(colors);
-      uint8_t *f = (uint8_t*) malloc(colors);
-      uint8_t *g = (uint8_t*) malloc(colors);
-      uint8_t *h = (uint8_t*) malloc(colors);
-      uint8_t *i = (uint8_t*) malloc(colors);
+      uint8_t *a = (uint8_t *)malloc(colors);
+      uint8_t *b = (uint8_t *)malloc(colors);
+      uint8_t *c = (uint8_t *)malloc(colors);
+      uint8_t *d = (uint8_t *)malloc(colors);
+      uint8_t *e = (uint8_t *)malloc(colors);
+      uint8_t *f = (uint8_t *)malloc(colors);
+      uint8_t *g = (uint8_t *)malloc(colors);
+      uint8_t *h = (uint8_t *)malloc(colors);
+      uint8_t *i = (uint8_t *)malloc(colors);
 
       for (int x = 0; x < m_romHeight; x++)
       {

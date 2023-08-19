@@ -17,7 +17,7 @@
 #define ZEDMDAPI __declspec(dllexport)
 #define CALLBACK __stdcall
 #else
-#define ZEDMDAPI __attribute__ ((visibility ("default")))
+#define ZEDMDAPI __attribute__((visibility("default")))
 #define CALLBACK
 #endif
 
@@ -25,12 +25,11 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-
 #ifdef __ANDROID__
-typedef void* (*ZeDMD_AndroidGetJNIEnvFunc)();
+typedef void *(*ZeDMD_AndroidGetJNIEnvFunc)();
 #endif
 
-typedef void (CALLBACK *ZeDMD_LogMessageCallback)(const char* format, va_list args, const void* userData);
+typedef void(CALLBACK *ZeDMD_LogMessageCallback)(const char *format, va_list args, const void *userData);
 
 class ZeDMDComm;
 class ZeDMDWiFi;
@@ -45,7 +44,7 @@ public:
    void SetAndroidGetJNIEnvFunc(ZeDMD_AndroidGetJNIEnvFunc func);
 #endif
 
-   void SetLogMessageCallback(ZeDMD_LogMessageCallback callback, const void* userData);
+   void SetLogMessageCallback(ZeDMD_LogMessageCallback callback, const void *userData);
 
    void IgnoreDevice(const char *ignore_device);
    bool Open(int width, int height);
@@ -87,8 +86,8 @@ private:
    void SetColor(uint8_t *px1, uint8_t *px2, uint8_t colors);
    int Scale(uint8_t *pScaledFrame, uint8_t *pFrame, uint8_t colors, int *width, int *height);
 
-   ZeDMDComm* m_pZeDMDComm;
-   ZeDMDWiFi* m_pZeDMDWiFi;
+   ZeDMDComm *m_pZeDMDComm;
+   ZeDMDWiFi *m_pZeDMDWiFi;
 
    int m_romWidth;
    int m_romHeight;
