@@ -85,23 +85,28 @@ include_directories(AFTER src)
 
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     if(NOT USE_IOS AND NOT USE_TVOS)
-       add_library(zedmd_shared SHARED ${LIBRARY_SOURCES})
+       add_library(zedmd_shared SHARED ${LIBRARY_SOURCES} "src/WinUnistd.h" "src/WinUnistd.cpp")
        set_target_properties(zedmd_shared PROPERTIES
           OUTPUT_NAME ${LIB_NAME}
           VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}
           LINK_FLAGS_RELEASE -s
        )
        target_include_directories(zedmd_shared PUBLIC ${INCLUDE_DIRS})
+        if(WIN32)
+            target_link_libraries(zedmd_shared PRIVATE ws2_32)
+        endif()
        install(TARGETS zedmd_shared
           LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
        )
     endif()
 
-
     if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-        add_library(zedmd_static STATIC ${LIBRARY_SOURCES})
+        add_library(zedmd_static STATIC ${LIBRARY_SOURCES} "src/WinUnistd.h" "src/WinUnistd.cpp")
         set_target_properties(zedmd_static PROPERTIES OUTPUT_NAME "zedmd")
         target_include_directories(zedmd_static PUBLIC ${INCLUDE_DIRS})
+        if(WIN32)
+            target_link_libraries(zedmd_static PRIVATE ws2_32)
+        endif()
         install(TARGETS zedmd_static
            LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
         )
