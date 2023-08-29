@@ -197,8 +197,11 @@ bool ZeDMDWiFi::StreamBytes(ZeDMDWiFiFrame *pFrame)
          data[2] = y;
 
          memcpy(&data[3], pFrame->data + (y * pFrame->width * 3), pFrame->width * 3);
+#if defined(_WIN32) || defined(_WIN64)
+         sendto(m_wifiSocket, (const char *)data, pFrame->width * 3 + 3, 0, (struct sockaddr *)&m_wifiServer, sizeof(m_wifiServer));
+#else
          sendto(m_wifiSocket, data, pFrame->width * 3 + 3, 0, (struct sockaddr *)&m_wifiServer, sizeof(m_wifiServer));
-
+#endif
          // mz_ulong compressedSize = width * 3;
          // int status = mz_compress(&data[3], &compressedSize, pFrame->data + (y * width * 3), width * 3);
 
@@ -217,7 +220,11 @@ bool ZeDMDWiFi::StreamBytes(ZeDMDWiFiFrame *pFrame)
    for (int i = 0; i < 3; i++)
    {
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
+#if defined(_WIN32) || defined(_WIN64)
+      sendto(m_wifiSocket, (const char *)data, 2, 0, (struct sockaddr *)&m_wifiServer, sizeof(m_wifiServer));
+#else
       sendto(m_wifiSocket, data, 2, 0, (struct sockaddr *)&m_wifiServer, sizeof(m_wifiServer));
+#endif
    }
 
    m_previousFrame.command = pFrame->command;

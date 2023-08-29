@@ -92,23 +92,25 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
           LINK_FLAGS_RELEASE -s
        )
        target_include_directories(zedmd_shared PUBLIC ${INCLUDE_DIRS})
+        if(WIN32)
+            target_link_libraries(zedmd_shared PRIVATE ws2_32)
+        endif()
        install(TARGETS zedmd_shared
           LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
        )
     endif()
 
-
-    if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-        add_library(zedmd_static STATIC ${LIBRARY_SOURCES})
-        set_target_properties(zedmd_static PROPERTIES OUTPUT_NAME "zedmd")
-        target_include_directories(zedmd_static PUBLIC ${INCLUDE_DIRS})
-        install(TARGETS zedmd_static
-           LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-        )
-        install(FILES src/ZeDMD.h DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
-    endif()
+   add_library(zedmd_static STATIC ${LIBRARY_SOURCES})
+   set_target_properties(zedmd_static PROPERTIES OUTPUT_NAME "zedmd")
+   target_include_directories(zedmd_static PUBLIC ${INCLUDE_DIRS})
+   if(WIN32)
+      target_link_libraries(zedmd_static PRIVATE ws2_32)
+   endif()
+   install(TARGETS zedmd_static
+      LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+   )
+   install(FILES src/ZeDMD.h DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 
 else()
-    include_directories(AFTER src)
     add_library(ZeDMD ${LIBRARY_SOURCES})
 endif()

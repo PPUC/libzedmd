@@ -1,5 +1,14 @@
 #pragma once
 
+#if defined(_WIN32) || defined(_WIN64)
+#include <winsock2.h>
+#define CALLBACK __stdcall
+#else
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#define CALLBACK
+#endif
 #include <thread>
 #include <queue>
 #include <string>
@@ -9,15 +18,6 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-
-#if defined(_WIN32) || defined(_WIN64)
-#define CALLBACK __stdcall
-#else
-#define CALLBACK
-#endif
 
 typedef enum
 {
