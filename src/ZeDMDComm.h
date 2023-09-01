@@ -7,7 +7,8 @@
 #include <mutex>
 #include <stdio.h>
 #include <stdarg.h>
-#include "SerialPort.h"
+// @todo better handling of external lib
+#include "../../libserialport/src/SerialPort.h"
 
 #if defined(_WIN32) || defined(_WIN64)
 #define CALLBACK __stdcall

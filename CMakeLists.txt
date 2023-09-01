@@ -56,19 +56,19 @@ set(MINIZ_SOURCES
    src/miniz/miniz.c
 )
 
-if(USE_ANDROID)
-else()
-    set(SERIALIB_SOURCES
-      src/serialib/serialib.h
-      src/serialib/serialib.cpp
-    )
+if(NOT EXISTS ${SERIALPORT_LIBRARIES})
+   get_filename_component(SERIALPORT_CMAKE ../libserialport/CMakeLists.txt ABSOLUTE)
+   if(EXISTS ${SERIALPORT_CMAKE})
+      message(STATUS "enabling SerialPort")
+      add_subdirectory(../libserialport libserialport)
+      set (SERIALPORT_LIBRARIES SerialPort)
+   else()
+      message(STATUS "libserialport source not found in ../libserialport")
+   endif()
 endif()
 
 set(LIBRARY_SOURCES
    ${MINIZ_SOURCES}
-   ${SERIALIB_SOURCES}
-   src/SerialPort.h
-   src/SerialPort.cpp
    src/ZeDMDComm.h
    src/ZeDMDComm.cpp
    src/ZeDMDWiFi.h
@@ -92,9 +92,12 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
           LINK_FLAGS_RELEASE -s
        )
        target_include_directories(zedmd_shared PUBLIC ${INCLUDE_DIRS})
-        if(WIN32)
-            target_link_libraries(zedmd_shared PRIVATE ws2_32)
-        endif()
+       target_link_libraries(zedmd_shared LINK_PUBLIC
+          ${SERIALPORT_LIBRARIES}
+       )
+       if(WIN32)
+         target_link_libraries(zedmd_shared PRIVATE ws2_32)
+       endif()
        install(TARGETS zedmd_shared
           LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
        )
@@ -103,6 +106,9 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
    add_library(zedmd_static STATIC ${LIBRARY_SOURCES})
    set_target_properties(zedmd_static PROPERTIES OUTPUT_NAME "zedmd")
    target_include_directories(zedmd_static PUBLIC ${INCLUDE_DIRS})
+   target_link_libraries(zedmd_static LINK_PUBLIC
+      ${SERIALPORT_LIBRARIES}
+   )
    if(WIN32)
       target_link_libraries(zedmd_static PRIVATE ws2_32)
    endif()
