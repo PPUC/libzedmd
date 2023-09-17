@@ -60,10 +60,7 @@ void ZeDMD::Close()
 
 void ZeDMD::IgnoreDevice(const char *ignore_device)
 {
-   if (m_usb)
-   {
-      m_pZeDMDComm->IgnoreDevice(ignore_device);
-   }
+   m_pZeDMDComm->IgnoreDevice(ignore_device);
 }
 
 void ZeDMD::SetFrameSize(uint8_t width, uint8_t height)
