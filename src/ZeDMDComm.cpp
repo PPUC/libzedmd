@@ -179,12 +179,12 @@ bool ZeDMDComm::Connect()
 #ifndef __ANDROID__
    char szDevice[32];
 
-   for (int i = 0; i < 5; i++)
+   for (int i = 0; i < 7; i++)
    {
 #ifdef __APPLE__
       sprintf(szDevice, "/dev/cu.usbserial-%04d", i);
 #elif defined(_WIN32) || defined(_WIN64)
-      sprintf(szDevice, "\\\\.\\COM%d", i);
+      sprintf(szDevice, "\\\\.\\COM%d", i + 1);
 #else
       sprintf(szDevice, "/dev/ttyUSB%d", i);
 #endif
