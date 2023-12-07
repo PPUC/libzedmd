@@ -69,6 +69,7 @@ public:
    void EnableUpscaling();
    void DisableUpscaling();
 
+   void ClearScreen();
    void RenderGray2(uint8_t *frame);
    void RenderGray4(uint8_t *frame);
    void RenderColoredGray6(uint8_t *frame, uint8_t *palette, uint8_t *rotations);
@@ -137,6 +138,7 @@ extern ZEDMDAPI void ZeDMD_DisablePreUpscaling(ZeDMD* pZeDMD) { return pZeDMD->D
 extern ZEDMDAPI void ZeDMD_EnableUpscaling(ZeDMD* pZeDMD) { return pZeDMD->EnableUpscaling(); };
 extern ZEDMDAPI void ZeDMD_DisableUpscaling(ZeDMD* pZeDMD) { return pZeDMD->DisableUpscaling(); };
 
+extern ZEDMDAPI void ZeDMD_ClearScreen(ZeDMD* pZeDMD) { return pZeDMD->ClearScreen(); };
 extern ZEDMDAPI void ZeDMD_RenderGray2(ZeDMD* pZeDMD, uint8_t *frame) { return pZeDMD->RenderGray2(frame); };
 extern ZEDMDAPI void ZeDMD_RenderGray4(ZeDMD* pZeDMD, uint8_t *frame) { return pZeDMD->RenderGray4(frame); };
 extern ZEDMDAPI void ZeDMD_RenderColoredGray6(ZeDMD* pZeDMD, uint8_t *frame, uint8_t *rotations) { return pZeDMD->RenderColoredGray6(frame, rotations); };

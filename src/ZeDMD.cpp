@@ -230,6 +230,11 @@ uint8_t *ZeDMD::GetDefaultPalette(int bitDepth)
    }
 }
 
+void ZeDMD::ClearScreen()
+{
+   m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::ClearScreen);
+}
+
 void ZeDMD::RenderGray2(uint8_t *pFrame)
 {
    if (!(m_usb || m_wifi) || !UpdateFrameBuffer8(pFrame))
