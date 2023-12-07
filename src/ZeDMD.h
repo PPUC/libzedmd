@@ -12,7 +12,7 @@
 
 #define ZEDMD_MAX_WIDTH 256
 #define ZEDMD_MAX_HEIGHT 64
-#define ZEDMD_MAX_PALETTE 64 * 3
+#define ZEDMD_MAX_PALETTE 192
 
 #if defined(_WIN32) || defined(_WIN64)
 #define ZEDMDAPI __declspec(dllexport)
@@ -55,6 +55,7 @@ public:
 
    void SetFrameSize(uint8_t width, uint8_t height);
    void SetPalette(uint8_t *pPalette);
+   void SetPalette(uint8_t* pPalette, int numColors);
    void SetDefaultPalette(int bitDepth);
    uint8_t *GetDefaultPalette(int bitDepth);
    void LedTest();
@@ -123,7 +124,7 @@ extern ZEDMDAPI bool ZeDMD_OpenWiFi(ZeDMD* pZeDMD, const char *ip, int port) { r
 extern ZEDMDAPI void ZeDMD_Close(ZeDMD* pZeDMD) { return pZeDMD->Close(); };
 
 extern ZEDMDAPI void ZeDMD_SetFrameSize(ZeDMD* pZeDMD, uint8_t width, uint8_t height) { return pZeDMD->SetFrameSize(width, height); };
-extern ZEDMDAPI void ZeDMD_SetPalette(ZeDMD* pZeDMD, uint8_t *pPalette) { return pZeDMD->SetPalette(pPalette); };
+extern ZEDMDAPI void ZeDMD_SetPalette(ZeDMD* pZeDMD, uint8_t *pPalette, int numColors) { return pZeDMD->SetPalette(pPalette, numColors); };
 extern ZEDMDAPI void ZeDMD_SetDefaultPalette(ZeDMD* pZeDMD, int bitDepth) { return pZeDMD->SetDefaultPalette(bitDepth); };
 extern ZEDMDAPI uint8_t *ZeDMD_GetDefaultPalette(ZeDMD* pZeDMD, int bitDepth) { return pZeDMD->GetDefaultPalette(bitDepth); };
 extern ZEDMDAPI void ZeDMD_LedTest(ZeDMD* pZeDMD) { return pZeDMD->LedTest(); };
