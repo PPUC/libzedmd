@@ -96,7 +96,7 @@ private:
    bool m_usb = false;
    bool m_wifi = false;
    bool m_downscaling = true;
-   bool m_upscaling = true;
+   bool m_upscaling = false;
 
    uint8_t *m_pFrameBuffer;
    uint8_t *m_pScaledFrameBuffer;
