@@ -12,6 +12,7 @@
 
 #define ZEDMD_MAX_WIDTH 256
 #define ZEDMD_MAX_HEIGHT 64
+#define ZEDMD_MAX_PALETTE 64 * 3
 
 #if defined(_WIN32) || defined(_WIN64)
 #define ZEDMDAPI __declspec(dllexport)
@@ -103,7 +104,7 @@ private:
    uint8_t *m_pCommandBuffer;
    uint8_t *m_pPlanes;
 
-   uint8_t m_palette[64 * 3];
+   uint8_t m_palette[ZEDMD_MAX_PALETTE] = {0};
    uint8_t m_DmdDefaultPalette2Bit[12] = {0, 0, 0, 144, 34, 0, 192, 76, 0, 255, 127, 0};
    uint8_t m_DmdDefaultPalette4Bit[48] = {0, 0, 0, 51, 25, 0, 64, 32, 0, 77, 38, 0,
                                           89, 44, 0, 102, 51, 0, 115, 57, 0, 128, 64, 0,

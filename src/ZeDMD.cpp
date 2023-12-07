@@ -201,7 +201,7 @@ bool ZeDMD::Open(int width, int height)
 
 void ZeDMD::SetPalette(uint8_t *pPalette)
 {
-   memcpy(&m_palette, pPalette, sizeof(m_palette));
+   memcpy(&m_palette, pPalette, (sizeof(pPalette) < ZEDMD_MAX_PALETTE) ? sizeof(pPalette) : ZEDMD_MAX_PALETTE);
 }
 
 void ZeDMD::SetDefaultPalette(int bitDepth)
