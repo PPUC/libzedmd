@@ -305,7 +305,7 @@ void ZeDMD::RenderColoredGray6(uint8_t *pFrame, uint8_t *pRotations)
       {
          Split(m_pPlanes, width, height, 6, m_pScaledFrameBuffer);
 
-         int bufferSize = bufferSize / 8 * 6;
+         bufferSize = bufferSize / 8 * 6;
 
          memcpy(m_pCommandBuffer, m_palette, 192);
          memcpy(m_pCommandBuffer + 192, m_pPlanes, bufferSize);
