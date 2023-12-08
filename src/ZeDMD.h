@@ -101,6 +101,7 @@ private:
    bool m_wifi = false;
    bool m_downscaling = false;
    bool m_upscaling = false;
+   bool m_paletteChanged = false;
 
    uint8_t *m_pFrameBuffer;
    uint8_t *m_pScaledFrameBuffer;

@@ -211,7 +211,12 @@ bool ZeDMD::Open(int width, int height)
 
 void ZeDMD::SetPalette(uint8_t *pPalette)
 {
-    SetPalette(pPalette, 64);
+    m_paletteChanged = false;
+    if (memcmp(&m_palette, pPalette, 192))
+    {
+        SetPalette(pPalette, 64);
+        m_paletteChanged = true;
+    }
 }
 
 void ZeDMD::SetPalette(uint8_t* pPalette, int numColors)
@@ -310,7 +315,7 @@ void ZeDMD::RenderColoredGray6(uint8_t *pFrame, uint8_t *pRotations)
    if (!m_usb && !m_wifi)
       return;
 
-   if (UpdateFrameBuffer8(pFrame))
+   if (UpdateFrameBuffer8(pFrame) || m_paletteChanged)
    {
       int width;
       int height;
