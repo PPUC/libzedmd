@@ -451,7 +451,7 @@ int ZeDMD::Scale(uint8_t *pScaledFrame, uint8_t *pFrame, uint8_t colors, int *wi
    int scale = 0; // 0 - no scale, 1 - half scale, 2 - double scale
    int frameWidth = m_pZeDMDComm->GetWidth();
    int frameHeight = m_pZeDMDComm->GetHeight();
-   int bufferSize = frameWidth * frameHeight * colors;
+   int bufferSize = m_romWidth * m_romHeight * colors;
 
    if (m_upscaling && m_romWidth == 192 && frameWidth == 256)
    {
@@ -506,6 +506,7 @@ int ZeDMD::Scale(uint8_t *pScaledFrame, uint8_t *pFrame, uint8_t colors, int *wi
       return bufferSize;
    }
 
+   bufferSize = frameWidth * frameHeight * colors;
    memset(pScaledFrame, 0, bufferSize);
 
    if (scale == 1)
