@@ -36,6 +36,8 @@ typedef enum
    Reset = 0x1f,
    GetVersionBytes = 0x20,
    GetResolution = 0x21,
+   SetWiFiSSID = 0x22,
+   SetWiFiPassword = 0x23,
 
    RGB24 = 0x03,
    Gray2 = 0x08,

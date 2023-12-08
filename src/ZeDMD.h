@@ -70,6 +70,8 @@ public:
    void DisablePreUpscaling();
    void EnableUpscaling();
    void DisableUpscaling();
+   void SetWiFiSSID(const char* ssid);
+   void SetWiFiPassword(const char* password);
 
    void ClearScreen();
    void RenderGray2(uint8_t *frame);
@@ -139,6 +141,8 @@ extern ZEDMDAPI void ZeDMD_EnablePreUpscaling(ZeDMD* pZeDMD) { return pZeDMD->En
 extern ZEDMDAPI void ZeDMD_DisablePreUpscaling(ZeDMD* pZeDMD) { return pZeDMD->DisablePreUpscaling(); };
 extern ZEDMDAPI void ZeDMD_EnableUpscaling(ZeDMD* pZeDMD) { return pZeDMD->EnableUpscaling(); };
 extern ZEDMDAPI void ZeDMD_DisableUpscaling(ZeDMD* pZeDMD) { return pZeDMD->DisableUpscaling(); };
+extern ZEDMDAPI void ZeDMD_SetWiFiSSID(ZeDMD* pZeDMD, const char* ssid) { return pZeDMD->SetWiFiSSID(ssid); };
+extern ZEDMDAPI void ZeDMD_SetWiFiPassword(ZeDMD* pZeDMD, const char* password) { return pZeDMD->SetWiFiPassword(password); };
 
 extern ZEDMDAPI void ZeDMD_ClearScreen(ZeDMD* pZeDMD) { return pZeDMD->ClearScreen(); };
 extern ZEDMDAPI void ZeDMD_RenderGray2(ZeDMD* pZeDMD, uint8_t *frame) { return pZeDMD->RenderGray2(frame); };
