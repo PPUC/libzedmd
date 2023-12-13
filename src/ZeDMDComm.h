@@ -75,6 +75,7 @@ struct ZeDMDFrame
 #define ZEDMD_COMM_FRAME_SIZE_SLOW_THRESHOLD 4096
 #define ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT 10
 
+#define ZEDMD_COMM_RGB24_QUEUE_SIZE_MAX 16384
 #define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX 128
 #define ZEDMD_COMM_FRAME_QUEUE_SIZE_SLOW 4
 
@@ -112,6 +113,7 @@ public:
    void Disconnect();
 
    void Run();
+   void QueueCommand(char command, uint8_t *buffer, int size, int width, uint8_t height);
    void QueueCommand(char command, uint8_t *buffer, int size);
    void QueueCommand(char command);
    void QueueCommand(char command, uint8_t value);
@@ -128,7 +130,7 @@ private:
 
    ZeDMD_LogMessageCallback m_logMessageCallback = nullptr;
    const void *m_logMessageUserData = nullptr;
-
+   uint64_t m_zoneHashes[128] = {0};
    int m_width = 128;
    int m_height = 32;
    uint8_t m_flowControlCounter = 0;

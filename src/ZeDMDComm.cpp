@@ -1,5 +1,6 @@
 #include "ZeDMDComm.h"
 #include "miniz/miniz.h"
+#include "komihash/komihash.h"
 
 ZeDMDComm::ZeDMDComm()
 {
@@ -47,7 +48,15 @@ void ZeDMDComm::Run()
                                   LogMessage("ZeDMDComm run thread starting");
 
                                   bool sleep = false;
-                                  int maxQueuedFrames = ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX;
+                                  int maxQueuedFrames;
+                                  if (m_width == 256)
+                                  {
+                                      maxQueuedFrames = ZEDMD_COMM_RGB24_QUEUE_SIZE_MAX;
+                                  }
+                                  else
+                                  {
+                                      maxQueuedFrames = ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX;
+                                  }
 
                                   while (m_serialPort.IsOpen())
                                   {
@@ -63,29 +72,20 @@ void ZeDMDComm::Run()
                                      ZeDMDFrame frame = m_frames.front();
                                      m_frames.pop();
                                      m_frameQueueMutex.unlock();
-                                     if (frame.size < ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT)
+                                     if (frame.size > ZEDMD_COMM_FRAME_SIZE_SLOW_THRESHOLD)
                                      {
-                                        sleep = false;
-                                        maxQueuedFrames = ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX;
-                                     }
-                                     else if (frame.size > ZEDMD_COMM_FRAME_SIZE_SLOW_THRESHOLD)
-                                     {
-                                        // For 128x32 RGB24 we just limit the amount of queued frames.
-                                        // For 256x64 Content we must also slow down the frequency.
-                                        if (m_width == 256)
-                                        {
-                                           sleep = false;
-                                           maxQueuedFrames = ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX;
-                                        }
-                                        else
-                                        {
-                                           sleep = false;
-                                           maxQueuedFrames = ZEDMD_COMM_FRAME_QUEUE_SIZE_SLOW;
-                                        }
+                                        maxQueuedFrames = ZEDMD_COMM_FRAME_QUEUE_SIZE_SLOW;
                                      }
                                      else
                                      {
-                                        maxQueuedFrames = ZEDMD_COMM_FRAME_QUEUE_SIZE_DEFAULT;
+                                         if (m_width == 256)
+                                         {
+                                             maxQueuedFrames = ZEDMD_COMM_RGB24_QUEUE_SIZE_MAX;
+                                         }
+                                         else
+                                         {
+                                             maxQueuedFrames = ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX;
+                                         }
                                      }
 
                                      bool success = StreamBytes(&frame);
@@ -100,8 +100,7 @@ void ZeDMDComm::Run()
                                         free(frame.data);
                                      }
 
-                                     sleep = !success || sleep;
-                                     if (sleep)
+                                     if (!success)
                                      {
                                         std::this_thread::sleep_for(std::chrono::milliseconds(8));
                                      }
@@ -164,6 +163,33 @@ void ZeDMDComm::QueueCommand(char command, uint8_t value)
 void ZeDMDComm::QueueCommand(char command)
 {
    QueueCommand(command, NULL, 0);
+}
+
+void ZeDMDComm::QueueCommand(char command, uint8_t *data, int size, int width, uint8_t height)
+{
+   uint8_t idx = 0;
+   for (uint8_t y = 0; y < height; y += 8)
+   {
+      for (uint8_t x = 0; x < width; x += 16)
+      {
+         uint8_t zone[16 * 8 * 3 + 1] = {0};
+         zone[0] = idx;
+
+         for (uint8_t z = 0; z < 8; z++)
+         {
+            memcpy(&zone[z * 16 * 3 + 1], &data[((y + z) * width + x) * 3], 16 * 3);
+         }
+
+         uint64_t hash = komihash(&zone[1], 16 * 8 * 3, 0);
+         if (hash != m_zoneHashes[idx])
+         {
+            m_zoneHashes[idx] = hash;
+
+            QueueCommand(command, zone, 16 * 8 * 3 + 1);
+         }
+         idx++;
+      }
+   }
 }
 
 void ZeDMDComm::IgnoreDevice(const char *ignore_device)

@@ -40,9 +40,6 @@ void ZeDMDWiFi::Run()
                                {
                                   LogMessage("ZeDMDWiFi run thread starting");
 
-                                  bool sleep = false;
-                                  int maxQueuedFrames = ZEDMD_WIFI_FRAME_QUEUE_SIZE_MAX;
-
                                   while (true)
                                   {
                                      m_frameQueueMutex.lock();
@@ -57,32 +54,9 @@ void ZeDMDWiFi::Run()
                                      ZeDMDWiFiFrame frame = m_frames.front();
                                      m_frames.pop();
                                      m_frameQueueMutex.unlock();
-                                     if (frame.size < ZEDMD_WIFI_FRAME_SIZE_COMMAND_LIMIT)
-                                     {
-                                        sleep = false;
-                                        maxQueuedFrames = ZEDMD_WIFI_FRAME_QUEUE_SIZE_MAX;
-                                     }
-                                     else if (frame.size > ZEDMD_WIFI_FRAME_SIZE_SLOW_THRESHOLD)
-                                     {
-                                        // For 128x32 RGB24 we just limit the amount of queued frames.
-                                        // For 256x64 Content we must also slow down the frequency.
-                                        if (m_width == 256)
-                                        {
-                                           sleep = false;
-                                           maxQueuedFrames = ZEDMD_WIFI_FRAME_QUEUE_SIZE_MAX;
-                                        }
-                                        else
-                                        {
-                                           sleep = false;
-                                           maxQueuedFrames = ZEDMD_WIFI_FRAME_QUEUE_SIZE_SLOW;
-                                        }
-                                     }
-                                     else
-                                     {
-                                        maxQueuedFrames = ZEDMD_WIFI_FRAME_QUEUE_SIZE_DEFAULT;
-                                     }
 
                                      bool success = StreamBytes(&frame);
+
                                      if (!success && frame.size < ZEDMD_WIFI_FRAME_SIZE_COMMAND_LIMIT)
                                      {
                                         // Try to send the command again, in case the the wait for the (R)eady signal ran into a timeout.
@@ -94,14 +68,13 @@ void ZeDMDWiFi::Run()
                                         free(frame.data);
                                      }
 
-                                     sleep = !success || sleep;
-                                     if (sleep)
+                                     if (!success)
                                      {
                                         std::this_thread::sleep_for(std::chrono::milliseconds(8));
                                      }
 
                                      m_frameQueueMutex.lock();
-                                     while (m_frames.size() >= maxQueuedFrames)
+                                     while (m_frames.size() >= ZEDMD_WIFI_FRAME_QUEUE_SIZE_MAX)
                                      {
                                         frame = m_frames.front();
                                         m_frames.pop();
@@ -160,16 +133,17 @@ void ZeDMDWiFi::QueueCommand(char command)
 bool ZeDMDWiFi::Connect(const char *ip, int port)
 {
 #if defined(_WIN32) || defined(_WIN64)
-    WSADATA wsaData;
-    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != NO_ERROR) {
-        return false;
-    }
+   WSADATA wsaData;
+   if (WSAStartup(MAKEWORD(2, 2), &wsaData) != NO_ERROR)
+   {
+      return false;
+   }
 #endif
 
-    if ((m_wifiSocket = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
-    {
-        return false;
-    }
+   if ((m_wifiSocket = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
+   {
+      return false;
+   }
 
    m_wifiServer.sin_family = AF_INET;
    m_wifiServer.sin_port = htons(port);
@@ -197,65 +171,91 @@ bool ZeDMDWiFi::StreamBytes(ZeDMDWiFiFrame *pFrame)
    // We send obe zones of 16 * 8 pixels:
    // 128 pixels, 3 bytes RGB per pixel, 5 byte command header: 389 bytes
    // And we additionally use compression.
- 
+
+   if (pFrame->size < ZEDMD_WIFI_FRAME_SIZE_COMMAND_LIMIT)
+   {
+      uint8_t data[ZEDMD_WIFI_FRAME_SIZE_COMMAND_LIMIT + 4] = {0};
+      data[0] = pFrame->command; // command
+      data[1] = 0;               // not compressed
+      data[2] = (uint8_t)(pFrame->size >> 8 & 0xFF);
+      data[3] = (uint8_t)(pFrame->size & 0xFF);
+      if (pFrame->size > 0)
+      {
+         memcpy(&data[4], pFrame->data, pFrame->size);
+      }
+
+      // Send command three times in case an UDP packet gets lost.
+      for (int i = 0; i < 3; i++)
+      {
+#if defined(_WIN32) || defined(_WIN64)
+         sendto(m_wifiSocket, (const char *)data, pFrame->size + 4, 0, (struct sockaddr *)&m_wifiServer, sizeof(m_wifiServer));
+#else
+         sendto(m_wifiSocket, data, pFrame->size + 4, 0, (struct sockaddr *)&m_wifiServer, sizeof(m_wifiServer));
+#endif
+         std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      }
+
+      return true;
+   }
+
    uint8_t idx = 0;
    for (uint8_t y = 0; y < pFrame->height; y += 8)
    {
-       for (uint8_t x = 0; x < pFrame->width; x += 16)
-       {
-           uint8_t data[16 * 8 * 3 + 5] = { 0 };
-           data[0] = pFrame->command; // command
+      for (uint8_t x = 0; x < pFrame->width; x += 16)
+      {
+         uint8_t data[16 * 8 * 3 + 4] = {0};
+         data[0] = pFrame->command; // command
 
-           uint8_t zone[16 * 8 * 3] = { 0 };
-           for (uint8_t z = 0; z < 8; z++)
-           {
-               memcpy(&zone[z * 16 * 3], &pFrame->data[((y + z) * pFrame->width + x) * 3], 16 * 3);
-           }
-           
-           uint64_t hash = komihash(zone, 16 * 8 * 3, 0);
-           if (hash != m_zoneHashes[idx])
-           {
-               m_zoneHashes[idx] = hash;
+         uint8_t zone[16 * 8 * 3] = {0};
+         for (uint8_t z = 0; z < 8; z++)
+         {
+            memcpy(&zone[z * 16 * 3], &pFrame->data[((y + z) * pFrame->width + x) * 3], 16 * 3);
+         }
 
-               if (m_compression)
+         uint64_t hash = komihash(zone, 16 * 8 * 3, 0);
+         if (hash != m_zoneHashes[idx])
+         {
+            m_zoneHashes[idx] = hash;
+
+            if (m_compression)
+            {
+               data[1] = (uint8_t)(128 | idx); // compressed + zone index
+
+               mz_ulong compressedSize = 16 * 8 * 3;
+               int status = mz_compress(&data[4], &compressedSize, zone, 16 * 8 * 3);
+               data[2] = (uint8_t)(compressedSize >> 8 & 0xFF);
+               data[3] = (uint8_t)(compressedSize & 0xFF);
+
+               if (status == MZ_OK)
                {
-                   data[1] = (uint8_t)(128 | idx); // compressed + zone index
-
-                   mz_ulong compressedSize = 16 * 8 * 3;
-                   int status = mz_compress(&data[4], &compressedSize, zone, 16 * 8 * 3);
-                   data[2] = (uint8_t)(compressedSize >> 8 & 0xFF);
-                   data[3] = (uint8_t)(compressedSize & 0xFF);
-
-                   if (status == MZ_OK) {
 #if defined(_WIN32) || defined(_WIN64)
-                       sendto(m_wifiSocket, (const char*)data, compressedSize + 4, 0, (struct sockaddr*)&m_wifiServer, sizeof(m_wifiServer));
+                  sendto(m_wifiSocket, (const char *)data, compressedSize + 4, 0, (struct sockaddr *)&m_wifiServer, sizeof(m_wifiServer));
 #else
-                       sendto(m_wifiSocket, data, compressedSize + 5, 0, (struct sockaddr*)&m_wifiServer, sizeof(m_wifiServer));
+                  sendto(m_wifiSocket, data, compressedSize + 4, 0, (struct sockaddr *)&m_wifiServer, sizeof(m_wifiServer));
 #endif
-                   }
                }
-               else
-               {
-                   data[1] = (uint8_t)idx; // not compressed + zone index
+            }
+            else
+            {
+               data[1] = (uint8_t)idx; // not compressed + zone index
 
-                   int size = 16 * 8 * 3;
-                   data[2] = (uint8_t)(size >> 8 & 0xFF);
-                   data[3] = (uint8_t)(size & 0xFF);
-                   memcpy(&data[4], zone, size);
+               int size = 16 * 8 * 3;
+               data[2] = (uint8_t)(size >> 8 & 0xFF);
+               data[3] = (uint8_t)(size & 0xFF);
+               memcpy(&data[4], zone, size);
 
 #if defined(_WIN32) || defined(_WIN64)
-                   sendto(m_wifiSocket, (const char*)data, size + 4, 0, (struct sockaddr*)&m_wifiServer, sizeof(m_wifiServer));
+               sendto(m_wifiSocket, (const char *)data, size + 4, 0, (struct sockaddr *)&m_wifiServer, sizeof(m_wifiServer));
 #else
-                   sendto(m_wifiSocket, data, size + 4, 0, (struct sockaddr*)&m_wifiServer, sizeof(m_wifiServer));
+               sendto(m_wifiSocket, data, size + 4, 0, (struct sockaddr *)&m_wifiServer, sizeof(m_wifiServer));
 #endif
-
-               }
-           }
-           idx++;
-       }
+            }
+         }
+         idx++;
+      }
    }
 
-   //std::this_thread::sleep_for(std::chrono::milliseconds(1));
+   // std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
    return true;
 }

@@ -21,7 +21,8 @@
 
 typedef enum
 {
-   UDP_RGB24 = 0x28,
+   UDP_RGB24 = 0x03,
+   UDP_ClearScreen = 0x0a,
 } ZEDMD_WIFI_COMMAND;
 
 struct ZeDMDWiFiFrame
@@ -33,12 +34,9 @@ struct ZeDMDWiFiFrame
    uint8_t height;
 };
 
-#define ZEDMD_WIFI_FRAME_SIZE_SLOW_THRESHOLD 4096
 #define ZEDMD_WIFI_FRAME_SIZE_COMMAND_LIMIT 10
 
 #define ZEDMD_WIFI_FRAME_QUEUE_SIZE_MAX 128
-#define ZEDMD_WIFI_FRAME_QUEUE_SIZE_SLOW 4
-#define ZEDMD_WIFI_FRAME_QUEUE_SIZE_DEFAULT 8
 
 typedef void(CALLBACK *ZeDMD_LogMessageCallback)(const char *format, va_list args, const void *userData);
 
@@ -74,7 +72,7 @@ private:
    int m_height = 32;
 
    bool m_compression = true;
-   uint64_t m_zoneHashes[128] = { 0 };
+   uint64_t m_zoneHashes[128] = {0};
 
    int m_wifiSocket;
    struct sockaddr_in m_wifiServer;
