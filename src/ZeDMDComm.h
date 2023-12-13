@@ -34,6 +34,7 @@ typedef enum
    EnableFlowControlV2 = 0x1a,
    SetWiFiSSID = 0x1b,
    SetWiFiPassword = 0x1c,
+   SetWiFiPort = 0x1d,
    SaveSettings = 0x1e,
    Reset = 0x1f,
    GetVersionBytes = 0x20,

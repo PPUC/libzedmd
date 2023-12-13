@@ -56,6 +56,10 @@ set(MINIZ_SOURCES
    src/miniz/miniz.c
 )
 
+set(KOMIHASH_SOURCES
+   src/komihash/komihash.h
+)
+
 if(NOT EXISTS ${SERIALPORT_LIBRARIES})
    get_filename_component(SERIALPORT_CMAKE ../libserialport/CMakeLists.txt ABSOLUTE)
    if(EXISTS ${SERIALPORT_CMAKE})
@@ -69,6 +73,7 @@ endif()
 
 set(LIBRARY_SOURCES
    ${MINIZ_SOURCES}
+   ${KOMIHASH_SOURCES}
    src/ZeDMDComm.h
    src/ZeDMDComm.cpp
    src/ZeDMDWiFi.h

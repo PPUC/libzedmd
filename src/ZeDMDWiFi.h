@@ -73,8 +73,8 @@ private:
    int m_width = 128;
    int m_height = 32;
 
-   uint8_t m_frameCounter = 0;
-   ZeDMDWiFiFrame m_previousFrame = {0};
+   bool m_compression = true;
+   uint64_t m_zoneHashes[128] = { 0 };
 
    int m_wifiSocket;
    struct sockaddr_in m_wifiServer;

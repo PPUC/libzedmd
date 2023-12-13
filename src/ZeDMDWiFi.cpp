@@ -1,5 +1,6 @@
 #include "ZeDMDWiFi.h"
 #include "miniz/miniz.h"
+#include "komihash/komihash.h"
 
 ZeDMDWiFi::ZeDMDWiFi()
 {
@@ -158,10 +159,17 @@ void ZeDMDWiFi::QueueCommand(char command)
 
 bool ZeDMDWiFi::Connect(const char *ip, int port)
 {
-   if ((m_wifiSocket = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
-   {
-      return false;
-   }
+#if defined(_WIN32) || defined(_WIN64)
+    WSADATA wsaData;
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != NO_ERROR) {
+        return false;
+    }
+#endif
+
+    if ((m_wifiSocket = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
+    {
+        return false;
+    }
 
    m_wifiServer.sin_family = AF_INET;
    m_wifiServer.sin_port = htons(port);
@@ -173,6 +181,10 @@ bool ZeDMDWiFi::Connect(const char *ip, int port)
 void ZeDMDWiFi::Disconnect()
 {
    Reset();
+
+#if defined(_WIN32) || defined(_WIN64)
+   WSACleanup();
+#endif
 }
 
 void ZeDMDWiFi::Reset()
@@ -181,61 +193,69 @@ void ZeDMDWiFi::Reset()
 
 bool ZeDMDWiFi::StreamBytes(ZeDMDWiFiFrame *pFrame)
 {
-   // An UDP package should not exceed the MTU (WiFi rx_buffer in ESP32 is 1460 bytes), a single HD in the row should be less:
-   // 256 pixels, 3 bytes RGB per pixel, 3 byte command header: 773 bytes
+   // An UDP package should not exceed the MTU (WiFi rx_buffer in ESP32 is 1460 bytes).
+   // We send obe zones of 16 * 8 pixels:
+   // 128 pixels, 3 bytes RGB per pixel, 5 byte command header: 389 bytes
    // And we additionally use compression.
-   uint8_t *data = (uint8_t *)malloc(pFrame->size + 3);
-
-   data[0] = pFrame->command; // command
-   // data[1] = 128 | m_frameCounter; // compressed + frameCounter
-   data[1] = m_frameCounter; // compressed + frameCounter
-
-   for (uint8_t y = 0; y < pFrame->height; y++)
+ 
+   uint8_t idx = 0;
+   for (uint8_t y = 0; y < pFrame->height; y += 8)
    {
-      if (pFrame->command != m_previousFrame.command || pFrame->width != m_previousFrame.width || pFrame->height != m_previousFrame.height || 0 != memcmp(pFrame->data + (y * pFrame->width * 3), &(m_previousFrame.data[y * pFrame->width]), pFrame->width * 3))
-      {
-         data[2] = y;
+       for (uint8_t x = 0; x < pFrame->width; x += 16)
+       {
+           uint8_t data[16 * 8 * 3 + 5] = { 0 };
+           data[0] = pFrame->command; // command
 
-         memcpy(&data[3], pFrame->data + (y * pFrame->width * 3), pFrame->width * 3);
+           uint8_t zone[16 * 8 * 3] = { 0 };
+           for (uint8_t z = 0; z < 8; z++)
+           {
+               memcpy(&zone[z * 16 * 3], &pFrame->data[((y + z) * pFrame->width + x) * 3], 16 * 3);
+           }
+           
+           uint64_t hash = komihash(zone, 16 * 8 * 3, 0);
+           if (hash != m_zoneHashes[idx])
+           {
+               m_zoneHashes[idx] = hash;
+
+               if (m_compression)
+               {
+                   data[1] = (uint8_t)(128 | idx); // compressed + zone index
+
+                   mz_ulong compressedSize = 16 * 8 * 3;
+                   int status = mz_compress(&data[4], &compressedSize, zone, 16 * 8 * 3);
+                   data[2] = (uint8_t)(compressedSize >> 8 & 0xFF);
+                   data[3] = (uint8_t)(compressedSize & 0xFF);
+
+                   if (status == MZ_OK) {
 #if defined(_WIN32) || defined(_WIN64)
-         sendto(m_wifiSocket, (const char *)data, pFrame->width * 3 + 3, 0, (struct sockaddr *)&m_wifiServer, sizeof(m_wifiServer));
+                       sendto(m_wifiSocket, (const char*)data, compressedSize + 4, 0, (struct sockaddr*)&m_wifiServer, sizeof(m_wifiServer));
 #else
-         sendto(m_wifiSocket, data, pFrame->width * 3 + 3, 0, (struct sockaddr *)&m_wifiServer, sizeof(m_wifiServer));
+                       sendto(m_wifiSocket, data, compressedSize + 5, 0, (struct sockaddr*)&m_wifiServer, sizeof(m_wifiServer));
 #endif
-         // mz_ulong compressedSize = width * 3;
-         // int status = mz_compress(&data[3], &compressedSize, pFrame->data + (y * width * 3), width * 3);
+                   }
+               }
+               else
+               {
+                   data[1] = (uint8_t)idx; // not compressed + zone index
 
-         // if (status == MZ_OK) {
-         // sendto(m_wifiSocket, data, compressedSize + 3, 0, (struct sockaddr *)&m_wifiServer, sizeof(m_wifiServer));
-         //}
-      }
-   }
+                   int size = 16 * 8 * 3;
+                   data[2] = (uint8_t)(size >> 8 & 0xFF);
+                   data[3] = (uint8_t)(size & 0xFF);
+                   memcpy(&data[4], zone, size);
 
-   data[1] = 64 + (m_frameCounter++);
-   if (m_frameCounter >= 64)
-   {
-      m_frameCounter = 0;
-   }
-
-   for (int i = 0; i < 3; i++)
-   {
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
 #if defined(_WIN32) || defined(_WIN64)
-      sendto(m_wifiSocket, (const char *)data, 2, 0, (struct sockaddr *)&m_wifiServer, sizeof(m_wifiServer));
+                   sendto(m_wifiSocket, (const char*)data, size + 4, 0, (struct sockaddr*)&m_wifiServer, sizeof(m_wifiServer));
 #else
-      sendto(m_wifiSocket, data, 2, 0, (struct sockaddr *)&m_wifiServer, sizeof(m_wifiServer));
+                   sendto(m_wifiSocket, data, size + 4, 0, (struct sockaddr*)&m_wifiServer, sizeof(m_wifiServer));
 #endif
+
+               }
+           }
+           idx++;
+       }
    }
 
-   m_previousFrame.command = pFrame->command;
-   m_previousFrame.size = pFrame->size;
-   m_previousFrame.width = pFrame->width;
-   m_previousFrame.height = pFrame->height;
-   free(m_previousFrame.data);
-   m_previousFrame.data = (uint8_t *)malloc(pFrame->size);
-   memcpy(m_previousFrame.data, pFrame->data, pFrame->size);
-
-   // std::this_thread::sleep_for(std::chrono::milliseconds(4));
+   //std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
    return true;
 }
