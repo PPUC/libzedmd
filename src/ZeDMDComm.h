@@ -75,7 +75,7 @@ struct ZeDMDFrame
 #endif
 
 #define ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT 10
-#define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX 2
+#define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX 4
 
 #ifdef __ANDROID__
 typedef void *(*ZeDMD_AndroidGetJNIEnvFunc)();

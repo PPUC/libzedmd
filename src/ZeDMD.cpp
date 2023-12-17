@@ -416,7 +416,7 @@ void ZeDMD::RenderRgb24(uint8_t *pFrame)
    uint16_t width;
    uint16_t height;
 
-   int bufferSize = Scale(m_pPlanes, pFrame, 3, &width, &height);
+   int bufferSize = Scale(m_pPlanes, m_pFrameBuffer, 3, &width, &height);
 
    if (m_wifi)
    {
