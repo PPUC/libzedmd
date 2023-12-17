@@ -21,7 +21,7 @@
 
 typedef enum
 {
-   UDP_RGB24 = 0x03,
+   UDP_RGB24 = 0x04,
    UDP_ClearScreen = 0x0a,
 } ZEDMD_WIFI_COMMAND;
 
@@ -35,8 +35,6 @@ struct ZeDMDWiFiFrame
 };
 
 #define ZEDMD_WIFI_FRAME_SIZE_COMMAND_LIMIT 10
-
-#define ZEDMD_WIFI_FRAME_QUEUE_SIZE_MAX 128
 
 typedef void(CALLBACK *ZeDMD_LogMessageCallback)(const char *format, va_list args, const void *userData);
 
@@ -52,24 +50,24 @@ public:
    void Disconnect();
 
    void Run();
-   void QueueCommand(char command, uint8_t *buffer, int size, int width, uint8_t height);
+   void QueueCommand(char command, uint8_t *buffer, int size, uint16_t width, uint16_t height);
    void QueueCommand(char command);
    void QueueCommand(char command, uint8_t value);
 
-   int GetWidth();
-   int GetHeight();
+   uint16_t GetWidth();
+   uint16_t GetHeight();
 
 private:
    void LogMessage(const char *format, ...);
 
    void Reset();
-   bool StreamBytes(ZeDMDWiFiFrame *pFrame);
+   void StreamBytes(ZeDMDWiFiFrame *pFrame);
 
    ZeDMD_LogMessageCallback m_logMessageCallback = nullptr;
    const void *m_logMessageUserData = nullptr;
 
-   int m_width = 128;
-   int m_height = 32;
+   uint16_t m_width = 128;
+   uint16_t m_height = 32;
 
    bool m_compression = true;
    uint64_t m_zoneHashes[128] = {0};

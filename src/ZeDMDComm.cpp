@@ -46,17 +46,7 @@ void ZeDMDComm::Run()
    m_pThread = new std::thread([this]()
                                {
                                   LogMessage("ZeDMDComm run thread starting");
-
-                                  bool sleep = false;
-                                  int maxQueuedFrames;
-                                  if (m_width == 256)
-                                  {
-                                      maxQueuedFrames = ZEDMD_COMM_RGB24_QUEUE_SIZE_MAX;
-                                  }
-                                  else
-                                  {
-                                      maxQueuedFrames = ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX;
-                                  }
+                                  int8_t lastStreamId = -1;
 
                                   while (m_serialPort.IsOpen())
                                   {
@@ -64,34 +54,42 @@ void ZeDMDComm::Run()
 
                                      if (m_frames.empty())
                                      {
+                                         m_delayedFrameMutex.lock();
+                                         if (m_delayedFrameReady) {
+                                             while (m_delayedFrames.size() > 0)
+                                             {
+                                                 m_frames.push(m_delayedFrames.front());
+                                                 m_delayedFrames.pop();
+                                             }
+                                             m_delayedFrameReady = false;
+                                             m_delayedFrameMutex.unlock();
+                                             m_frameQueueMutex.unlock();
+                                             continue;
+                                         }
+                                        m_delayedFrameMutex.unlock();
                                         m_frameQueueMutex.unlock();
+
                                         std::this_thread::sleep_for(std::chrono::milliseconds(1));
                                         continue;
                                      }
 
                                      ZeDMDFrame frame = m_frames.front();
                                      m_frames.pop();
+                                     if (frame.streamId > 0)
+                                     {
+                                         if (frame.streamId != lastStreamId)
+                                         {
+                                             lastStreamId = frame.streamId;
+                                             m_frameCounter--;
+                                         }
+                                     }
                                      m_frameQueueMutex.unlock();
-                                     if (frame.size > ZEDMD_COMM_FRAME_SIZE_SLOW_THRESHOLD)
-                                     {
-                                        maxQueuedFrames = ZEDMD_COMM_FRAME_QUEUE_SIZE_SLOW;
-                                     }
-                                     else
-                                     {
-                                         if (m_width == 256)
-                                         {
-                                             maxQueuedFrames = ZEDMD_COMM_RGB24_QUEUE_SIZE_MAX;
-                                         }
-                                         else
-                                         {
-                                             maxQueuedFrames = ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX;
-                                         }
-                                     }
 
                                      bool success = StreamBytes(&frame);
                                      if (!success && frame.size < ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT)
                                      {
-                                        // Try to send the command again, in case the the wait for the (R)eady signal ran into a timeout.
+                                         std::this_thread::sleep_for(std::chrono::milliseconds(8));
+                                         // Try to send the command again, in case the wait for the (R)eady signal ran into a timeout.
                                         success = StreamBytes(&frame);
                                      }
 
@@ -102,38 +100,14 @@ void ZeDMDComm::Run()
 
                                      if (!success)
                                      {
-                                        std::this_thread::sleep_for(std::chrono::milliseconds(8));
+                                         std::this_thread::sleep_for(std::chrono::milliseconds(2));
                                      }
-
-                                     m_frameQueueMutex.lock();
-                                     while (m_frames.size() >= maxQueuedFrames)
-                                     {
-                                        frame = m_frames.front();
-                                        m_frames.pop();
-                                        if (frame.size < ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT)
-                                        {
-                                           while (m_frames.size() > 0)
-                                           {
-                                              ZeDMDFrame tmpFrame = m_frames.front();
-                                              m_frames.pop();
-
-                                              if (tmpFrame.data)
-                                                 free(tmpFrame.data);
-                                           }
-                                           m_frames.push(frame);
-                                        }
-                                        else if (frame.data)
-                                        {
-                                           free(frame.data);
-                                        }
-                                     }
-                                     m_frameQueueMutex.unlock();
                                   }
 
                                   LogMessage("ZeDMDComm run thread finished"); });
 }
 
-void ZeDMDComm::QueueCommand(char command, uint8_t *data, int size)
+void ZeDMDComm::QueueCommand(char command, uint8_t *data, int size, int8_t streamId, bool delayed)
 {
    if (!m_serialPort.IsOpen())
    {
@@ -143,6 +117,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t *data, int size)
    ZeDMDFrame frame = {0};
    frame.command = command;
    frame.size = size;
+   frame.streamId = streamId;
 
    if (data && size > 0)
    {
@@ -150,9 +125,36 @@ void ZeDMDComm::QueueCommand(char command, uint8_t *data, int size)
       memcpy(frame.data, data, size);
    }
 
-   m_frameQueueMutex.lock();
-   m_frames.push(frame);
-   m_frameQueueMutex.unlock();
+   // delayed standard frame
+   if (streamId == -1 && GetQueuedFramesCount() > ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX)
+   {
+      m_delayedFrameMutex.lock();
+      while (m_delayedFrames.size() > 0)
+      {
+         m_delayedFrames.pop();
+      }
+      m_delayedFrames.push(frame);
+      m_delayedFrameReady = true;
+      m_delayedFrameMutex.unlock();
+   }
+   // delayed streamed zones
+   else if (streamId != -1 && delayed)
+   {
+      m_delayedFrameMutex.lock();
+      m_delayedFrames.push(frame);
+      m_delayedFrameMutex.unlock();
+   }
+   else
+   {
+      m_frameQueueMutex.lock();
+      if (streamId == -1 || m_lastStreamId != streamId)
+      {
+         m_frameCounter++;
+         m_lastStreamId = streamId;
+      }
+      m_frames.push(frame);
+      m_frameQueueMutex.unlock();
+   }
 }
 
 void ZeDMDComm::QueueCommand(char command, uint8_t value)
@@ -165,31 +167,80 @@ void ZeDMDComm::QueueCommand(char command)
    QueueCommand(command, NULL, 0);
 }
 
-void ZeDMDComm::QueueCommand(char command, uint8_t *data, int size, int width, uint8_t height)
+void ZeDMDComm::QueueCommand(char command, uint8_t *data, int size, uint16_t width, uint16_t height)
 {
+   uint8_t buffer[256 * 16 * 3 + 32];
+   uint16_t bufferSize = 0;
    uint8_t idx = 0;
-   for (uint8_t y = 0; y < height; y += 8)
+
+   if (++m_streamId > 64)
    {
-      for (uint8_t x = 0; x < width; x += 16)
+      m_streamId = 1;
+   }
+
+   bool delayed = false;
+   if (GetQueuedFramesCount() > ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX)
+   {
+      delayed = true;
+      m_delayedFrameMutex.lock();
+      m_delayedFrameReady = false;
+      while (m_delayedFrames.size() > 0)
       {
-         uint8_t zone[16 * 8 * 3 + 1] = {0};
-         zone[0] = idx;
+         m_delayedFrames.pop();
+      }
+      m_delayedFrameMutex.unlock();
+   }
+
+   for (uint16_t y = 0; y < height; y += 8)
+   {
+      for (uint16_t x = 0; x < width; x += 16)
+      {
+         uint8_t zone[16 * 8 * 3] = {0};
 
          for (uint8_t z = 0; z < 8; z++)
          {
-            memcpy(&zone[z * 16 * 3 + 1], &data[((y + z) * width + x) * 3], 16 * 3);
+            memcpy(&zone[z * 16 * 3], &data[((y + z) * width + x) * 3], 16 * 3);
          }
 
-         uint64_t hash = komihash(&zone[1], 16 * 8 * 3, 0);
+         uint64_t hash = komihash(zone, 16 * 8 * 3, 0);
          if (hash != m_zoneHashes[idx])
          {
             m_zoneHashes[idx] = hash;
 
-            QueueCommand(command, zone, 16 * 8 * 3 + 1);
+            buffer[bufferSize++] = idx;
+            memcpy(&buffer[bufferSize], zone, 16 * 8 * 3);
+            bufferSize += 16 * 8 * 3;
+
+            if (bufferSize >= 256 * 16 * 3 + 32)
+            {
+               QueueCommand(command, buffer, bufferSize, m_streamId, delayed);
+               bufferSize = 0;
+            }
          }
          idx++;
       }
    }
+
+   if (bufferSize > 0)
+   {
+      QueueCommand(command, buffer, bufferSize, m_streamId, delayed);
+   }
+
+   if (delayed)
+   {
+      m_delayedFrameMutex.lock();
+      m_delayedFrameReady = true;
+      m_delayedFrameMutex.unlock();
+   }
+}
+
+uint8_t ZeDMDComm::GetQueuedFramesCount()
+{
+   uint8_t count = 0;
+   m_frameQueueMutex.lock();
+   count = m_frameCounter;
+   m_frameQueueMutex.unlock();
+   return count;
 }
 
 void ZeDMDComm::IgnoreDevice(const char *ignore_device)
@@ -200,9 +251,22 @@ void ZeDMDComm::IgnoreDevice(const char *ignore_device)
    }
 }
 
+void ZeDMDComm::SetDevice(const char *device)
+{
+   if (sizeof(device) < 32)
+   {
+      strcpy(&m_device[0], device);
+   }
+}
+
 bool ZeDMDComm::Connect()
 {
 #ifndef __ANDROID__
+   if (m_device[0] != 0)
+   {
+      return Connect(m_device);
+   }
+
    char szDevice[32];
 
    for (int i = 0; i < 7; i++)
@@ -415,12 +479,12 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame *pFrame)
    return success;
 }
 
-int ZeDMDComm::GetWidth()
+uint16_t ZeDMDComm::GetWidth()
 {
    return m_width;
 }
 
-int ZeDMDComm::GetHeight()
+uint16_t ZeDMDComm::GetHeight()
 {
    return m_height;
 }

@@ -55,53 +55,18 @@ void ZeDMDWiFi::Run()
                                      m_frames.pop();
                                      m_frameQueueMutex.unlock();
 
-                                     bool success = StreamBytes(&frame);
-
-                                     if (!success && frame.size < ZEDMD_WIFI_FRAME_SIZE_COMMAND_LIMIT)
-                                     {
-                                        // Try to send the command again, in case the the wait for the (R)eady signal ran into a timeout.
-                                        success = StreamBytes(&frame);
-                                     }
+                                     StreamBytes(&frame);
 
                                      if (frame.data)
                                      {
                                         free(frame.data);
                                      }
-
-                                     if (!success)
-                                     {
-                                        std::this_thread::sleep_for(std::chrono::milliseconds(8));
-                                     }
-
-                                     m_frameQueueMutex.lock();
-                                     while (m_frames.size() >= ZEDMD_WIFI_FRAME_QUEUE_SIZE_MAX)
-                                     {
-                                        frame = m_frames.front();
-                                        m_frames.pop();
-                                        if (frame.size < ZEDMD_WIFI_FRAME_SIZE_COMMAND_LIMIT)
-                                        {
-                                           while (m_frames.size() > 0)
-                                           {
-                                              ZeDMDWiFiFrame tmpFrame = m_frames.front();
-                                              m_frames.pop();
-
-                                              if (tmpFrame.data)
-                                                 free(tmpFrame.data);
-                                           }
-                                           m_frames.push(frame);
-                                        }
-                                        else if (frame.data)
-                                        {
-                                           free(frame.data);
-                                        }
-                                     }
-                                     m_frameQueueMutex.unlock();
                                   }
 
                                   LogMessage("ZeDMDWiFi run thread finished"); });
 }
 
-void ZeDMDWiFi::QueueCommand(char command, uint8_t *data, int size, int width, uint8_t height)
+void ZeDMDWiFi::QueueCommand(char command, uint8_t *data, int size, uint16_t width, uint16_t height)
 {
    ZeDMDWiFiFrame frame = {0};
    frame.command = command;
@@ -165,7 +130,7 @@ void ZeDMDWiFi::Reset()
 {
 }
 
-bool ZeDMDWiFi::StreamBytes(ZeDMDWiFiFrame *pFrame)
+void ZeDMDWiFi::StreamBytes(ZeDMDWiFiFrame *pFrame)
 {
    // An UDP package should not exceed the MTU (WiFi rx_buffer in ESP32 is 1460 bytes).
    // We send obe zones of 16 * 8 pixels:
@@ -194,14 +159,13 @@ bool ZeDMDWiFi::StreamBytes(ZeDMDWiFiFrame *pFrame)
 #endif
          std::this_thread::sleep_for(std::chrono::milliseconds(10));
       }
-
-      return true;
+      return;
    }
 
    uint8_t idx = 0;
-   for (uint8_t y = 0; y < pFrame->height; y += 8)
+   for (uint16_t y = 0; y < pFrame->height; y += 8)
    {
-      for (uint8_t x = 0; x < pFrame->width; x += 16)
+      for (uint16_t x = 0; x < pFrame->width; x += 16)
       {
          uint8_t data[16 * 8 * 3 + 4] = {0};
          data[0] = pFrame->command; // command
@@ -254,18 +218,14 @@ bool ZeDMDWiFi::StreamBytes(ZeDMDWiFiFrame *pFrame)
          idx++;
       }
    }
-
-   // std::this_thread::sleep_for(std::chrono::milliseconds(1));
-
-   return true;
 }
 
-int ZeDMDWiFi::GetWidth()
+uint16_t ZeDMDWiFi::GetWidth()
 {
    return m_width;
 }
 
-int ZeDMDWiFi::GetHeight()
+uint16_t ZeDMDWiFi::GetHeight()
 {
    return m_height;
 }

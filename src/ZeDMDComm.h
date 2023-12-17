@@ -41,6 +41,7 @@ typedef enum
    GetResolution = 0x21,
 
    RGB24 = 0x03,
+   RGB24ZonesStream = 0x04,
    Gray2 = 0x08,
    ColGray4 = 0x09,
    ColGray6 = 0x0b,
@@ -55,11 +56,12 @@ struct ZeDMDFrame
    uint8_t command;
    uint8_t *data;
    int size;
+   int8_t streamId;
 };
 
 #define ZEDMD_COMM_BAUD_RATE 921600
-#define ZEDMD_COMM_SERIAL_READ_TIMEOUT 8
-#define ZEDMD_COMM_SERIAL_WRITE_TIMEOUT 8
+#define ZEDMD_COMM_SERIAL_READ_TIMEOUT 16
+#define ZEDMD_COMM_SERIAL_WRITE_TIMEOUT 16
 
 #if defined(_WIN32) || defined(_WIN64)
 #define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 8192
@@ -72,18 +74,8 @@ struct ZeDMDFrame
 #define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 256
 #endif
 
-#define ZEDMD_COMM_FRAME_SIZE_SLOW_THRESHOLD 4096
 #define ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT 10
-
-#define ZEDMD_COMM_RGB24_QUEUE_SIZE_MAX 16384
-#define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX 128
-#define ZEDMD_COMM_FRAME_QUEUE_SIZE_SLOW 4
-
-#ifndef __ANDROID__
-#define ZEDMD_COMM_FRAME_QUEUE_SIZE_DEFAULT 32
-#else
-#define ZEDMD_COMM_FRAME_QUEUE_SIZE_DEFAULT 8
-#endif
+#define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX 2
 
 #ifdef __ANDROID__
 typedef void *(*ZeDMD_AndroidGetJNIEnvFunc)();
@@ -108,18 +100,20 @@ public:
    void SetLogMessageCallback(ZeDMD_LogMessageCallback callback, const void *userData);
 
    void IgnoreDevice(const char *ignore_device);
+   void SetDevice(const char *device);
 
    bool Connect();
    void Disconnect();
 
    void Run();
-   void QueueCommand(char command, uint8_t *buffer, int size, int width, uint8_t height);
-   void QueueCommand(char command, uint8_t *buffer, int size);
+   void QueueCommand(char command, uint8_t *buffer, int size, uint16_t width, uint16_t height);
+   void QueueCommand(char command, uint8_t *buffer, int size, int8_t streamId = -1, bool delayed = false);
    void QueueCommand(char command);
    void QueueCommand(char command, uint8_t value);
+   uint8_t GetQueuedFramesCount();
 
-   int GetWidth();
-   int GetHeight();
+   uint16_t GetWidth();
+   uint16_t GetHeight();
 
 private:
    void LogMessage(const char *format, ...);
@@ -131,13 +125,20 @@ private:
    ZeDMD_LogMessageCallback m_logMessageCallback = nullptr;
    const void *m_logMessageUserData = nullptr;
    uint64_t m_zoneHashes[128] = {0};
-   int m_width = 128;
-   int m_height = 32;
+   uint16_t m_width = 128;
+   uint16_t m_height = 32;
+   int8_t m_streamId = -1;
+   int8_t m_lastStreamId = -1;
    uint8_t m_flowControlCounter = 0;
    char m_ignoredDevices[10][32] = {0};
    uint8_t m_ignoredDevicesCounter = 0;
+   char m_device[32] = {0};
    SerialPort m_serialPort;
    std::queue<ZeDMDFrame> m_frames;
    std::thread *m_pThread;
    std::mutex m_frameQueueMutex;
+   uint8_t m_frameCounter = 0;
+   std::queue<ZeDMDFrame> m_delayedFrames;
+   std::mutex m_delayedFrameMutex;
+   bool m_delayedFrameReady = false;
 };
