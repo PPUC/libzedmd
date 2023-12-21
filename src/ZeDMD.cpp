@@ -422,7 +422,7 @@ void ZeDMD::RenderRgb24(uint8_t *pFrame)
    {
       m_pZeDMDWiFi->QueueCommand(ZEDMD_WIFI_COMMAND::UDP_RGB24, m_pPlanes, bufferSize, width, height);
    }
-   else if (m_hd)
+   else if (m_hd || m_streaming)
    {
       m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB24ZonesStream, m_pPlanes, bufferSize, width, height);
    }
@@ -544,8 +544,8 @@ int ZeDMD::Scale(uint8_t *pScaledFrame, uint8_t *pFrame, uint8_t colors, uint16_
    }
    else if (m_downscaling && m_romWidth == 192)
    {
-      (*width) = m_romWidth;
-      (*height) = m_romHeight;
+      (*width) = frameWidth;
+      (*height) = frameHeight;
 
       xoffset = 16;
       scale = 1;
@@ -567,8 +567,8 @@ int ZeDMD::Scale(uint8_t *pScaledFrame, uint8_t *pFrame, uint8_t colors, uint16_
    }
    else if (m_downscaling && m_romWidth == 256 && frameWidth == 128)
    {
-      (*width) = m_romWidth;
-      (*height) = m_romHeight;
+      (*width) = frameWidth;
+      (*height) = frameHeight;
 
       scale = 1;
    }

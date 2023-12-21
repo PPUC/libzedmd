@@ -127,6 +127,8 @@ private:
    uint64_t m_zoneHashes[128] = {0};
    uint16_t m_width = 128;
    uint16_t m_height = 32;
+   uint8_t m_zoneWidth = 8;
+   uint8_t m_zoneHeight = 4;
    int8_t m_streamId = -1;
    int8_t m_lastStreamId = -1;
    uint8_t m_flowControlCounter = 0;

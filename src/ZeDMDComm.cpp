@@ -169,9 +169,10 @@ void ZeDMDComm::QueueCommand(char command)
 
 void ZeDMDComm::QueueCommand(char command, uint8_t *data, int size, uint16_t width, uint16_t height)
 {
-   uint8_t buffer[256 * 16 * 3 + 32];
+   uint8_t buffer[256 * 16 * 3 + 16]; 
    uint16_t bufferSize = 0;
    uint8_t idx = 0;
+   uint8_t zone[16 * 8 * 3] = { 0 };
 
    if (++m_streamId > 64)
    {
@@ -191,27 +192,25 @@ void ZeDMDComm::QueueCommand(char command, uint8_t *data, int size, uint16_t wid
       m_delayedFrameMutex.unlock();
    }
 
-   for (uint16_t y = 0; y < height; y += 8)
-   {
-      for (uint16_t x = 0; x < width; x += 16)
-      {
-         uint8_t zone[16 * 8 * 3] = {0};
-
-         for (uint8_t z = 0; z < 8; z++)
+   for (uint16_t y = 0; y < height; y += m_zoneHeight)
+   {       
+       for (uint16_t x = 0; x < width; x += m_zoneWidth)
+       {
+         for (uint8_t z = 0; z < m_zoneHeight; z++)
          {
-            memcpy(&zone[z * 16 * 3], &data[((y + z) * width + x) * 3], 16 * 3);
+            memcpy(&zone[z * m_zoneWidth * 3], &data[((y + z) * width + x) * 3], m_zoneWidth * 3);
          }
 
-         uint64_t hash = komihash(zone, 16 * 8 * 3, 0);
+         uint64_t hash = komihash(zone, m_zoneWidth * m_zoneHeight * 3, 0);
          if (hash != m_zoneHashes[idx])
          {
             m_zoneHashes[idx] = hash;
 
             buffer[bufferSize++] = idx;
-            memcpy(&buffer[bufferSize], zone, 16 * 8 * 3);
-            bufferSize += 16 * 8 * 3;
+            memcpy(&buffer[bufferSize], zone, m_zoneWidth * m_zoneHeight * 3);
+            bufferSize += m_zoneWidth * m_zoneHeight * 3;
 
-            if (bufferSize >= 256 * 16 * 3 + 32)
+            if (bufferSize >= (width * m_zoneHeight * 3 + 16))
             {
                QueueCommand(command, buffer, bufferSize, m_streamId, delayed);
                bufferSize = 0;
@@ -344,6 +343,8 @@ bool ZeDMDComm::Connect(char *pDevice)
       {
          m_width = data[4] + data[5] * 256;
          m_height = data[6] + data[7] * 256;
+         m_zoneWidth = m_width / 16;
+         m_zoneHeight = m_height / 8;
 
          uint8_t response;
 
