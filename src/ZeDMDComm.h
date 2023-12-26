@@ -75,7 +75,7 @@ struct ZeDMDFrame
 #endif
 
 #define ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT 10
-#define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX 4
+#define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX 8
 
 #ifdef __ANDROID__
 typedef void *(*ZeDMD_AndroidGetJNIEnvFunc)();
@@ -110,7 +110,7 @@ public:
    void QueueCommand(char command, uint8_t *buffer, int size, int8_t streamId = -1, bool delayed = false);
    void QueueCommand(char command);
    void QueueCommand(char command, uint8_t value);
-   uint8_t GetQueuedFramesCount();
+   bool FillDelayed();
 
    uint16_t GetWidth();
    uint16_t GetHeight();

@@ -54,34 +54,60 @@ void ZeDMDComm::Run()
 
                                      if (m_frames.empty())
                                      {
-                                         m_delayedFrameMutex.lock();
-                                         if (m_delayedFrameReady) {
+                                        m_delayedFrameMutex.lock();
+                                        if (m_delayedFrameReady) {
                                              while (m_delayedFrames.size() > 0)
                                              {
-                                                 m_frames.push(m_delayedFrames.front());
+                                                 ZeDMDFrame frame = m_delayedFrames.front();
+                                                 lastStreamId = frame.streamId;
+                                                 m_frames.push(frame);
                                                  m_delayedFrames.pop();
                                              }
                                              m_delayedFrameReady = false;
+                                             m_frameCounter = 1;
                                              m_delayedFrameMutex.unlock();
                                              m_frameQueueMutex.unlock();
                                              continue;
-                                         }
+                                        }
                                         m_delayedFrameMutex.unlock();
                                         m_frameQueueMutex.unlock();
-
                                         std::this_thread::sleep_for(std::chrono::milliseconds(1));
                                         continue;
+                                     }
+                                     else
+                                     {
+                                         bool delay = false;
+                                         m_delayedFrameMutex.lock();
+                                         delay = m_delayedFrameReady;
+                                         m_delayedFrameMutex.unlock();
+                                     
+                                         if (delay && m_frameCounter > 2) {
+                                             while (m_frames.size() > 0)
+                                             {
+                                                 m_frames.pop();
+                                             }
+                                             m_frameCounter = 0;
+                                             m_frameQueueMutex.unlock();
+                                             continue;
+                                         }
                                      }
 
                                      ZeDMDFrame frame = m_frames.front();
                                      m_frames.pop();
-                                     if (frame.streamId > 0)
+                                     if (frame.streamId != -1)
                                      {
                                          if (frame.streamId != lastStreamId)
                                          {
+                                             if (lastStreamId != -1)
+                                             {
+                                                 m_frameCounter--;
+                                             }
+
                                              lastStreamId = frame.streamId;
-                                             m_frameCounter--;
                                          }
+                                     }
+                                     else {
+                                         m_frameCounter--;
                                      }
                                      m_frameQueueMutex.unlock();
 
@@ -126,7 +152,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t *data, int size, int8_t strea
    }
 
    // delayed standard frame
-   if (streamId == -1 && GetQueuedFramesCount() > ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX)
+   if (streamId == -1 && FillDelayed())
    {
       m_delayedFrameMutex.lock();
       while (m_delayedFrames.size() > 0)
@@ -136,6 +162,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t *data, int size, int8_t strea
       m_delayedFrames.push(frame);
       m_delayedFrameReady = true;
       m_delayedFrameMutex.unlock();
+      m_lastStreamId = -1;
    }
    // delayed streamed zones
    else if (streamId != -1 && delayed)
@@ -143,6 +170,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t *data, int size, int8_t strea
       m_delayedFrameMutex.lock();
       m_delayedFrames.push(frame);
       m_delayedFrameMutex.unlock();
+      m_lastStreamId = streamId;
    }
    else
    {
@@ -176,11 +204,11 @@ void ZeDMDComm::QueueCommand(char command, uint8_t *data, int size, uint16_t wid
 
    if (++m_streamId > 64)
    {
-      m_streamId = 1;
+      m_streamId = 0;
    }
 
    bool delayed = false;
-   if (GetQueuedFramesCount() > ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX)
+   if (FillDelayed())
    {
       delayed = true;
       m_delayedFrameMutex.lock();
@@ -190,6 +218,8 @@ void ZeDMDComm::QueueCommand(char command, uint8_t *data, int size, uint16_t wid
          m_delayedFrames.pop();
       }
       m_delayedFrameMutex.unlock();
+      // A delayed frame needs to be complete.
+      memset(m_zoneHashes, 0, 128);
    }
 
    for (uint16_t y = 0; y < height; y += m_zoneHeight)
@@ -233,13 +263,15 @@ void ZeDMDComm::QueueCommand(char command, uint8_t *data, int size, uint16_t wid
    }
 }
 
-uint8_t ZeDMDComm::GetQueuedFramesCount()
+bool ZeDMDComm::FillDelayed()
 {
    uint8_t count = 0;
+   bool delayed = false;
    m_frameQueueMutex.lock();
    count = m_frameCounter;
+   delayed = m_delayedFrameReady;
    m_frameQueueMutex.unlock();
-   return count;
+   return (count > ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX) || delayed;
 }
 
 void ZeDMDComm::IgnoreDevice(const char *ignore_device)

@@ -163,19 +163,19 @@ void ZeDMD::DisableUpscaling()
 void ZeDMD::SetWiFiSSID(const char *const ssid)
 {
    int size = strlen(ssid);
-   uint8_t data[129] = {0};
+   uint8_t data[33] = {0};
    data[0] = (uint8_t)size;
    memcpy(&data[1], (uint8_t *)ssid, size);
-   m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetWiFiSSID, data, 129);
+   m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetWiFiSSID, data, size + 1);
 }
 
 void ZeDMD::SetWiFiPassword(const char *const password)
 {
    int size = strlen(password);
-   uint8_t data[129] = {0};
+   uint8_t data[33] = {0};
    data[0] = (uint8_t)size;
    memcpy(&data[1], (uint8_t *)password, size);
-   m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetWiFiPassword, data, 129);
+   m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetWiFiPassword, data, size + 1);
 }
 
 void ZeDMD::SetWiFiPort(int port)
