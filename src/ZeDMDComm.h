@@ -76,6 +76,7 @@ struct ZeDMDFrame
 
 #define ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT 10
 #define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX 8
+#define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX_DELAYED 2
 
 #ifdef __ANDROID__
 typedef void *(*ZeDMD_AndroidGetJNIEnvFunc)();
@@ -102,8 +103,9 @@ public:
    void IgnoreDevice(const char *ignore_device);
    void SetDevice(const char *device);
 
-   bool Connect();
-   void Disconnect();
+   virtual bool Connect();
+   virtual void Disconnect();
+   virtual bool IsConnected();
 
    void Run();
    void QueueCommand(char command, uint8_t *buffer, int size, uint16_t width, uint16_t height);
@@ -115,20 +117,24 @@ public:
    uint16_t GetWidth();
    uint16_t GetHeight();
 
+protected:
+	virtual bool StreamBytes(ZeDMDFrame* pFrame);
+	virtual void Reset();
+
+	uint16_t m_zonesBytesLimit = 0;
+	uint8_t m_zoneWidth = 8;
+	uint8_t m_zoneHeight = 4;
+
 private:
    void LogMessage(const char *format, ...);
 
    bool Connect(char *pName);
-   void Reset();
-   bool StreamBytes(ZeDMDFrame *pFrame);
 
    ZeDMD_LogMessageCallback m_logMessageCallback = nullptr;
    const void *m_logMessageUserData = nullptr;
    uint64_t m_zoneHashes[128] = {0};
    uint16_t m_width = 128;
    uint16_t m_height = 32;
-   uint8_t m_zoneWidth = 8;
-   uint8_t m_zoneHeight = 4;
    int8_t m_streamId = -1;
    int8_t m_lastStreamId = -1;
    uint8_t m_flowControlCounter = 0;

@@ -48,7 +48,7 @@ void ZeDMDComm::Run()
                                   LogMessage("ZeDMDComm run thread starting");
                                   int8_t lastStreamId = -1;
 
-                                  while (m_serialPort.IsOpen())
+                                  while (IsConnected())
                                   {
                                      m_frameQueueMutex.lock();
 
@@ -81,7 +81,7 @@ void ZeDMDComm::Run()
                                          delay = m_delayedFrameReady;
                                          m_delayedFrameMutex.unlock();
                                      
-                                         if (delay && m_frameCounter > 2) {
+                                         if (delay && m_frameCounter > ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX_DELAYED) {
                                              while (m_frames.size() > 0)
                                              {
                                                  m_frames.pop();
@@ -135,7 +135,7 @@ void ZeDMDComm::Run()
 
 void ZeDMDComm::QueueCommand(char command, uint8_t *data, int size, int8_t streamId, bool delayed)
 {
-   if (!m_serialPort.IsOpen())
+   if (!IsConnected())
    {
       return;
    }
@@ -201,6 +201,16 @@ void ZeDMDComm::QueueCommand(char command, uint8_t *data, int size, uint16_t wid
    uint16_t bufferSize = 0;
    uint8_t idx = 0;
    uint8_t zone[16 * 8 * 3] = { 0 };
+   uint16_t zonesBytesLimit = 0;
+   if (m_zonesBytesLimit) {
+       while (zonesBytesLimit < m_zonesBytesLimit)
+       {
+           zonesBytesLimit += m_zoneWidth * m_zoneHeight * 3 + 1;
+       }
+   }
+   else {
+       zonesBytesLimit = width * m_zoneHeight * 3 + 16;
+   }
 
    if (++m_streamId > 64)
    {
@@ -240,7 +250,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t *data, int size, uint16_t wid
             memcpy(&buffer[bufferSize], zone, m_zoneWidth * m_zoneHeight * 3);
             bufferSize += m_zoneWidth * m_zoneHeight * 3;
 
-            if (bufferSize >= (width * m_zoneHeight * 3 + 16))
+            if (bufferSize >= zonesBytesLimit)
             {
                QueueCommand(command, buffer, bufferSize, m_streamId, delayed);
                bufferSize = 0;
@@ -330,7 +340,7 @@ bool ZeDMDComm::Connect()
 
 void ZeDMDComm::Disconnect()
 {
-   if (!m_serialPort.IsOpen())
+   if (!IsConnected())
       return;
 
    Reset();
@@ -423,6 +433,11 @@ bool ZeDMDComm::Connect(char *pDevice)
    Disconnect();
 
    return false;
+}
+
+bool ZeDMDComm::IsConnected()
+{
+    return m_serialPort.IsOpen();
 }
 
 void ZeDMDComm::Reset()

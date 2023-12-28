@@ -288,7 +288,7 @@ void ZeDMD::ClearScreen()
    }
    else if (m_wifi)
    {
-      m_pZeDMDWiFi->QueueCommand(ZEDMD_WIFI_COMMAND::UDP_ClearScreen);
+      m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::ClearScreen);
    }
 }
 
@@ -310,7 +310,7 @@ void ZeDMD::RenderGray2(uint8_t *pFrame)
 
       if (m_wifi)
       {
-         m_pZeDMDWiFi->QueueCommand(ZEDMD_WIFI_COMMAND::UDP_RGB24, m_pPlanes, bufferSize * 3, width, height);
+         m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::RGB24ZonesStream, m_pPlanes, bufferSize * 3, width, height);
       }
       m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB24ZonesStream, m_pPlanes, bufferSize * 3, width, height);
    }
@@ -345,7 +345,7 @@ void ZeDMD::RenderGray4(uint8_t *pFrame)
 
       if (m_wifi)
       {
-         m_pZeDMDWiFi->QueueCommand(ZEDMD_WIFI_COMMAND::UDP_RGB24, m_pPlanes, bufferSize * 3, width, height);
+         m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::RGB24ZonesStream, m_pPlanes, bufferSize * 3, width, height);
       }
       m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB24ZonesStream, m_pPlanes, bufferSize * 3, width, height);
    }
@@ -384,7 +384,7 @@ void ZeDMD::RenderColoredGray6(uint8_t *pFrame, uint8_t *pRotations)
 
       if (m_wifi)
       {
-         m_pZeDMDWiFi->QueueCommand(ZEDMD_WIFI_COMMAND::UDP_RGB24, m_pPlanes, bufferSize * 3, width, height);
+         m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::RGB24ZonesStream, m_pPlanes, bufferSize * 3, width, height);
       }
       m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB24ZonesStream, m_pPlanes, bufferSize * 3, width, height);
    }
@@ -420,7 +420,7 @@ void ZeDMD::RenderRgb24(uint8_t *pFrame)
 
    if (m_wifi)
    {
-      m_pZeDMDWiFi->QueueCommand(ZEDMD_WIFI_COMMAND::UDP_RGB24, m_pPlanes, bufferSize, width, height);
+      m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::RGB24ZonesStream, m_pPlanes, bufferSize, width, height);
    }
    else if (m_hd || m_streaming)
    {
