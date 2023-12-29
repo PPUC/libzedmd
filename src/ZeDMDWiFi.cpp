@@ -80,7 +80,7 @@ bool ZeDMDWiFi::StreamBytes(ZeDMDFrame *pFrame)
       data[0] = pFrame->command;                                                        // command
       data[1] = (uint8_t)(128 | (pFrame->size / (m_zoneWidth * m_zoneHeight * 3 + 1))); // compressed + zone index
 
-      mz_ulong compressedSize = pFrame->size;
+      mz_ulong compressedSize = mz_compressBound(pFrame->size);
       int status = mz_compress(&data[4], &compressedSize, pFrame->data, pFrame->size);
       data[2] = (uint8_t)(compressedSize >> 8 & 0xFF);
       data[3] = (uint8_t)(compressedSize & 0xFF);
