@@ -197,19 +197,21 @@ void ZeDMDComm::QueueCommand(char command)
 
 void ZeDMDComm::QueueCommand(char command, uint8_t *data, int size, uint16_t width, uint16_t height)
 {
-   uint8_t buffer[256 * 16 * 3 + 16]; 
+   uint8_t buffer[256 * 16 * 3 + 16];
    uint16_t bufferSize = 0;
    uint8_t idx = 0;
-   uint8_t zone[16 * 8 * 3] = { 0 };
+   uint8_t zone[16 * 8 * 3] = {0};
    uint16_t zonesBytesLimit = 0;
-   if (m_zonesBytesLimit) {
-       while (zonesBytesLimit < m_zonesBytesLimit)
-       {
-           zonesBytesLimit += m_zoneWidth * m_zoneHeight * 3 + 1;
-       }
+   if (m_zonesBytesLimit)
+   {
+      while (zonesBytesLimit < m_zonesBytesLimit)
+      {
+         zonesBytesLimit += m_zoneWidth * m_zoneHeight * 3 + 1;
+      }
    }
-   else {
-       zonesBytesLimit = width * m_zoneHeight * 3 + 16;
+   else
+   {
+      zonesBytesLimit = width * m_zoneHeight * 3 + 16;
    }
 
    if (++m_streamId > 64)
@@ -233,9 +235,9 @@ void ZeDMDComm::QueueCommand(char command, uint8_t *data, int size, uint16_t wid
    }
 
    for (uint16_t y = 0; y < height; y += m_zoneHeight)
-   {       
-       for (uint16_t x = 0; x < width; x += m_zoneWidth)
-       {
+   {
+      for (uint16_t x = 0; x < width; x += m_zoneWidth)
+      {
          for (uint8_t z = 0; z < m_zoneHeight; z++)
          {
             memcpy(&zone[z * m_zoneWidth * 3], &data[((y + z) * width + x) * 3], m_zoneWidth * 3);
@@ -437,7 +439,7 @@ bool ZeDMDComm::Connect(char *pDevice)
 
 bool ZeDMDComm::IsConnected()
 {
-    return m_serialPort.IsOpen();
+   return m_serialPort.IsOpen();
 }
 
 void ZeDMDComm::Reset()

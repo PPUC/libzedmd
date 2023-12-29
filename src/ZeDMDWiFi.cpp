@@ -36,7 +36,7 @@ void ZeDMDWiFi::Disconnect()
 
 bool ZeDMDWiFi::IsConnected()
 {
-    return m_connected;
+   return m_connected;
 }
 
 void ZeDMDWiFi::Reset()
@@ -76,24 +76,24 @@ bool ZeDMDWiFi::StreamBytes(ZeDMDFrame *pFrame)
    }
    else
    {
-       uint8_t data[ZEDMD_WIFI_ZONES_BYTES_LIMIT] = { 0 };
-       data[0] = pFrame->command; // command
-       data[1] = (uint8_t)(128 | (pFrame->size / (m_zoneWidth * m_zoneHeight * 3 + 1))); // compressed + zone index
+      uint8_t data[ZEDMD_WIFI_ZONES_BYTES_LIMIT] = {0};
+      data[0] = pFrame->command;                                                        // command
+      data[1] = (uint8_t)(128 | (pFrame->size / (m_zoneWidth * m_zoneHeight * 3 + 1))); // compressed + zone index
 
-       mz_ulong compressedSize = pFrame->size;
-       int status = mz_compress(&data[4], &compressedSize, pFrame->data, pFrame->size);
-       data[2] = (uint8_t)(compressedSize >> 8 & 0xFF);
-       data[3] = (uint8_t)(compressedSize & 0xFF);
+      mz_ulong compressedSize = pFrame->size;
+      int status = mz_compress(&data[4], &compressedSize, pFrame->data, pFrame->size);
+      data[2] = (uint8_t)(compressedSize >> 8 & 0xFF);
+      data[3] = (uint8_t)(compressedSize & 0xFF);
 
-       if (status == MZ_OK)
-       {
+      if (status == MZ_OK)
+      {
 #if defined(_WIN32) || defined(_WIN64)
-           sendto(m_wifiSocket, (const char*)data, compressedSize + 4, 0, (struct sockaddr*)&m_wifiServer, sizeof(m_wifiServer));
+         sendto(m_wifiSocket, (const char *)data, compressedSize + 4, 0, (struct sockaddr *)&m_wifiServer, sizeof(m_wifiServer));
 #else
-           sendto(m_wifiSocket, data, compressedSize + 4, 0, (struct sockaddr*)&m_wifiServer, sizeof(m_wifiServer));
+         sendto(m_wifiSocket, data, compressedSize + 4, 0, (struct sockaddr *)&m_wifiServer, sizeof(m_wifiServer));
 #endif
-           return true;
-       }
+         return true;
+      }
    }
 
    return false;

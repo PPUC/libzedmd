@@ -26,11 +26,11 @@ public:
 	virtual bool IsConnected();
 
 protected:
-	virtual bool StreamBytes(ZeDMDFrame* pFrame);
+	virtual bool StreamBytes(ZeDMDFrame *pFrame);
 	virtual void Reset();
 
 private:
-   int m_wifiSocket;
-   struct sockaddr_in m_wifiServer;
-   bool m_connected = false;
+	int m_wifiSocket;
+	struct sockaddr_in m_wifiServer;
+	bool m_connected = false;
 };
