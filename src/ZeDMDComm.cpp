@@ -80,7 +80,7 @@ void ZeDMDComm::Run()
                                          m_delayedFrameMutex.lock();
                                          delay = m_delayedFrameReady;
                                          m_delayedFrameMutex.unlock();
-                                     
+
                                          if (delay && m_frameCounter > ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX_DELAYED) {
                                              while (m_frames.size() > 0)
                                              {

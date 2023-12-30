@@ -143,11 +143,13 @@ void ZeDMD::DisablePreDownscaling()
 void ZeDMD::EnablePreUpscaling()
 {
    m_upscaling = true;
+   m_hd = (m_pZeDMDComm->GetWidth() == 256);
 }
 
 void ZeDMD::DisablePreUpscaling()
 {
    m_upscaling = false;
+   m_hd = false;
 }
 
 void ZeDMD::EnableUpscaling()
