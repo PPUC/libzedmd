@@ -2,7 +2,7 @@
 
 #define ZEDMD_VERSION_MAJOR 0 // X Digits
 #define ZEDMD_VERSION_MINOR 3 // Max 2 Digits
-#define ZEDMD_VERSION_PATCH 0 // Max 2 Digits
+#define ZEDMD_VERSION_PATCH 1 // Max 2 Digits
 
 #define _ZEDMD_STR(x) #x
 #define ZEDMD_STR(x) _ZEDMD_STR(x)
@@ -88,7 +88,6 @@ private:
    bool UpdateFrameBuffer24(uint8_t *pFrame);
 
    void Split(uint8_t *planes, uint16_t width, uint16_t height, uint8_t bitlen, uint8_t *frame);
-   void ConvertToRgb24(uint8_t *pFrameRgb24, uint8_t *pFrame, int size);
    void ConvertToRgb24(uint8_t *pFrameRgb24, uint8_t *pFrame, int size, uint8_t *pPalette);
    bool CmpColor(uint8_t *px1, uint8_t *px2, uint8_t colors);
    void SetColor(uint8_t *px1, uint8_t *px2, uint8_t colors);
@@ -113,7 +112,9 @@ private:
    uint8_t *m_pCommandBuffer;
    uint8_t *m_pPlanes;
 
-   uint8_t m_palette[ZEDMD_MAX_PALETTE] = {0};
+   uint8_t m_palette4[4 * 3] = {0};
+   uint8_t m_palette16[16 * 3] = { 0 };
+   uint8_t m_palette64[64 * 3] = { 0 };
    uint8_t m_DmdDefaultPalette2Bit[12] = {0, 0, 0, 144, 34, 0, 192, 76, 0, 255, 127, 0};
    uint8_t m_DmdDefaultPalette4Bit[48] = {0, 0, 0, 51, 25, 0, 64, 32, 0, 77, 38, 0,
                                           89, 44, 0, 102, 51, 0, 115, 57, 0, 128, 64, 0,

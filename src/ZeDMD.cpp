@@ -5,9 +5,9 @@
 ZeDMD::ZeDMD()
 {
    m_romWidth = 0;
-   m_romHeight = 0;
-
-   memset(&m_palette, 0, sizeof(m_palette));
+   m_romHeight  0 memset(m_palette4, 0, sizeof(m_palette4));
+   memset(m_palette16, 0, sizeof(m_palette16));
+   memset(m_palette64, 0, sizeof(m_palette64));
 
    m_pFrameBuffer = NULL;
    m_pScaledFrameBuffer = NULL;
@@ -244,9 +244,26 @@ void ZeDMD::SetPalette(uint8_t *pPalette)
 void ZeDMD::SetPalette(uint8_t *pPalette, uint8_t numColors)
 {
    m_paletteChanged = false;
-   if (memcmp(&m_palette, pPalette, numColors * 3))
+   
+   uint8_t * pPaletteNumber;
+   switch (numColors)
    {
-      memcpy(&m_palette, pPalette, numColors * 3);
+   case 4:
+       pPaletteNumber = m_palette4;
+       break;
+   case 16:
+       pPaletteNumber = m_palette16;
+       break;
+   case 64:
+       pPaletteNumber = m_palette64;
+       break;
+   default:
+       return;
+   }
+
+   if (memcmp(pPaletteNumber, pPalette, numColors * 3))
+   {
+      memcpy(pPaletteNumber, pPalette, numColors * 3);
       m_paletteChanged = true;
    }
 }
@@ -308,7 +325,7 @@ void ZeDMD::RenderGray2(uint8_t *pFrame)
 
    if (m_hd || m_wifi || m_streaming)
    {
-      ConvertToRgb24(m_pPlanes, m_pScaledFrameBuffer, bufferSize);
+      ConvertToRgb24(m_pPlanes, m_pScaledFrameBuffer, bufferSize, m_palette4);
 
       if (m_wifi)
       {
@@ -322,7 +339,7 @@ void ZeDMD::RenderGray2(uint8_t *pFrame)
 
       bufferSize = bufferSize / 8 * 2;
 
-      memcpy(m_pCommandBuffer, &m_palette, 12);
+      memcpy(m_pCommandBuffer, m_palette4, 12);
       memcpy(m_pCommandBuffer + 12, m_pPlanes, bufferSize);
 
       m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::Gray2, m_pCommandBuffer, 12 + bufferSize);
@@ -343,7 +360,7 @@ void ZeDMD::RenderGray4(uint8_t *pFrame)
 
    if (m_hd || m_wifi || m_streaming)
    {
-      ConvertToRgb24(m_pPlanes, m_pScaledFrameBuffer, bufferSize);
+      ConvertToRgb24(m_pPlanes, m_pScaledFrameBuffer, bufferSize, m_palette16);
 
       if (m_wifi)
       {
@@ -357,7 +374,7 @@ void ZeDMD::RenderGray4(uint8_t *pFrame)
       bufferSize /= 2;
       Split(m_pPlanes, width, height, 4, m_pScaledFrameBuffer);
 
-      memcpy(m_pCommandBuffer, m_palette, 48);
+      memcpy(m_pCommandBuffer, m_palette16, 48);
       memcpy(m_pCommandBuffer + 48, m_pPlanes, bufferSize);
 
       m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::ColGray4, m_pCommandBuffer, 48 + bufferSize);
@@ -382,7 +399,7 @@ void ZeDMD::RenderColoredGray6(uint8_t *pFrame, uint8_t *pRotations)
 
    if (m_hd || m_wifi || m_streaming)
    {
-      ConvertToRgb24(m_pPlanes, m_pScaledFrameBuffer, bufferSize, m_palette);
+      ConvertToRgb24(m_pPlanes, m_pScaledFrameBuffer, bufferSize, m_palette64);
 
       if (m_wifi)
       {
@@ -396,7 +413,7 @@ void ZeDMD::RenderColoredGray6(uint8_t *pFrame, uint8_t *pRotations)
 
       bufferSize = bufferSize / 8 * 6;
 
-      memcpy(m_pCommandBuffer, m_palette, 192);
+      memcpy(m_pCommandBuffer, m_palette64, 192);
       memcpy(m_pCommandBuffer + 192, m_pPlanes, bufferSize);
 
       if (pRotations)
@@ -487,14 +504,6 @@ void ZeDMD::Split(uint8_t *pPlanes, uint16_t width, uint16_t height, uint8_t bit
    }
 
    free(bd);
-}
-
-void ZeDMD::ConvertToRgb24(uint8_t *pFrameRgb24, uint8_t *pFrame, int size)
-{
-   for (int i = 0; i < size; i++)
-   {
-      memcpy(&pFrameRgb24[i * 3], &m_palette[pFrame[i] * 3], 3);
-   }
 }
 
 void ZeDMD::ConvertToRgb24(uint8_t *pFrameRgb24, uint8_t *pFrame, int size, uint8_t *pPalette)
