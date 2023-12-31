@@ -5,7 +5,9 @@
 ZeDMD::ZeDMD()
 {
    m_romWidth = 0;
-   m_romHeight  0 memset(m_palette4, 0, sizeof(m_palette4));
+   m_romHeight = 0;
+   
+   memset(m_palette4, 0, sizeof(m_palette4));
    memset(m_palette16, 0, sizeof(m_palette16));
    memset(m_palette64, 0, sizeof(m_palette64));
 
