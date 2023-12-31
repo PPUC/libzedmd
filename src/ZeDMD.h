@@ -2,7 +2,7 @@
 
 #define ZEDMD_VERSION_MAJOR 0 // X Digits
 #define ZEDMD_VERSION_MINOR 3 // Max 2 Digits
-#define ZEDMD_VERSION_PATCH 1 // Max 2 Digits
+#define ZEDMD_VERSION_PATCH 2 // Max 2 Digits
 
 #define _ZEDMD_STR(x) #x
 #define ZEDMD_STR(x) _ZEDMD_STR(x)
@@ -14,7 +14,7 @@
 #define ZEDMD_MAX_HEIGHT 64
 #define ZEDMD_MAX_PALETTE 192
 
-#if defined(_WIN32) || defined(_WIN64)
+#ifdef _MSC_VER
 #define ZEDMDAPI __declspec(dllexport)
 #define CALLBACK __stdcall
 #else
@@ -26,10 +26,6 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#ifdef __ANDROID__
-typedef void *(*ZeDMD_AndroidGetJNIEnvFunc)();
-#endif
-
 typedef void(CALLBACK *ZeDMD_LogMessageCallback)(const char *format, va_list args, const void *userData);
 
 class ZeDMDComm;
@@ -40,10 +36,6 @@ class ZEDMDAPI ZeDMD
 public:
    ZeDMD();
    ~ZeDMD();
-
-#ifdef __ANDROID__
-   void SetAndroidGetJNIEnvFunc(ZeDMD_AndroidGetJNIEnvFunc func);
-#endif
 
    void SetLogMessageCallback(ZeDMD_LogMessageCallback callback, const void *userData);
 

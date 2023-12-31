@@ -2,6 +2,8 @@
 #include "ZeDMDComm.h"
 #include "ZeDMDWiFi.h"
 
+#include <cstring>
+
 ZeDMD::ZeDMD()
 {
    m_romWidth = 0;
@@ -46,13 +48,6 @@ void ZeDMD::SetLogMessageCallback(ZeDMD_LogMessageCallback callback, const void 
    m_pZeDMDComm->SetLogMessageCallback(callback, userData);
    m_pZeDMDWiFi->SetLogMessageCallback(callback, userData);
 }
-
-#ifdef __ANDROID__
-void ZeDMD::SetAndroidGetJNIEnvFunc(ZeDMD_AndroidGetJNIEnvFunc func)
-{
-   m_pZeDMDComm->SetAndroidGetJNIEnvFunc(func);
-}
-#endif
 
 void ZeDMD::Close()
 {
@@ -845,36 +840,36 @@ int ZeDMD::Scale(uint8_t *pScaledFrame, uint8_t *pFrame, uint8_t colors, uint16_
    return bufferSize;
 }
 
-ZEDMDAPI ZeDMD *ZeDMD_GetInstance() { return new ZeDMD(); };
-ZEDMDAPI void ZeDMD_IgnoreDevice(ZeDMD *pZeDMD, const char *const ignore_device) { return pZeDMD->IgnoreDevice(ignore_device); };
-ZEDMDAPI void ZeDMD_SetDevice(ZeDMD *pZeDMD, const char *const device) { return pZeDMD->SetDevice(device); };
-ZEDMDAPI bool ZeDMD_Open(ZeDMD *pZeDMD) { return pZeDMD->Open(); };
-ZEDMDAPI bool ZeDMD_OpenWiFi(ZeDMD *pZeDMD, const char *ip, int port) { return pZeDMD->OpenWiFi(ip, port); };
-ZEDMDAPI void ZeDMD_Close(ZeDMD *pZeDMD) { return pZeDMD->Close(); };
+ZEDMDAPI ZeDMD *ZeDMD_GetInstance() { return new ZeDMD(); }
+ZEDMDAPI void ZeDMD_IgnoreDevice(ZeDMD *pZeDMD, const char *const ignore_device) { return pZeDMD->IgnoreDevice(ignore_device); }
+ZEDMDAPI void ZeDMD_SetDevice(ZeDMD *pZeDMD, const char *const device) { return pZeDMD->SetDevice(device); }
+ZEDMDAPI bool ZeDMD_Open(ZeDMD *pZeDMD) { return pZeDMD->Open(); }
+ZEDMDAPI bool ZeDMD_OpenWiFi(ZeDMD *pZeDMD, const char *ip, int port) { return pZeDMD->OpenWiFi(ip, port); }
+ZEDMDAPI void ZeDMD_Close(ZeDMD *pZeDMD) { return pZeDMD->Close(); }
 
-ZEDMDAPI void ZeDMD_SetFrameSize(ZeDMD *pZeDMD, uint16_t width, uint16_t height) { return pZeDMD->SetFrameSize(width, height); };
-ZEDMDAPI void ZeDMD_SetPalette(ZeDMD *pZeDMD, uint8_t *pPalette, uint8_t numColors) { return pZeDMD->SetPalette(pPalette, numColors); };
-ZEDMDAPI void ZeDMD_SetDefaultPalette(ZeDMD *pZeDMD, uint8_t bitDepth) { return pZeDMD->SetDefaultPalette(bitDepth); };
-ZEDMDAPI uint8_t *ZeDMD_GetDefaultPalette(ZeDMD *pZeDMD, uint8_t bitDepth) { return pZeDMD->GetDefaultPalette(bitDepth); };
-ZEDMDAPI void ZeDMD_LedTest(ZeDMD *pZeDMD) { return pZeDMD->LedTest(); };
-ZEDMDAPI void ZeDMD_EnableDebug(ZeDMD *pZeDMD) { return pZeDMD->EnableDebug(); };
-ZEDMDAPI void ZeDMD_DisableDebug(ZeDMD *pZeDMD) { return pZeDMD->DisableDebug(); };
-ZEDMDAPI void ZeDMD_SetRGBOrder(ZeDMD *pZeDMD, uint8_t rgbOrder) { return pZeDMD->SetRGBOrder(rgbOrder); };
-ZEDMDAPI void ZeDMD_SetBrightness(ZeDMD *pZeDMD, uint8_t brightness) { return pZeDMD->SetBrightness(brightness); };
-ZEDMDAPI void ZeDMD_SaveSettings(ZeDMD *pZeDMD) { return pZeDMD->SaveSettings(); };
-ZEDMDAPI void ZeDMD_EnablePreDownscaling(ZeDMD *pZeDMD) { return pZeDMD->EnablePreDownscaling(); };
-ZEDMDAPI void ZeDMD_DisablePreDownscaling(ZeDMD *pZeDMD) { return pZeDMD->DisablePreDownscaling(); };
-ZEDMDAPI void ZeDMD_EnablePreUpscaling(ZeDMD *pZeDMD) { return pZeDMD->EnablePreUpscaling(); };
-ZEDMDAPI void ZeDMD_DisablePreUpscaling(ZeDMD *pZeDMD) { return pZeDMD->DisablePreUpscaling(); };
-ZEDMDAPI void ZeDMD_EnableUpscaling(ZeDMD *pZeDMD) { return pZeDMD->EnableUpscaling(); };
-ZEDMDAPI void ZeDMD_DisableUpscaling(ZeDMD *pZeDMD) { return pZeDMD->DisableUpscaling(); };
-ZEDMDAPI void ZeDMD_SetWiFiSSID(ZeDMD *pZeDMD, const char *const ssid) { return pZeDMD->SetWiFiSSID(ssid); };
-ZEDMDAPI void ZeDMD_SetWiFiPassword(ZeDMD *pZeDMD, const char *const password) { return pZeDMD->SetWiFiPassword(password); };
-ZEDMDAPI void ZeDMD_SetWiFiPort(ZeDMD *pZeDMD, int port) { return pZeDMD->SetWiFiPort(port); };
-ZEDMDAPI void ZeDMD_EnforceStreaming(ZeDMD *pZeDMD) { return pZeDMD->EnforceStreaming(); };
+ZEDMDAPI void ZeDMD_SetFrameSize(ZeDMD *pZeDMD, uint16_t width, uint16_t height) { return pZeDMD->SetFrameSize(width, height); }
+ZEDMDAPI void ZeDMD_SetPalette(ZeDMD *pZeDMD, uint8_t *pPalette, uint8_t numColors) { return pZeDMD->SetPalette(pPalette, numColors); }
+ZEDMDAPI void ZeDMD_SetDefaultPalette(ZeDMD *pZeDMD, uint8_t bitDepth) { return pZeDMD->SetDefaultPalette(bitDepth); }
+ZEDMDAPI uint8_t *ZeDMD_GetDefaultPalette(ZeDMD *pZeDMD, uint8_t bitDepth) { return pZeDMD->GetDefaultPalette(bitDepth); }
+ZEDMDAPI void ZeDMD_LedTest(ZeDMD *pZeDMD) { return pZeDMD->LedTest(); }
+ZEDMDAPI void ZeDMD_EnableDebug(ZeDMD *pZeDMD) { return pZeDMD->EnableDebug(); }
+ZEDMDAPI void ZeDMD_DisableDebug(ZeDMD *pZeDMD) { return pZeDMD->DisableDebug(); }
+ZEDMDAPI void ZeDMD_SetRGBOrder(ZeDMD *pZeDMD, uint8_t rgbOrder) { return pZeDMD->SetRGBOrder(rgbOrder); }
+ZEDMDAPI void ZeDMD_SetBrightness(ZeDMD *pZeDMD, uint8_t brightness) { return pZeDMD->SetBrightness(brightness); }
+ZEDMDAPI void ZeDMD_SaveSettings(ZeDMD *pZeDMD) { return pZeDMD->SaveSettings(); }
+ZEDMDAPI void ZeDMD_EnablePreDownscaling(ZeDMD *pZeDMD) { return pZeDMD->EnablePreDownscaling(); }
+ZEDMDAPI void ZeDMD_DisablePreDownscaling(ZeDMD *pZeDMD) { return pZeDMD->DisablePreDownscaling(); }
+ZEDMDAPI void ZeDMD_EnablePreUpscaling(ZeDMD *pZeDMD) { return pZeDMD->EnablePreUpscaling(); }
+ZEDMDAPI void ZeDMD_DisablePreUpscaling(ZeDMD *pZeDMD) { return pZeDMD->DisablePreUpscaling(); }
+ZEDMDAPI void ZeDMD_EnableUpscaling(ZeDMD *pZeDMD) { return pZeDMD->EnableUpscaling(); }
+ZEDMDAPI void ZeDMD_DisableUpscaling(ZeDMD *pZeDMD) { return pZeDMD->DisableUpscaling(); }
+ZEDMDAPI void ZeDMD_SetWiFiSSID(ZeDMD *pZeDMD, const char *const ssid) { return pZeDMD->SetWiFiSSID(ssid); }
+ZEDMDAPI void ZeDMD_SetWiFiPassword(ZeDMD *pZeDMD, const char *const password) { return pZeDMD->SetWiFiPassword(password); }
+ZEDMDAPI void ZeDMD_SetWiFiPort(ZeDMD *pZeDMD, int port) { return pZeDMD->SetWiFiPort(port); }
+ZEDMDAPI void ZeDMD_EnforceStreaming(ZeDMD *pZeDMD) { return pZeDMD->EnforceStreaming(); }
 
-ZEDMDAPI void ZeDMD_ClearScreen(ZeDMD *pZeDMD) { return pZeDMD->ClearScreen(); };
-ZEDMDAPI void ZeDMD_RenderGray2(ZeDMD *pZeDMD, uint8_t *frame) { return pZeDMD->RenderGray2(frame); };
-ZEDMDAPI void ZeDMD_RenderGray4(ZeDMD *pZeDMD, uint8_t *frame) { return pZeDMD->RenderGray4(frame); };
-ZEDMDAPI void ZeDMD_RenderColoredGray6(ZeDMD *pZeDMD, uint8_t *frame, uint8_t *rotations) { return pZeDMD->RenderColoredGray6(frame, rotations); };
-ZEDMDAPI void ZeDMD_RenderRgb24(ZeDMD *pZeDMD, uint8_t *frame) { return pZeDMD->RenderRgb24(frame); };
+ZEDMDAPI void ZeDMD_ClearScreen(ZeDMD *pZeDMD) { return pZeDMD->ClearScreen(); }
+ZEDMDAPI void ZeDMD_RenderGray2(ZeDMD *pZeDMD, uint8_t *frame) { return pZeDMD->RenderGray2(frame); }
+ZEDMDAPI void ZeDMD_RenderGray4(ZeDMD *pZeDMD, uint8_t *frame) { return pZeDMD->RenderGray4(frame); }
+ZEDMDAPI void ZeDMD_RenderColoredGray6(ZeDMD *pZeDMD, uint8_t *frame, uint8_t *rotations) { return pZeDMD->RenderColoredGray6(frame, rotations); }
+ZEDMDAPI void ZeDMD_RenderRgb24(ZeDMD *pZeDMD, uint8_t *frame) { return pZeDMD->RenderRgb24(frame); }
