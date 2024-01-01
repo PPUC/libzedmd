@@ -67,11 +67,7 @@ struct ZeDMDFrame
 
 #define ZEDMD_COMM_BAUD_RATE 921600
 
-#if defined(__APPLE__)
-#define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 512
-#define ZEDMD_COMM_SERIAL_READ_TIMEOUT 64
-#define ZEDMD_COMM_SERIAL_WRITE_TIMEOUT 16
-#elif defined(_WIN32) || defined(_WIN64)
+#if defined(_WIN32) || defined(_WIN64)
 #define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 8192
 #define ZEDMD_COMM_SERIAL_READ_TIMEOUT 16
 #define ZEDMD_COMM_SERIAL_WRITE_TIMEOUT 16
@@ -142,6 +138,7 @@ private:
    char m_device[32] = {0};
 #if !((defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || defined(__ANDROID__))
    struct sp_port *m_pSerialPort;
+   struct sp_port_config *m_pSerialPortConfig;
 #endif
    std::queue<ZeDMDFrame> m_frames;
    std::thread *m_pThread;

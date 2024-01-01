@@ -8,11 +8,14 @@ ZeDMDComm::ZeDMDComm()
    m_pThread = NULL;
 #if !((defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || defined(__ANDROID__))
    m_pSerialPort = NULL;
+   m_pSerialPortConfig = NULL;
 #endif
 }
 
 ZeDMDComm::~ZeDMDComm()
 {
+   Disconnect();
+
    if (m_pThread) {
       m_pThread->join();
 
@@ -260,36 +263,50 @@ void ZeDMDComm::IgnoreDevice(const char* ignore_device)
 void ZeDMDComm::SetDevice(const char* device)
 {
    if (sizeof(device) < 32) 
-      strcpy(&m_device[0], device);
+      strcpy(m_device, device);
 }
 
 bool ZeDMDComm::Connect()
 {
+   bool success = false;
+
 #if !((defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || defined(__ANDROID__))
-   if (m_device[0] != 0)
-      return Connect(m_device);
+   if (*m_device != 0) {
+      LogMessage("Connecting to ZeDMD on %s...", m_device);
 
-   char szDevice[32];
+      success = Connect(m_device);
 
-   for (int i = 0; i < 7; i++) {
-#ifdef __APPLE__
-      sprintf(szDevice, "/dev/cu.usbserial-%04d", i);
-#elif defined(_WIN32) || defined(_WIN64)
-      sprintf(szDevice, "\\\\.\\COM%d", i + 1);
-#else
-      sprintf(szDevice, "/dev/ttyUSB%d", i);
-#endif
+      if (!success)
+         LogMessage("Unable to connect to ZeDMD on %s", m_device);
+   }
+   else {
+      LogMessage("Searching for ZeDMD...");
 
-      for (int j = 0; j < m_ignoredDevicesCounter; j++) {
-         if (strcmp(szDevice, m_ignoredDevices[j]) == 0)
-            continue;
+      struct sp_port** ppPorts;
+      enum sp_return result = sp_list_ports(&ppPorts);
+      if (result == SP_OK) {
+         for (int i = 0; ppPorts[i]; i++) {
+            char* pDevice = sp_get_port_name(ppPorts[i]);
+            bool ignored = false;
+            for (int j = 0; j < m_ignoredDevicesCounter; j++) {
+               ignored = (strcmp(pDevice, m_ignoredDevices[j]) == 0);
+               if (ignored)
+                  break;
+            }
+            if (!ignored)
+               success = Connect(pDevice);
+            if (success)
+               break;
+         }
+         sp_free_port_list(ppPorts);
       }
 
-      if (Connect(szDevice))
-         return true;
+      if (!success)
+         LogMessage("Unable to find ZeDMD");
    }
 #endif
-   return false;
+
+   return success;
 }
 
 void ZeDMDComm::Disconnect()
@@ -300,7 +317,12 @@ void ZeDMDComm::Disconnect()
    Reset();
 
 #if !((defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || defined(__ANDROID__))
+   sp_set_config(m_pSerialPort, m_pSerialPortConfig);
+   sp_free_config(m_pSerialPortConfig);
+   m_pSerialPortConfig = NULL;
+
    sp_close(m_pSerialPort);
+   sp_free_port(m_pSerialPort);
    m_pSerialPort = NULL;
 #endif
 }
@@ -308,11 +330,21 @@ void ZeDMDComm::Disconnect()
 bool ZeDMDComm::Connect(char *pDevice)
 {
 #if !((defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || defined(__ANDROID__))
-   if (sp_get_port_by_name(pDevice, &m_pSerialPort) != SP_OK)
+   enum sp_return result = sp_get_port_by_name(pDevice, &m_pSerialPort);
+   if (result != SP_OK)
       return false;
 
-   sp_open(m_pSerialPort, SP_MODE_READ_WRITE);
-   
+   result = sp_open(m_pSerialPort, SP_MODE_READ_WRITE);
+   if (result != SP_OK) {
+     sp_free_port(m_pSerialPort);
+     m_pSerialPort = NULL;
+
+     return false;
+   }
+
+   sp_new_config(&m_pSerialPortConfig);
+   sp_get_config(m_pSerialPort, m_pSerialPortConfig);
+
    sp_set_baudrate(m_pSerialPort, ZEDMD_COMM_BAUD_RATE);
    sp_set_bits(m_pSerialPort, 8);
    sp_set_parity(m_pSerialPort, SP_PARITY_NONE);
@@ -333,7 +365,7 @@ bool ZeDMDComm::Connect(char *pDevice)
    
    std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
-   if (sp_blocking_read(m_pSerialPort, data, 8, 0)) {
+   if (sp_blocking_read(m_pSerialPort, data, 8, ZEDMD_COMM_SERIAL_READ_TIMEOUT)) {
       if (!memcmp(data, CTRL_CHARS_HEADER, 4)) {
          m_width = data[4] + data[5] * 256;
          m_height = data[6] + data[7] * 256;

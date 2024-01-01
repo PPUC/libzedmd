@@ -24,11 +24,8 @@ ZeDMD::ZeDMD()
 
 ZeDMD::~ZeDMD()
 {
-   m_pZeDMDComm->Disconnect();
-   free(m_pZeDMDComm);
-
-   m_pZeDMDWiFi->Disconnect();
-   free(m_pZeDMDWiFi);
+   delete m_pZeDMDComm;
+   delete m_pZeDMDWiFi;
 
    if (m_pFrameBuffer)
       delete m_pFrameBuffer;
