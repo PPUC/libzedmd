@@ -44,7 +44,7 @@ cmake --build build
 #### MacOS (x64)
 ```shell
 platforms/macos/x64/external.sh
-cmake -DPLATFORM=macos -DARCH=arm64 -DCMAKE_BUILD_TYPE=Release -B build
+cmake -DPLATFORM=macos -DARCH=x64 -DCMAKE_BUILD_TYPE=Release -B build
 cmake --build build
 ```
 
