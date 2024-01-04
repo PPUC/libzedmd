@@ -63,7 +63,7 @@ int main(int argc, const char *argv[])
          std::this_thread::sleep_for(std::chrono::milliseconds(200));
       }
 
-      pZEDMD->EnforceStreaming();
+      pZeDMD->EnforceStreaming();
 
       for (int i=0; i < 20; i++) {
          printf("Render loop: %d\n", i);
@@ -84,7 +84,7 @@ int main(int argc, const char *argv[])
       free(pImage4);
       free(pImage24);
 
-      pZEDMD->LedTest();
+      pZeDMD->LedTest();
 
       std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 

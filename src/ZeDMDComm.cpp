@@ -349,6 +349,7 @@ bool ZeDMDComm::Connect(char *pDevice)
    sp_set_bits(m_pSerialPort, 8);
    sp_set_parity(m_pSerialPort, SP_PARITY_NONE);
    sp_set_stopbits(m_pSerialPort, 1);
+   sp_set_xon_xoff(m_pSerialPort, SP_XONXOFF_DISABLED);
 
    Reset();
 
