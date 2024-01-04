@@ -1,17 +1,22 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.25)
 
-option(USE_OSXARM "macOS arm64" OFF)
-option(USE_OSXINTEL "macOS x86_64" OFF)
-option(USE_IOS "ios" OFF)
-option(USE_TVOS "tvos" OFF)
-option(USE_ANDROID "android" OFF)
-option(USE_WIN32 "Win32" OFF)
+set(PLATFORM "win" CACHE STRING "Platform")
+set(ARCH "x64" CACHE STRING "Arch")
 
-if(USE_IOS)
+option(BUILD_SHARED "Option to build shared library" ON)
+option(BUILD_STATIC "Option to build static library" ON)
+
+message(STATUS "PLATFORM: ${PLATFORM}")
+message(STATUS "ARCH: ${ARCH}")
+
+message(STATUS "BUILD_SHARED: ${BUILD_SHARED}")
+message(STATUS "BUILD_STATIC: ${BUILD_STATIC}")
+
+if(PLATFORM STREQUAL "ios")
    set(CMAKE_SYSTEM_NAME iOS)
-elseif(USE_TVOS)
+elseif(PLATFORM STREQUAL "tvos")
    set(CMAKE_SYSTEM_NAME tvOS)
-elseif(USE_ANDROID)
+elseif(PLATFORM STREQUAL "android")
    set(CMAKE_SYSTEM_NAME Android)
    set(CMAKE_SYSTEM_VERSION 30)
    set(CMAKE_ANDROID_ARCH_ABI arm64-v8a)
@@ -26,102 +31,169 @@ string(REGEX MATCH "ZEDMD_VERSION_PATCH[ ]+([0-9]+)" _tmp ${version})
 set(VERSION_PATCH "${CMAKE_MATCH_1}")
 
 project(zedmd VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}"
-	DESCRIPTION "Cross-platform library for communicating with ZeDMD.")
+   DESCRIPTION "Cross-platform library for communicating with ZeDMD.")
 
-set(LIB_NAME "zedmd")
-if(USE_OSXARM)
+if(PLATFORM STREQUAL "win")
+   if(ARCH STREQUAL "x86")
+      add_compile_definitions(WIN32)
+   endif()
+elseif(PLATFORM STREQUAL "macos")
+   set(CMAKE_OSX_DEPLOYMENT_TARGET 13.0)
+   if (ARCH STREQUAL "arm64")
+      set(CMAKE_OSX_ARCHITECTURES arm64)
+   elseif(ARCH STREQUAL "x64")
+      set(CMAKE_OSX_ARCHITECTURES x86_64)
+   endif()
+   set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+   set(CMAKE_INSTALL_RPATH "@executable_path")
+elseif(PLATFORM STREQUAL "ios" OR PLATFORM STREQUAL "tvos")
+   set(CMAKE_OSX_DEPLOYMENT_TARGET 16.0)
    set(CMAKE_OSX_ARCHITECTURES arm64)
-elseif(USE_OSXINTEL)
-   set(CMAKE_OSX_ARCHITECTURES x86_64)
-elseif(USE_IOS OR USE_TVOS)
-  set(CMAKE_OSX_DEPLOYMENT_TARGET 16.0)
-  set(CMAKE_OSX_ARCHITECTURES arm64)
-  set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-  set(CMAKE_C_FLAGS -fembed-bitcode)
-  set(CMAKE_CXX_FLAGS -fembed-bitcode)
-elseif(USE_WIN32)
-  add_compile_definitions(WIN32)
-elseif(USE_ANDROID)
-else()
-   set(LIB_NAME "zedmd64")
+elseif(PLATFORM STREQUAL "linux" OR PLATFORM STREQUAL "android")
+   set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+   set(CMAKE_INSTALL_RPATH "$ORIGIN")
 endif()
 
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_C_STANDARD 99)
+
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_C_VISIBILITY_PRESET hidden)
 
-set(MINIZ_SOURCES
-   src/miniz/miniz.h
-   src/miniz/miniz.c
-)
-
-set(KOMIHASH_SOURCES
-   src/komihash/komihash.h
-)
-
-if(NOT EXISTS ${SERIALPORT_LIBRARIES})
-   get_filename_component(SERIALPORT_CMAKE ../libserialport/CMakeLists.txt ABSOLUTE)
-   if(EXISTS ${SERIALPORT_CMAKE})
-      message(STATUS "enabling SerialPort")
-      add_subdirectory(../libserialport libserialport)
-      set (SERIALPORT_LIBRARIES SerialPort)
-   else()
-      message(STATUS "libserialport source not found in ../libserialport")
-   endif()
-endif()
-
-set(LIBRARY_SOURCES
-   ${MINIZ_SOURCES}
-   ${KOMIHASH_SOURCES}
+set(ZEDMD_SOURCES
    src/ZeDMDComm.h
    src/ZeDMDComm.cpp
    src/ZeDMDWiFi.h
    src/ZeDMDWiFi.cpp
    src/ZeDMD.h
    src/ZeDMD.cpp
+   third-party/include/komihash/komihash.h
+   third-party/include/miniz/miniz.h
+   third-party/include/miniz/miniz.c
 )
 
-set(INCLUDE_DIRS
+set(ZEDMD_INCLUDE_DIRS
    src
+   third-party/include
 )
 
-include_directories(AFTER src)
-
-if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-    if(NOT USE_IOS AND NOT USE_TVOS)
-       add_library(zedmd_shared SHARED ${LIBRARY_SOURCES})
-       set_target_properties(zedmd_shared PROPERTIES
-          OUTPUT_NAME ${LIB_NAME}
-          VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}
-          LINK_FLAGS_RELEASE -s
-       )
-       target_include_directories(zedmd_shared PUBLIC ${INCLUDE_DIRS})
-       target_link_libraries(zedmd_shared LINK_PUBLIC
-          ${SERIALPORT_LIBRARIES}
-       )
-       if(WIN32)
-         target_link_libraries(zedmd_shared PRIVATE ws2_32)
-       endif()
-       install(TARGETS zedmd_shared
-          LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-       )
-    endif()
-
-   add_library(zedmd_static STATIC ${LIBRARY_SOURCES})
-   set_target_properties(zedmd_static PROPERTIES OUTPUT_NAME "zedmd")
-   target_include_directories(zedmd_static PUBLIC ${INCLUDE_DIRS})
-   target_link_libraries(zedmd_static LINK_PUBLIC
-      ${SERIALPORT_LIBRARIES}
-   )
-   if(WIN32)
-      target_link_libraries(zedmd_static PRIVATE ws2_32)
+if(BUILD_SHARED)
+   add_library(zedmd_shared SHARED ${ZEDMD_SOURCES})
+    
+   target_include_directories(zedmd_shared PUBLIC ${ZEDMD_INCLUDE_DIRS})
+    
+   if(PLATFORM STREQUAL "win")
+      target_link_directories(zedmd_shared PUBLIC
+         third-party/build-libs/${PLATFORM}/${ARCH}
+         third-party/runtime-libs/${PLATFORM}/${ARCH}
+      )
+      target_link_libraries(zedmd_shared PUBLIC libserialport ws2_32)
+   elseif(PLATFORM STREQUAL "macos")
+      target_link_directories(zedmd_shared PUBLIC
+         third-party/runtime-libs/${PLATFORM}/${ARCH}
+      )
+      target_link_libraries(zedmd_shared PUBLIC serialport)
+   elseif(PLATFORM STREQUAL "linux")
+      target_link_directories(zedmd_shared PUBLIC
+         third-party/runtime-libs/${PLATFORM}/${ARCH}
+      )
+      target_link_libraries(zedmd_shared PUBLIC -l:libserialport.so.0)
    endif()
+
+   if(PLATFORM STREQUAL "win" AND ARCH STREQUAL "x64")
+      set(ZEDMD_OUTPUT_NAME "zedmd64")
+   else()
+      set(ZEDMD_OUTPUT_NAME "zedmd")
+   endif()
+
+   set_target_properties(zedmd_shared PROPERTIES
+      OUTPUT_NAME ${ZEDMD_OUTPUT_NAME}
+      VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}
+   )
+
+   install(TARGETS zedmd_shared
+      LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+   )
+   install(FILES src/ZeDMD.h DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
+
+   if(PLATFORM STREQUAL "win" OR PLATFORM STREQUAL "macos" OR PLATFORM STREQUAL "linux")
+      add_executable(zedmd_test
+         src/test.cpp
+      )
+
+      target_link_libraries(zedmd_test PUBLIC zedmd_shared)
+
+      if(PLATFORM STREQUAL "win")
+         add_custom_command(TARGET zedmd_test POST_BUILD
+            COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/libserialport.lib" "$<TARGET_FILE_DIR:zedmd_test>"
+            COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport.dll" "$<TARGET_FILE_DIR:zedmd_test>"
+         )
+      elseif(PLATFORM STREQUAL "macos")
+         add_custom_command(TARGET zedmd_test POST_BUILD
+            COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport.dylib" "$<TARGET_FILE_DIR:zedmd_test>"
+         )
+      elseif(PLATFORM STREQUAL "linux")
+         add_custom_command(TARGET zedmd_test POST_BUILD
+            COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport.so.0" "$<TARGET_FILE_DIR:zedmd_test>"
+         )
+      endif()
+   endif()
+endif()
+ 
+if(BUILD_STATIC)
+   add_library(zedmd_static STATIC ${ZEDMD_SOURCES})
+
+   target_include_directories(zedmd_static PUBLIC ${ZEDMD_INCLUDE_DIRS})
+
+   if(PLATFORM STREQUAL "win")
+      set_target_properties(zedmd_static PROPERTIES
+         OUTPUT_NAME "zedmd_static"
+      )
+   else()
+      set_target_properties(zedmd_static PROPERTIES
+         OUTPUT_NAME "zedmd"
+      )
+   endif()
+
    install(TARGETS zedmd_static
       LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
    )
    install(FILES src/ZeDMD.h DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 
-else()
-    add_library(ZeDMD ${LIBRARY_SOURCES})
+   if(PLATFORM STREQUAL "win" OR PLATFORM STREQUAL "macos" OR PLATFORM STREQUAL "linux")
+      add_executable(zedmd_test_s
+         src/test.cpp
+      )
+
+      if(PLATFORM STREQUAL "win")
+         target_link_directories(zedmd_test_s PUBLIC
+            third-party/build-libs/${PLATFORM}/${ARCH}
+            third-party/runtime-libs/${PLATFORM}/${ARCH}
+         )
+         target_link_libraries(zedmd_test_s PUBLIC zedmd_static libserialport ws2_32)
+
+         add_custom_command(TARGET zedmd_test_s POST_BUILD
+            COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/libserialport.lib" "$<TARGET_FILE_DIR:zedmd_test_s>"
+            COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport.dll" "$<TARGET_FILE_DIR:zedmd_test_s>"
+         )
+      elseif(PLATFORM STREQUAL "macos")
+         target_link_directories(zedmd_test_s PUBLIC
+            third-party/runtime-libs/${PLATFORM}/${ARCH}
+         )
+         target_link_libraries(zedmd_test_s PUBLIC zedmd_static serialport)
+
+         add_custom_command(TARGET zedmd_test_s POST_BUILD
+            COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport.dylib" "$<TARGET_FILE_DIR:zedmd_test_s>"
+         )
+      elseif(PLATFORM STREQUAL "linux")
+         target_link_directories(zedmd_test_s PUBLIC
+            third-party/runtime-libs/${PLATFORM}/${ARCH}
+         )
+         target_link_libraries(zedmd_test_s PUBLIC zedmd_static -l:libserialport.so.0)
+
+         add_custom_command(TARGET zedmd_test_s POST_BUILD
+           COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport.so.0" "$<TARGET_FILE_DIR:zedmd_test_s>"
+         )
+      endif()
+   endif()
 endif()
