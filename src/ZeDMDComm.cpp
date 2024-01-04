@@ -113,7 +113,7 @@ void ZeDMDComm::Run()
 
          if (frame.data)
             free(frame.data);
-         
+
          if (!success)
             std::this_thread::sleep_for(std::chrono::milliseconds(2));
       }
@@ -262,7 +262,7 @@ void ZeDMDComm::IgnoreDevice(const char* ignore_device)
 
 void ZeDMDComm::SetDevice(const char* device)
 {
-   if (sizeof(device) < 32) 
+   if (sizeof(device) < 32)
       strcpy(m_device, device);
 }
 
@@ -362,7 +362,7 @@ bool ZeDMDComm::Connect(char *pDevice)
    data[0] = ZEDMD_COMM_COMMAND::Handshake;
    sp_blocking_write(m_pSerialPort, (void*)CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
    sp_blocking_write(m_pSerialPort, (void*)data, 1, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
-   
+
    std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
    if (sp_blocking_read(m_pSerialPort, data, 8, ZEDMD_COMM_SERIAL_READ_TIMEOUT)) {
@@ -483,7 +483,7 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame *pFrame)
 
       while (position < size && success) {
          sp_blocking_write(m_pSerialPort, data + position, ((size - position) < ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE) ? (size - position) : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
-         
+
          uint8_t response;
          do {
             sp_blocking_read(m_pSerialPort, &response, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);

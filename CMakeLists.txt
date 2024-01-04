@@ -67,7 +67,6 @@ set(ZEDMD_SOURCES
    src/ZeDMDWiFi.cpp
    src/ZeDMD.h
    src/ZeDMD.cpp
-   third-party/include/komihash/komihash.h
    third-party/include/miniz/miniz.h
    third-party/include/miniz/miniz.c
 )
@@ -79,9 +78,9 @@ set(ZEDMD_INCLUDE_DIRS
 
 if(BUILD_SHARED)
    add_library(zedmd_shared SHARED ${ZEDMD_SOURCES})
-    
+
    target_include_directories(zedmd_shared PUBLIC ${ZEDMD_INCLUDE_DIRS})
-    
+
    if(PLATFORM STREQUAL "win")
       target_link_directories(zedmd_shared PUBLIC
          third-party/build-libs/${PLATFORM}/${ARCH}
@@ -139,7 +138,7 @@ if(BUILD_SHARED)
       endif()
    endif()
 endif()
- 
+
 if(BUILD_STATIC)
    add_library(zedmd_static STATIC ${ZEDMD_SOURCES})
 

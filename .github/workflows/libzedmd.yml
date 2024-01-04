@@ -78,7 +78,7 @@ jobs:
              if [[ "${{ matrix.arch }}" == "x86" ]]; then
                 cmake -G "Visual Studio 17 2022" -A Win32 -DPLATFORM=${{ matrix.platform }} -DARCH=${{ matrix.arch }} -B build
              else
-                cmake -G "Visual Studio 17 2022" -DPLATFORM=${{ matrix.platform }} -DARCH=${{ matrix.arch }} -B build 
+                cmake -G "Visual Studio 17 2022" -DPLATFORM=${{ matrix.platform }} -DARCH=${{ matrix.arch }} -B build
              fi
              cmake --build build --config Release
           else
@@ -148,9 +148,9 @@ jobs:
             cd tmp
             tar -czvf ../${ARTIFACT_PATH} *
           fi
-          echo "artifact_path=${ARTIFACT_PATH}" >> $GITHUB_OUTPUT    
+          echo "artifact_path=${ARTIFACT_PATH}" >> $GITHUB_OUTPUT
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: libzedmd-${{ needs.version.outputs.tag }}-${{ matrix.platform }}-${{ matrix.arch }}
           path: ${{ steps.artifacts.outputs.artifact_path }}
@@ -160,7 +160,7 @@ jobs:
     needs: [ version, build ]
     name: Build libzedmd-macos
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
       - name: Unpack artifacts
         run: |
           cd libzedmd-${{ needs.version.outputs.tag }}-macos-x64
@@ -173,10 +173,10 @@ jobs:
           mkdir tmp
           lipo -create -output tmp/libzedmd-${{ needs.version.outputs.tag }}.dylib \
              libzedmd-${{ needs.version.outputs.tag }}-macos-arm64/libzedmd.${{ needs.version.outputs.tag }}.dylib \
-             libzedmd-${{ needs.version.outputs.tag }}-macos-x64/libzedmd.${{ needs.version.outputs.tag }}.dylib 
+             libzedmd-${{ needs.version.outputs.tag }}-macos-x64/libzedmd.${{ needs.version.outputs.tag }}.dylib
           lipo -create -output tmp/libserialport.dylib \
              libzedmd-${{ needs.version.outputs.tag }}-macos-arm64/libserialport.dylib \
-             libzedmd-${{ needs.version.outputs.tag }}-macos-x64/libserialport.dylib 
+             libzedmd-${{ needs.version.outputs.tag }}-macos-x64/libserialport.dylib
           lipo -create -output tmp/zedmd_test \
              libzedmd-${{ needs.version.outputs.tag }}-macos-arm64/zedmd_test \
              libzedmd-${{ needs.version.outputs.tag }}-macos-x64/zedmd_test
@@ -188,7 +188,7 @@ jobs:
           cd tmp
           tar -czvf ../libzedmd-${{ needs.version.outputs.tag }}-macos.tar.gz *
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: libzedmd-${{ needs.version.outputs.tag }}-macos
           path: libzedmd-${{ needs.version.outputs.tag }}-macos.tar.gz
