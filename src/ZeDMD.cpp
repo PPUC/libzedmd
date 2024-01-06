@@ -13,10 +13,10 @@ ZeDMD::ZeDMD()
    memset(m_palette16, 0, sizeof(m_palette16));
    memset(m_palette64, 0, sizeof(m_palette64));
 
-   m_pFrameBuffer = NULL;
-   m_pScaledFrameBuffer = NULL;
-   m_pCommandBuffer = NULL;
-   m_pPlanes = NULL;
+   m_pFrameBuffer = nullptr;
+   m_pScaledFrameBuffer = nullptr;
+   m_pCommandBuffer = nullptr;
+   m_pPlanes = nullptr;
 
    m_pZeDMDComm = new ZeDMDComm();
    m_pZeDMDWiFi = new ZeDMDWiFi();
@@ -40,10 +40,10 @@ ZeDMD::~ZeDMD()
       delete m_pPlanes;
 }
 
-void ZeDMD::SetLogMessageCallback(ZeDMD_LogMessageCallback callback, const void *userData)
+void ZeDMD::SetLogCallback(ZeDMD_LogCallback callback, const void *userData)
 {
-   m_pZeDMDComm->SetLogMessageCallback(callback, userData);
-   m_pZeDMDWiFi->SetLogMessageCallback(callback, userData);
+   m_pZeDMDComm->SetLogCallback(callback, userData);
+   m_pZeDMDWiFi->SetLogCallback(callback, userData);
 }
 
 void ZeDMD::Close()

@@ -1,13 +1,5 @@
 #pragma once
 
-#include <thread>
-#include <queue>
-#include <string>
-#include <inttypes.h>
-#include <mutex>
-#include <stdio.h>
-#include <stdarg.h>
-
 #if defined(__APPLE__)
 #include <TargetConditionals.h>
 #endif
@@ -16,10 +8,18 @@
 #include "libserialport.h"
 #endif
 
-#if defined(_WIN32) || defined(_WIN64)
-#define CALLBACK __stdcall
+#include <thread>
+#include <queue>
+#include <string>
+#include <inttypes.h>
+#include <mutex>
+#include <stdio.h>
+#include <stdarg.h>
+
+#ifdef _MSC_VER
+#define ZEDMDCALLBACK __stdcall
 #else
-#define CALLBACK
+#define ZEDMDCALLBACK
 #endif
 
 typedef enum
@@ -81,7 +81,7 @@ struct ZeDMDFrame
 #define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX 8
 #define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX_DELAYED 2
 
-typedef void(CALLBACK *ZeDMD_LogMessageCallback)(const char *format, va_list args, const void *userData);
+typedef void(ZEDMDCALLBACK *ZeDMD_LogCallback)(const char *format, va_list args, const void *userData);
 
 class ZeDMDComm
 {
@@ -93,7 +93,7 @@ public:
    ZeDMDComm();
    ~ZeDMDComm();
 
-   void SetLogMessageCallback(ZeDMD_LogMessageCallback callback, const void *userData);
+   void SetLogCallback(ZeDMD_LogCallback callback, const void *userData);
 
    void IgnoreDevice(const char *ignore_device);
    void SetDevice(const char *device);
@@ -121,12 +121,12 @@ protected:
    uint8_t m_zoneHeight = 4;
 
 private:
-   void LogMessage(const char *format, ...);
+   void Log(const char *format, ...);
 
    bool Connect(char *pName);
 
-   ZeDMD_LogMessageCallback m_logMessageCallback = nullptr;
-   const void *m_logMessageUserData = nullptr;
+   ZeDMD_LogCallback m_logCallback = nullptr;
+   const void *m_logUserData = nullptr;
    uint64_t m_zoneHashes[128] = {0};
    uint16_t m_width = 128;
    uint16_t m_height = 32;

@@ -4,7 +4,7 @@
 #include <chrono>
 #include <thread>
 
-void CALLBACK OnLogMessage(const char* format, va_list args, const void* pUserData)
+void ZEDMDCALLBACK LogCallback(const char* format, va_list args, const void* pUserData)
 {
    char buffer[1024];
    vsnprintf(buffer, sizeof(buffer), format, args);
@@ -40,7 +40,7 @@ uint8_t* CreateImageRGB24()
 int main(int argc, const char *argv[])
 {
    ZeDMD* pZeDMD = new ZeDMD();
-   pZeDMD->SetLogMessageCallback(OnLogMessage, NULL);
+   pZeDMD->SetLogCallback(LogCallback, nullptr);
 
    if (pZeDMD->Open(128, 32))
    {

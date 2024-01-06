@@ -1,8 +1,8 @@
 #pragma once
 
 #define ZEDMD_VERSION_MAJOR 0 // X Digits
-#define ZEDMD_VERSION_MINOR 3 // Max 2 Digits
-#define ZEDMD_VERSION_PATCH 2 // Max 2 Digits
+#define ZEDMD_VERSION_MINOR 4 // Max 2 Digits
+#define ZEDMD_VERSION_PATCH 0 // Max 2 Digits
 
 #define _ZEDMD_STR(x) #x
 #define ZEDMD_STR(x) _ZEDMD_STR(x)
@@ -16,17 +16,17 @@
 
 #ifdef _MSC_VER
 #define ZEDMDAPI __declspec(dllexport)
-#define CALLBACK __stdcall
+#define ZEDMDCALLBACK __stdcall
 #else
 #define ZEDMDAPI __attribute__((visibility("default")))
-#define CALLBACK
+#define ZEDMDCALLBACK
 #endif
 
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdarg.h>
 
-typedef void(CALLBACK *ZeDMD_LogMessageCallback)(const char *format, va_list args, const void *userData);
+typedef void(ZEDMDCALLBACK *ZeDMD_LogCallback)(const char *format, va_list args, const void *userData);
 
 class ZeDMDComm;
 class ZeDMDWiFi;
@@ -37,7 +37,7 @@ public:
    ZeDMD();
    ~ZeDMD();
 
-   void SetLogMessageCallback(ZeDMD_LogMessageCallback callback, const void *userData);
+   void SetLogCallback(ZeDMD_LogCallback callback, const void *userData);
 
    void IgnoreDevice(const char *const ignore_device);
    void SetDevice(const char *const device);

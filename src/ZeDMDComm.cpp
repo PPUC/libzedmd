@@ -5,10 +5,10 @@
 
 ZeDMDComm::ZeDMDComm()
 {
-   m_pThread = NULL;
+   m_pThread = nullptr;
 #if !((defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || defined(__ANDROID__))
-   m_pSerialPort = NULL;
-   m_pSerialPortConfig = NULL;
+   m_pSerialPort = nullptr;
+   m_pSerialPortConfig = nullptr;
 #endif
 }
 
@@ -23,27 +23,27 @@ ZeDMDComm::~ZeDMDComm()
    }
 }
 
-void ZeDMDComm::SetLogMessageCallback(ZeDMD_LogMessageCallback callback, const void *userData)
+void ZeDMDComm::SetLogCallback(ZeDMD_LogCallback callback, const void *userData)
 {
-   m_logMessageCallback = callback;
-   m_logMessageUserData = userData;
+   m_logCallback = callback;
+   m_logUserData = userData;
 }
 
-void ZeDMDComm::LogMessage(const char *format, ...)
+void ZeDMDComm::Log(const char *format, ...)
 {
-   if (!m_logMessageCallback)
+   if (!m_logCallback)
       return;
 
    va_list args;
    va_start(args, format);
-   (*(m_logMessageCallback))(format, args, m_logMessageUserData);
+   (*(m_logCallback))(format, args, m_logUserData);
    va_end(args);
 }
 
 void ZeDMDComm::Run()
 {
    m_pThread = new std::thread([this]() {
-      LogMessage("ZeDMDComm run thread starting");
+      Log("ZeDMDComm run thread starting");
       int8_t lastStreamId = -1;
 
       while (IsConnected()) {
@@ -118,7 +118,7 @@ void ZeDMDComm::Run()
             std::this_thread::sleep_for(std::chrono::milliseconds(2));
       }
 
-      LogMessage("ZeDMDComm run thread finished");
+      Log("ZeDMDComm run thread finished");
    });
 }
 
@@ -173,7 +173,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t value)
 
 void ZeDMDComm::QueueCommand(char command)
 {
-   QueueCommand(command, NULL, 0);
+   QueueCommand(command, nullptr, 0);
 }
 
 void ZeDMDComm::QueueCommand(char command, uint8_t *data, int size, uint16_t width, uint16_t height)
@@ -272,15 +272,15 @@ bool ZeDMDComm::Connect()
 
 #if !((defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || defined(__ANDROID__))
    if (*m_device != 0) {
-      LogMessage("Connecting to ZeDMD on %s...", m_device);
+      Log("Connecting to ZeDMD on %s...", m_device);
 
       success = Connect(m_device);
 
       if (!success)
-         LogMessage("Unable to connect to ZeDMD on %s", m_device);
+         Log("Unable to connect to ZeDMD on %s", m_device);
    }
    else {
-      LogMessage("Searching for ZeDMD...");
+      Log("Searching for ZeDMD...");
 
       struct sp_port** ppPorts;
       enum sp_return result = sp_list_ports(&ppPorts);
@@ -302,7 +302,7 @@ bool ZeDMDComm::Connect()
       }
 
       if (!success)
-         LogMessage("Unable to find ZeDMD");
+         Log("Unable to find ZeDMD");
    }
 #endif
 
@@ -319,11 +319,11 @@ void ZeDMDComm::Disconnect()
 #if !((defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || defined(__ANDROID__))
    sp_set_config(m_pSerialPort, m_pSerialPortConfig);
    sp_free_config(m_pSerialPortConfig);
-   m_pSerialPortConfig = NULL;
+   m_pSerialPortConfig = nullptr;
 
    sp_close(m_pSerialPort);
    sp_free_port(m_pSerialPort);
-   m_pSerialPort = NULL;
+   m_pSerialPort = nullptr;
 #endif
 }
 
@@ -337,7 +337,7 @@ bool ZeDMDComm::Connect(char *pDevice)
    result = sp_open(m_pSerialPort, SP_MODE_READ_WRITE);
    if (result != SP_OK) {
      sp_free_port(m_pSerialPort);
-     m_pSerialPort = NULL;
+     m_pSerialPort = nullptr;
 
      return false;
    }
@@ -399,10 +399,10 @@ bool ZeDMDComm::Connect(char *pDevice)
                      m_flowControlCounter = 1;
 
                      if (pDevice) {
-                        LogMessage("ZeDMD found: device=%s, width=%d, height=%d", pDevice, m_width, m_height);
+                        Log("ZeDMD found: device=%s, width=%d, height=%d", pDevice, m_width, m_height);
                      }
                      else {
-                        LogMessage("ZeDMD found: width=%d, height=%d", m_width, m_height);
+                        Log("ZeDMD found: width=%d, height=%d", m_width, m_height);
                      }
 
                      return true;
@@ -422,7 +422,7 @@ bool ZeDMDComm::Connect(char *pDevice)
 bool ZeDMDComm::IsConnected()
 {
 #if !((defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || defined(__ANDROID__))
-   return (m_pSerialPort != NULL);
+   return (m_pSerialPort != nullptr);
 #else
    return false;
 #endif
@@ -494,7 +494,7 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame *pFrame)
             position += ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE;
          else {
             success = false;
-            LogMessage("Write bytes failure: response=%c", response);
+            Log("Write bytes failure: response=%c", response);
          }
       }
 
@@ -504,7 +504,7 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame *pFrame)
          m_flowControlCounter = 1;
    }
    else {
-      LogMessage("No Ready Signal");
+      Log("No Ready Signal");
    }
 
    free(data);
