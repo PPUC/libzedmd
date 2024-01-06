@@ -1,56 +1,53 @@
 #include "ZeDMDComm.h"
+
 #include "miniz/miniz.h"
 #include "komihash/komihash.h"
 
 ZeDMDComm::ZeDMDComm()
 {
-   m_pThread = NULL;
+   m_pThread = nullptr;
+#if !((defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || defined(__ANDROID__))
+   m_pSerialPort = nullptr;
+   m_pSerialPortConfig = nullptr;
+#endif
 }
 
 ZeDMDComm::~ZeDMDComm()
 {
-   if (m_pThread)
-   {
+   Disconnect();
+
+   if (m_pThread) {
       m_pThread->join();
 
       delete m_pThread;
    }
 }
 
-#ifdef __ANDROID__
-void ZeDMDComm::SetAndroidGetJNIEnvFunc(ZeDMD_AndroidGetJNIEnvFunc func)
+void ZeDMDComm::SetLogCallback(ZeDMD_LogCallback callback, const void *userData)
 {
-   m_serialPort.SetAndroidGetJNIEnvFunc(func);
-}
-#endif
-
-void ZeDMDComm::SetLogMessageCallback(ZeDMD_LogMessageCallback callback, const void *userData)
-{
-   m_logMessageCallback = callback;
-   m_logMessageUserData = userData;
+   m_logCallback = callback;
+   m_logUserData = userData;
 }
 
-void ZeDMDComm::LogMessage(const char *format, ...)
+void ZeDMDComm::Log(const char *format, ...)
 {
-   if (!m_logMessageCallback)
+   if (!m_logCallback)
       return;
 
    va_list args;
    va_start(args, format);
-   (*(m_logMessageCallback))(format, args, m_logMessageUserData);
+   (*(m_logCallback))(format, args, m_logUserData);
    va_end(args);
 }
 
 void ZeDMDComm::Run()
 {
-   m_pThread = new std::thread([this]()
-                               {
-                                  LogMessage("ZeDMDComm run thread starting");
-                                  int8_t lastStreamId = -1;
+   m_pThread = new std::thread([this]() {
+      Log("ZeDMDComm run thread starting");
+      int8_t lastStreamId = -1;
 
-                                  while (IsConnected())
-                                  {
-                                     m_frameQueueMutex.lock();
+      while (IsConnected()) {
+         m_frameQueueMutex.lock();
 
                                      if (m_frames.empty())
                                      {
@@ -92,91 +89,75 @@ void ZeDMDComm::Run()
                                          }
                                      }
 
-                                     ZeDMDFrame frame = m_frames.front();
-                                     m_frames.pop();
-                                     if (frame.streamId != -1)
-                                     {
-                                         if (frame.streamId != lastStreamId)
-                                         {
-                                             if (lastStreamId != -1)
-                                             {
-                                                 m_frameCounter--;
-                                             }
+         ZeDMDFrame frame = m_frames.front();
+         m_frames.pop();
+         if (frame.streamId != -1) {
+             if (frame.streamId != lastStreamId) {
+                 if (lastStreamId != -1)
+                     m_frameCounter--;
 
-                                             lastStreamId = frame.streamId;
-                                         }
-                                     }
-                                     else {
-                                         m_frameCounter--;
-                                     }
-                                     m_frameQueueMutex.unlock();
+                 lastStreamId = frame.streamId;
+             }
+         }
+         else
+             m_frameCounter--;
 
-                                     bool success = StreamBytes(&frame);
-                                     if (!success && frame.size < ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT)
-                                     {
-                                         std::this_thread::sleep_for(std::chrono::milliseconds(8));
-                                         // Try to send the command again, in case the wait for the (R)eady signal ran into a timeout.
-                                        success = StreamBytes(&frame);
-                                     }
+         m_frameQueueMutex.unlock();
 
-                                     if (frame.data)
-                                     {
-                                        free(frame.data);
-                                     }
+         bool success = StreamBytes(&frame);
+         if (!success && frame.size < ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(8));
+            // Try to send the command again, in case the wait for the (R)eady signal ran into a timeout.
+            success = StreamBytes(&frame);
+         }
 
-                                     if (!success)
-                                     {
-                                         std::this_thread::sleep_for(std::chrono::milliseconds(2));
-                                     }
-                                  }
+         if (frame.data)
+            free(frame.data);
 
-                                  LogMessage("ZeDMDComm run thread finished"); });
+         if (!success)
+            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+      }
+
+      Log("ZeDMDComm run thread finished");
+   });
 }
 
 void ZeDMDComm::QueueCommand(char command, uint8_t *data, int size, int8_t streamId, bool delayed)
 {
    if (!IsConnected())
-   {
       return;
-   }
 
    ZeDMDFrame frame = {0};
    frame.command = command;
    frame.size = size;
    frame.streamId = streamId;
 
-   if (data && size > 0)
-   {
+   if (data && size > 0) {
       frame.data = (uint8_t *)malloc(size);
       memcpy(frame.data, data, size);
    }
 
    // delayed standard frame
-   if (streamId == -1 && FillDelayed())
-   {
+   if (streamId == -1 && FillDelayed()) {
       m_delayedFrameMutex.lock();
       while (m_delayedFrames.size() > 0)
-      {
          m_delayedFrames.pop();
-      }
+
       m_delayedFrames.push(frame);
       m_delayedFrameReady = true;
       m_delayedFrameMutex.unlock();
       m_lastStreamId = -1;
    }
    // delayed streamed zones
-   else if (streamId != -1 && delayed)
-   {
+   else if (streamId != -1 && delayed) {
       m_delayedFrameMutex.lock();
       m_delayedFrames.push(frame);
       m_delayedFrameMutex.unlock();
       m_lastStreamId = streamId;
    }
-   else
-   {
+   else {
       m_frameQueueMutex.lock();
-      if (streamId == -1 || m_lastStreamId != streamId)
-      {
+      if (streamId == -1 || m_lastStreamId != streamId) {
          m_frameCounter++;
          m_lastStreamId = streamId;
       }
@@ -192,7 +173,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t value)
 
 void ZeDMDComm::QueueCommand(char command)
 {
-   QueueCommand(command, NULL, 0);
+   QueueCommand(command, nullptr, 0);
 }
 
 void ZeDMDComm::QueueCommand(char command, uint8_t *data, int size, uint16_t width, uint16_t height)
@@ -215,45 +196,35 @@ void ZeDMDComm::QueueCommand(char command, uint8_t *data, int size, uint16_t wid
    }
 
    if (++m_streamId > 64)
-   {
       m_streamId = 0;
-   }
 
    bool delayed = false;
-   if (FillDelayed())
-   {
+   if (FillDelayed()) {
       delayed = true;
       m_delayedFrameMutex.lock();
       m_delayedFrameReady = false;
       while (m_delayedFrames.size() > 0)
-      {
          m_delayedFrames.pop();
-      }
+
       m_delayedFrameMutex.unlock();
       // A delayed frame needs to be complete.
       memset(m_zoneHashes, 0, 128);
    }
 
-   for (uint16_t y = 0; y < height; y += m_zoneHeight)
-   {
-      for (uint16_t x = 0; x < width; x += m_zoneWidth)
-      {
+   for (uint16_t y = 0; y < height; y += m_zoneHeight) {
+      for (uint16_t x = 0; x < width; x += m_zoneWidth) {
          for (uint8_t z = 0; z < m_zoneHeight; z++)
-         {
             memcpy(&zone[z * m_zoneWidth * 3], &data[((y + z) * width + x) * 3], m_zoneWidth * 3);
-         }
 
          uint64_t hash = komihash(zone, m_zoneWidth * m_zoneHeight * 3, 0);
-         if (hash != m_zoneHashes[idx])
-         {
+         if (hash != m_zoneHashes[idx]) {
             m_zoneHashes[idx] = hash;
 
             buffer[bufferSize++] = idx;
             memcpy(&buffer[bufferSize], zone, m_zoneWidth * m_zoneHeight * 3);
             bufferSize += m_zoneWidth * m_zoneHeight * 3;
 
-            if (bufferSize >= zonesBytesLimit)
-            {
+            if (bufferSize >= zonesBytesLimit) {
                QueueCommand(command, buffer, bufferSize, m_streamId, delayed);
                bufferSize = 0;
             }
@@ -263,12 +234,9 @@ void ZeDMDComm::QueueCommand(char command, uint8_t *data, int size, uint16_t wid
    }
 
    if (bufferSize > 0)
-   {
       QueueCommand(command, buffer, bufferSize, m_streamId, delayed);
-   }
 
-   if (delayed)
-   {
+   if (delayed) {
       m_delayedFrameMutex.lock();
       m_delayedFrameReady = true;
       m_delayedFrameMutex.unlock();
@@ -286,58 +254,59 @@ bool ZeDMDComm::FillDelayed()
    return (count > ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX) || delayed;
 }
 
-void ZeDMDComm::IgnoreDevice(const char *ignore_device)
+void ZeDMDComm::IgnoreDevice(const char* ignore_device)
 {
    if (sizeof(ignore_device) < 32 && m_ignoredDevicesCounter < 10)
-   {
       strcpy(&m_ignoredDevices[m_ignoredDevicesCounter++][0], ignore_device);
-   }
 }
 
-void ZeDMDComm::SetDevice(const char *device)
+void ZeDMDComm::SetDevice(const char* device)
 {
    if (sizeof(device) < 32)
-   {
-      strcpy(&m_device[0], device);
-   }
+      strcpy(m_device, device);
 }
 
 bool ZeDMDComm::Connect()
 {
-#ifndef __ANDROID__
-   if (m_device[0] != 0)
-   {
-      return Connect(m_device);
+   bool success = false;
+
+#if !((defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || defined(__ANDROID__))
+   if (*m_device != 0) {
+      Log("Connecting to ZeDMD on %s...", m_device);
+
+      success = Connect(m_device);
+
+      if (!success)
+         Log("Unable to connect to ZeDMD on %s", m_device);
    }
+   else {
+      Log("Searching for ZeDMD...");
 
-   char szDevice[32];
-
-   for (int i = 0; i < 7; i++)
-   {
-#ifdef __APPLE__
-      sprintf(szDevice, "/dev/cu.usbserial-%04d", i);
-#elif defined(_WIN32) || defined(_WIN64)
-      sprintf(szDevice, "\\\\.\\COM%d", i + 1);
-#else
-      sprintf(szDevice, "/dev/ttyUSB%d", i);
-#endif
-
-      for (int j = 0; j < m_ignoredDevicesCounter; j++)
-      {
-         if (strcmp(szDevice, m_ignoredDevices[j]) == 0)
-         {
-            continue;
+      struct sp_port** ppPorts;
+      enum sp_return result = sp_list_ports(&ppPorts);
+      if (result == SP_OK) {
+         for (int i = 0; ppPorts[i]; i++) {
+            char* pDevice = sp_get_port_name(ppPorts[i]);
+            bool ignored = false;
+            for (int j = 0; j < m_ignoredDevicesCounter; j++) {
+               ignored = (strcmp(pDevice, m_ignoredDevices[j]) == 0);
+               if (ignored)
+                  break;
+            }
+            if (!ignored)
+               success = Connect(pDevice);
+            if (success)
+               break;
          }
+         sp_free_port_list(ppPorts);
       }
 
-      if (Connect(szDevice))
-         return true;
+      if (!success)
+         Log("Unable to find ZeDMD");
    }
-
-   return false;
-#else
-   return Connect(NULL);
 #endif
+
+   return success;
 }
 
 void ZeDMDComm::Disconnect()
@@ -347,81 +316,93 @@ void ZeDMDComm::Disconnect()
 
    Reset();
 
-   m_serialPort.Close();
+#if !((defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || defined(__ANDROID__))
+   sp_set_config(m_pSerialPort, m_pSerialPortConfig);
+   sp_free_config(m_pSerialPortConfig);
+   m_pSerialPortConfig = nullptr;
+
+   sp_close(m_pSerialPort);
+   sp_free_port(m_pSerialPort);
+   m_pSerialPort = nullptr;
+#endif
 }
 
 bool ZeDMDComm::Connect(char *pDevice)
 {
-   m_serialPort.SetReadTimeout(ZEDMD_COMM_SERIAL_READ_TIMEOUT);
-   m_serialPort.SetWriteTimeout(ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
-
-   if (m_serialPort.Open(pDevice, ZEDMD_COMM_BAUD_RATE, 8, 1, 0) != 1)
+#if !((defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || defined(__ANDROID__))
+   enum sp_return result = sp_get_port_by_name(pDevice, &m_pSerialPort);
+   if (result != SP_OK)
       return false;
+
+   result = sp_open(m_pSerialPort, SP_MODE_READ_WRITE);
+   if (result != SP_OK) {
+     sp_free_port(m_pSerialPort);
+     m_pSerialPort = nullptr;
+
+     return false;
+   }
+
+   sp_new_config(&m_pSerialPortConfig);
+   sp_get_config(m_pSerialPort, m_pSerialPortConfig);
+
+   sp_set_baudrate(m_pSerialPort, ZEDMD_COMM_BAUD_RATE);
+   sp_set_bits(m_pSerialPort, 8);
+   sp_set_parity(m_pSerialPort, SP_PARITY_NONE);
+   sp_set_stopbits(m_pSerialPort, 1);
+   sp_set_xon_xoff(m_pSerialPort, SP_XONXOFF_DISABLED);
 
    Reset();
 
    uint8_t data[8] = {0};
 
-   // Android in general but also ZeDMD HD require some time after opening the device.
-   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+   while (sp_input_waiting(m_pSerialPort) > 0)
+      sp_blocking_read(m_pSerialPort, data, 8, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
 
-   // ESP32 sends some information about itself before we could use the line.
-   while (m_serialPort.Available() > 0)
-      m_serialPort.ReadBytes(data, 8);
-
-#ifdef __ANDROID__
-   // Android returns a large buffer of 80 and 00, so wait and read again to clear
-   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-   while (m_serialPort.Available() > 0)
-      m_serialPort.ReadBytes(data, 8);
-#endif
-
-   m_serialPort.WriteBytes((uint8_t *)CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
-   m_serialPort.WriteChar(ZEDMD_COMM_COMMAND::Handshake);
    std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
-   if (m_serialPort.ReadBytes(data, 8))
-   {
-      if (!memcmp(data, CTRL_CHARS_HEADER, 4))
-      {
+   data[0] = ZEDMD_COMM_COMMAND::Handshake;
+   sp_blocking_write(m_pSerialPort, (void*)CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
+   sp_blocking_write(m_pSerialPort, (void*)data, 1, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
+
+   std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+   if (sp_blocking_read(m_pSerialPort, data, 8, ZEDMD_COMM_SERIAL_READ_TIMEOUT)) {
+      if (!memcmp(data, CTRL_CHARS_HEADER, 4)) {
          m_width = data[4] + data[5] * 256;
          m_height = data[6] + data[7] * 256;
          m_zoneWidth = m_width / 16;
          m_zoneHeight = m_height / 8;
 
-         uint8_t response;
-
-         if (m_serialPort.ReadByte() == 'R')
-         {
-            m_serialPort.WriteBytes((uint8_t *)CTRL_CHARS_HEADER, 6);
-            m_serialPort.WriteChar(ZEDMD_COMM_COMMAND::Compression);
+         if (sp_blocking_read(m_pSerialPort, data, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT) && data[0] == 'R') {
+            data[0] = ZEDMD_COMM_COMMAND::Compression;
+            sp_blocking_write(m_pSerialPort, (void*)CTRL_CHARS_HEADER, 6, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
+            sp_blocking_write(m_pSerialPort, (void*)data, 1, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
             std::this_thread::sleep_for(std::chrono::milliseconds(4));
 
-            if (m_serialPort.ReadByte() == 'A' && m_serialPort.ReadByte() == 'R')
-            {
-               m_serialPort.WriteBytes((uint8_t *)CTRL_CHARS_HEADER, 6);
-               m_serialPort.WriteChar(ZEDMD_COMM_COMMAND::Chunk);
-               m_serialPort.WriteChar(ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE / 256);
+            if (sp_blocking_read(m_pSerialPort, data, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT) && data[0] == 'A' &&
+                sp_blocking_read(m_pSerialPort, data, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT) && data[0] == 'R') {
+
+               data[0] = ZEDMD_COMM_COMMAND::Chunk;
+               data[1] = ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE / 256;
+               sp_blocking_write(m_pSerialPort, (void*)CTRL_CHARS_HEADER, 6, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
+               sp_blocking_write(m_pSerialPort, (void*)data, 2, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
                std::this_thread::sleep_for(std::chrono::milliseconds(4));
 
-               if (m_serialPort.ReadByte() == 'A' && m_serialPort.ReadByte() == 'R')
-               {
-                  m_serialPort.WriteBytes((uint8_t *)CTRL_CHARS_HEADER, 6);
-                  m_serialPort.WriteChar(ZEDMD_COMM_COMMAND::EnableFlowControlV2);
+               if (sp_blocking_read(m_pSerialPort, data, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT) && data[0] == 'A' &&
+                  sp_blocking_read(m_pSerialPort, data, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT) && data[0] == 'R') {
+                  data[0] = ZEDMD_COMM_COMMAND::EnableFlowControlV2;
+                  sp_blocking_write(m_pSerialPort, (void*)CTRL_CHARS_HEADER, 6, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
+                  sp_blocking_write(m_pSerialPort, (void*)data, 1, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
                   std::this_thread::sleep_for(std::chrono::milliseconds(4));
 
-                  if (m_serialPort.ReadByte() == 'A')
-                  {
+                  if (sp_blocking_read(m_pSerialPort, data, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT) && data[0] == 'A') {
                      m_flowControlCounter = 1;
 
-                     if (pDevice)
-                     {
-                        LogMessage("ZeDMD found: device=%s, width=%d, height=%d", pDevice, m_width, m_height);
+                     if (pDevice) {
+                        Log("ZeDMD found: device=%s, width=%d, height=%d", pDevice, m_width, m_height);
                      }
-                     else
-                     {
-                        LogMessage("ZeDMD found: width=%d, height=%d", m_width, m_height);
+                     else {
+                        Log("ZeDMD found: width=%d, height=%d", m_width, m_height);
                      }
 
                      return true;
@@ -433,40 +414,52 @@ bool ZeDMDComm::Connect(char *pDevice)
    }
 
    Disconnect();
+#endif
 
    return false;
 }
 
 bool ZeDMDComm::IsConnected()
 {
-   return m_serialPort.IsOpen();
+#if !((defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || defined(__ANDROID__))
+   return (m_pSerialPort != nullptr);
+#else
+   return false;
+#endif
 }
 
 void ZeDMDComm::Reset()
 {
-   m_serialPort.ClearDTR();
-   m_serialPort.SetRTS();
+#if !((defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || defined(__ANDROID__))
+   if (!m_pSerialPort)
+      return;
+
+   sp_set_dtr(m_pSerialPort, SP_DTR_OFF);
+   sp_set_rts(m_pSerialPort, SP_RTS_ON);
    std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
-   m_serialPort.ClearRTS();
-   m_serialPort.ClearDTR();
+   sp_set_rts(m_pSerialPort, SP_RTS_OFF);
+   sp_set_dtr(m_pSerialPort, SP_DTR_OFF);
    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+   sp_flush(m_pSerialPort, SP_BUF_BOTH);
+   std::this_thread::sleep_for(std::chrono::milliseconds(200));
+#endif
 }
 
 bool ZeDMDComm::StreamBytes(ZeDMDFrame *pFrame)
 {
+#if !((defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || defined(__ANDROID__))
    uint8_t *data;
    int size;
 
-   if (pFrame->size == 0)
-   {
+   if (pFrame->size == 0) {
       size = CTRL_CHARS_HEADER_SIZE + 1;
       data = (uint8_t *)malloc(size);
       memcpy(data, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
       data[CTRL_CHARS_HEADER_SIZE] = pFrame->command;
    }
-   else
-   {
+   else {
       mz_ulong compressedSize = mz_compressBound(pFrame->size);
       data = (uint8_t *)malloc(CTRL_CHARS_HEADER_SIZE + 3 + compressedSize);
       memcpy(data, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
@@ -480,53 +473,46 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame *pFrame)
    bool success = false;
 
    uint8_t flowControlCounter;
-   do
-   {
+   do {
       // In case of a timeout, ReadByte() returns 0.
-      flowControlCounter = m_serialPort.ReadByte();
+      sp_blocking_read(m_pSerialPort, &flowControlCounter, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
    } while (flowControlCounter != 0 && flowControlCounter != m_flowControlCounter);
 
-   if (flowControlCounter == m_flowControlCounter)
-   {
+   if (flowControlCounter == m_flowControlCounter) {
       int position = 0;
       success = true;
 
-      while (position < size && success)
-      {
-         m_serialPort.WriteBytes(data + position, ((size - position) < ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE) ? (size - position) : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
+      while (position < size && success) {
+         sp_blocking_write(m_pSerialPort, data + position, ((size - position) < ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE) ? (size - position) : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
 
          uint8_t response;
-         do
-         {
-            response = m_serialPort.ReadByte();
+         do {
+            sp_blocking_read(m_pSerialPort, &response, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
          } while (response == flowControlCounter);
 
          if (response == 'A')
             position += ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE;
-         else
-         {
+         else {
             success = false;
-            LogMessage("Write bytes failure: response=%c", response);
+            Log("Write bytes failure: response=%c", response);
          }
       }
 
       if (m_flowControlCounter < 32)
-      {
          m_flowControlCounter++;
-      }
       else
-      {
          m_flowControlCounter = 1;
-      }
    }
-   else
-   {
-      LogMessage("No Ready Signal");
+   else {
+      Log("No Ready Signal");
    }
 
    free(data);
 
    return success;
+#else
+   return false;
+#endif
 }
 
 uint16_t ZeDMDComm::GetWidth()

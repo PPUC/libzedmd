@@ -1,4 +1,5 @@
 #include "ZeDMDWiFi.h"
+
 #include "miniz/miniz.h"
 #include "komihash/komihash.h"
 

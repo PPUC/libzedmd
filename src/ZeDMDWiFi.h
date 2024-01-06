@@ -1,15 +1,14 @@
 #pragma once
 
+#include "ZeDMDComm.h"
+
 #if defined(_WIN32) || defined(_WIN64)
 #include <winsock2.h>
-#define CALLBACK __stdcall
 #else
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#define CALLBACK
 #endif
-#include "ZeDMDComm.h"
 
 #define ZEDMD_WIFI_ZONES_BYTES_LIMIT 1800
 

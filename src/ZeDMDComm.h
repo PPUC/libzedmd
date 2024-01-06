@@ -1,5 +1,13 @@
 #pragma once
 
+#if defined(__APPLE__)
+#include <TargetConditionals.h>
+#endif
+
+#if !((defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || defined(__ANDROID__))
+#include "libserialport.h"
+#endif
+
 #include <thread>
 #include <queue>
 #include <string>
@@ -7,13 +15,11 @@
 #include <mutex>
 #include <stdio.h>
 #include <stdarg.h>
-// @todo better handling of external lib
-#include "../../libserialport/src/SerialPort.h"
 
-#if defined(_WIN32) || defined(_WIN64)
-#define CALLBACK __stdcall
+#ifdef _MSC_VER
+#define ZEDMDCALLBACK __stdcall
 #else
-#define CALLBACK
+#define ZEDMDCALLBACK
 #endif
 
 typedef enum
@@ -65,18 +71,9 @@ struct ZeDMDFrame
 #define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 8192
 #define ZEDMD_COMM_SERIAL_READ_TIMEOUT 16
 #define ZEDMD_COMM_SERIAL_WRITE_TIMEOUT 16
-#elif defined(__APPLE__)
-#define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 256
-#define ZEDMD_COMM_SERIAL_READ_TIMEOUT 64
-#define ZEDMD_COMM_SERIAL_WRITE_TIMEOUT 16
-#elif defined(__ANDROID__)
-#define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 2048
-#define ZEDMD_COMM_SERIAL_READ_TIMEOUT 16
-#define ZEDMD_COMM_SERIAL_WRITE_TIMEOUT 16
 #else
-// defined (__linux__)
-#define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 256
-#define ZEDMD_COMM_SERIAL_READ_TIMEOUT 64
+#define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 4096
+#define ZEDMD_COMM_SERIAL_READ_TIMEOUT 32
 #define ZEDMD_COMM_SERIAL_WRITE_TIMEOUT 16
 #endif
 
@@ -84,11 +81,7 @@ struct ZeDMDFrame
 #define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX 8
 #define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX_DELAYED 2
 
-#ifdef __ANDROID__
-typedef void *(*ZeDMD_AndroidGetJNIEnvFunc)();
-#endif
-
-typedef void(CALLBACK *ZeDMD_LogMessageCallback)(const char *format, va_list args, const void *userData);
+typedef void(ZEDMDCALLBACK *ZeDMD_LogCallback)(const char *format, va_list args, const void *userData);
 
 class ZeDMDComm
 {
@@ -100,11 +93,7 @@ public:
    ZeDMDComm();
    ~ZeDMDComm();
 
-#ifdef __ANDROID__
-   void SetAndroidGetJNIEnvFunc(ZeDMD_AndroidGetJNIEnvFunc func);
-#endif
-
-   void SetLogMessageCallback(ZeDMD_LogMessageCallback callback, const void *userData);
+   void SetLogCallback(ZeDMD_LogCallback callback, const void *userData);
 
    void IgnoreDevice(const char *ignore_device);
    void SetDevice(const char *device);
@@ -132,12 +121,12 @@ protected:
    uint8_t m_zoneHeight = 4;
 
 private:
-   void LogMessage(const char *format, ...);
+   void Log(const char *format, ...);
 
    bool Connect(char *pName);
 
-   ZeDMD_LogMessageCallback m_logMessageCallback = nullptr;
-   const void *m_logMessageUserData = nullptr;
+   ZeDMD_LogCallback m_logCallback = nullptr;
+   const void *m_logUserData = nullptr;
    uint64_t m_zoneHashes[128] = {0};
    uint16_t m_width = 128;
    uint16_t m_height = 32;
@@ -147,7 +136,10 @@ private:
    char m_ignoredDevices[10][32] = {0};
    uint8_t m_ignoredDevicesCounter = 0;
    char m_device[32] = {0};
-   SerialPort m_serialPort;
+#if !((defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || defined(__ANDROID__))
+   struct sp_port *m_pSerialPort;
+   struct sp_port_config *m_pSerialPortConfig;
+#endif
    std::queue<ZeDMDFrame> m_frames;
    std::thread *m_pThread;
    std::mutex m_frameQueueMutex;
