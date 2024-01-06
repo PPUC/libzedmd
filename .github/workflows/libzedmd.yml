@@ -75,10 +75,10 @@ jobs:
         run: |
           ./platforms/${{ matrix.platform }}/${{ matrix.arch }}/external.sh
           if [[ "${{ matrix.platform }}" == "win" ]]; then
-             if [[ "${{ matrix.arch }}" == "x86" ]]; then
-                cmake -G "Visual Studio 17 2022" -A Win32 -DPLATFORM=${{ matrix.platform }} -DARCH=${{ matrix.arch }} -B build
-             else
+             if [[ "${{ matrix.arch }}" == "x64" ]]; then
                 cmake -G "Visual Studio 17 2022" -DPLATFORM=${{ matrix.platform }} -DARCH=${{ matrix.arch }} -B build
+             else
+                cmake -G "Visual Studio 17 2022" -A Win32 -DPLATFORM=${{ matrix.platform }} -DARCH=${{ matrix.arch }} -B build
              fi
              cmake --build build --config Release
           else
@@ -112,16 +112,18 @@ jobs:
           mkdir tmp
           if [[ "${{ matrix.platform }}" == "win" ]]; then
              ARTIFACT_PATH="tmp"
-             if [[ "${{ matrix.arch }}" == "x86" ]]; then
-                cp build/Release/zedmd.lib tmp
-                cp build/Release/zedmd.dll tmp
-             else
+             if [[ "${{ matrix.arch }}" == "x64" ]]; then
                 cp build/Release/zedmd64.lib tmp
                 cp build/Release/zedmd64.dll tmp
+                cp build/Release/libserialport64.lib tmp
+                cp build/Release/libserialport64.dll tmp
+             else
+                cp build/Release/zedmd.lib tmp
+                cp build/Release/zedmd.dll tmp
+                cp build/Release/libserialport.lib tmp
+                cp build/Release/libserialport.dll tmp
              fi
              cp build/Release/zedmd_static.lib tmp
-             cp build/Release/libserialport.lib tmp
-             cp build/Release/libserialport.dll tmp
              cp build/Release/zedmd_test_s.exe tmp
              cp build/Release/zedmd_test.exe tmp
           else

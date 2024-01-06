@@ -86,7 +86,11 @@ if(BUILD_SHARED)
          third-party/build-libs/${PLATFORM}/${ARCH}
          third-party/runtime-libs/${PLATFORM}/${ARCH}
       )
-      target_link_libraries(zedmd_shared PUBLIC libserialport ws2_32)
+      if(ARCH STREQUAL "x64")
+         target_link_libraries(zedmd_shared PUBLIC libserialport64 ws2_32)
+      else()
+         target_link_libraries(zedmd_shared PUBLIC libserialport ws2_32)
+      endif()
    elseif(PLATFORM STREQUAL "macos")
       target_link_directories(zedmd_shared PUBLIC
          third-party/runtime-libs/${PLATFORM}/${ARCH}
@@ -123,10 +127,17 @@ if(BUILD_SHARED)
       target_link_libraries(zedmd_test PUBLIC zedmd_shared)
 
       if(PLATFORM STREQUAL "win")
-         add_custom_command(TARGET zedmd_test POST_BUILD
-            COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/libserialport.lib" "$<TARGET_FILE_DIR:zedmd_test>"
-            COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport.dll" "$<TARGET_FILE_DIR:zedmd_test>"
-         )
+         if(ARCH STREQUAL "x64")
+            add_custom_command(TARGET zedmd_test POST_BUILD
+               COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/libserialport64.lib" "$<TARGET_FILE_DIR:zedmd_test>"
+               COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport64.dll" "$<TARGET_FILE_DIR:zedmd_test>"
+            )
+         else()
+            add_custom_command(TARGET zedmd_test POST_BUILD
+               COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/libserialport.lib" "$<TARGET_FILE_DIR:zedmd_test>"
+               COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport.dll" "$<TARGET_FILE_DIR:zedmd_test>"
+            )
+         endif()
       elseif(PLATFORM STREQUAL "macos")
          add_custom_command(TARGET zedmd_test POST_BUILD
             COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport.dylib" "$<TARGET_FILE_DIR:zedmd_test>"
@@ -169,12 +180,22 @@ if(BUILD_STATIC)
             third-party/build-libs/${PLATFORM}/${ARCH}
             third-party/runtime-libs/${PLATFORM}/${ARCH}
          )
-         target_link_libraries(zedmd_test_s PUBLIC zedmd_static libserialport ws2_32)
 
-         add_custom_command(TARGET zedmd_test_s POST_BUILD
-            COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/libserialport.lib" "$<TARGET_FILE_DIR:zedmd_test_s>"
-            COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport.dll" "$<TARGET_FILE_DIR:zedmd_test_s>"
-         )
+         if(ARCH STREQUAL "x64")
+            target_link_libraries(zedmd_test_s PUBLIC zedmd_static libserialport64 ws2_32)
+
+            add_custom_command(TARGET zedmd_test POST_BUILD
+               COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/libserialport64.lib" "$<TARGET_FILE_DIR:zedmd_test>"
+               COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport64.dll" "$<TARGET_FILE_DIR:zedmd_test>"
+            )
+         else()
+            target_link_libraries(zedmd_test_s PUBLIC zedmd_static libserialport ws2_32)
+
+            add_custom_command(TARGET zedmd_test POST_BUILD
+               COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/libserialport.lib" "$<TARGET_FILE_DIR:zedmd_test>"
+               COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport.dll" "$<TARGET_FILE_DIR:zedmd_test>"
+            )
+         endif()
       elseif(PLATFORM STREQUAL "macos")
          target_link_directories(zedmd_test_s PUBLIC
             third-party/runtime-libs/${PLATFORM}/${ARCH}
