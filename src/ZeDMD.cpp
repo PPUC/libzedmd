@@ -254,6 +254,8 @@ uint8_t* ZeDMD::GetDefaultPalette(uint8_t bitDepth) {
 
 void ZeDMD::EnforceStreaming() { m_streaming = true; }
 
+void ZeDMD::DisableRGB24Streaming() { m_rgb24Streaming = false; }
+
 void ZeDMD::ClearScreen() {
   if (m_usb) {
     m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::ClearScreen);
@@ -386,7 +388,7 @@ void ZeDMD::RenderRgb24(uint8_t* pFrame) {
   if (m_wifi) {
     m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::RGB24ZonesStream, m_pPlanes,
                                bufferSize, width, height);
-  } else if (m_hd || m_streaming) {
+  } else if (m_hd || m_rgb24Streaming) {
     m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB24ZonesStream, m_pPlanes,
                                bufferSize, width, height);
   } else if (m_usb) {

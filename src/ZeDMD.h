@@ -2,7 +2,7 @@
 
 #define ZEDMD_VERSION_MAJOR 0  // X Digits
 #define ZEDMD_VERSION_MINOR 4  // Max 2 Digits
-#define ZEDMD_VERSION_PATCH 0  // Max 2 Digits
+#define ZEDMD_VERSION_PATCH 1  // Max 2 Digits
 
 #define _ZEDMD_STR(x) #x
 #define ZEDMD_STR(x) _ZEDMD_STR(x)
@@ -70,6 +70,7 @@ class ZEDMDAPI ZeDMD {
   void SetWiFiPassword(const char* const password);
   void SetWiFiPort(int port);
   void EnforceStreaming();
+  void DisableRGB24Streaming();
 
   void ClearScreen();
   void RenderGray2(uint8_t* frame);
@@ -103,6 +104,7 @@ class ZEDMDAPI ZeDMD {
   bool m_downscaling = false;
   bool m_upscaling = false;
   bool m_streaming = false;
+  bool m_rgb24Streaming = true;
   bool m_paletteChanged = false;
 
   uint8_t* m_pFrameBuffer;
