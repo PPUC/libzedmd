@@ -115,9 +115,8 @@ void ZeDMDComm::Run() {
         free(frame.data);
       }
 
-      if (frame_completed) {
-        // Allow ZeDMD to perform scaling, rendering even in fast animations.
-        // This also avoids crashes with RGB24 frames at high refresh rates.
+      if (!success) {
+        // Allow ZeDMD to empty its buffers.
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
       }
     }
