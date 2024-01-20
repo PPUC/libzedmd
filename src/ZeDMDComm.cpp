@@ -281,12 +281,12 @@ void ZeDMDComm::QueueCommand(char command, uint16_t* data, int size,
 
   for (uint16_t y = 0; y < height; y += m_zoneHeight) {
     for (uint16_t x = 0; x < width; x += m_zoneWidth) {
-      for (uint8_t z = 0; z < m_zoneHeight; z++) {
-        for (uint8_t w = 0; w < m_zoneWidth; w++) {
-          zone[(z * m_zoneWidth) + (w * 2)] =
-              data[((y + z) * width + x) + w] >> 8;
-          zone[(z * m_zoneWidth) + (w * 2)] =
-              data[((y + z) * width + x) + w] & 0xFF;
+      for (uint8_t zy = 0; zy < m_zoneHeight; zy++) {
+        for (uint8_t zx = 0; zx < m_zoneWidth; zx++) {
+          zone[(zy * m_zoneWidth + zx) * 2] =
+              data[((y + zy) * width) + x + zx] >> 8;
+          zone[(zy * m_zoneWidth + zx) * 2 + 1] =
+              data[((y + zy) * width) + x + zx] & 0xFF;
         }
       }
 
