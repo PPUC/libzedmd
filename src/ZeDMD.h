@@ -112,6 +112,7 @@ class ZEDMDAPI ZeDMD {
   uint8_t* m_pScaledFrameBuffer;
   uint8_t* m_pCommandBuffer;
   uint8_t* m_pPlanes;
+  uint16_t* m_pRgb565Buffer;
 
   uint8_t m_palette4[4 * 3] = {0};
   uint8_t m_palette16[16 * 3] = {0};
