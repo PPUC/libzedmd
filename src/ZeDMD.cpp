@@ -268,6 +268,8 @@ void ZeDMD::ClearScreen() {
   } else if (m_wifi) {
     m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::ClearScreen);
   }
+  // "Blank" the frame buffer.
+  memset(m_pFrameBuffer, 0, ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
 }
 
 void ZeDMD::RenderGray2(uint8_t* pFrame) {
@@ -420,9 +422,9 @@ void ZeDMD::RenderRgb24EncodedAs565(uint8_t* pFrame) {
   }
 
   if (m_usb) {
-    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::RGB565ZonesStream,
-                               m_pRgb565Buffer, rgb565BufferSize, width,
-                               height);
+    m_pZeDMDWiFi->QueueRgb565Command(ZEDMD_COMM_COMMAND::RGB565ZonesStream,
+                                     m_pRgb565Buffer, rgb565BufferSize, width,
+                                     height);
   }
 }
 

@@ -131,6 +131,11 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size,
     return;
   }
 
+  if (command == ZEDMD_COMM_COMMAND::ClearScreen) {
+    // Next frame needs to be complete.
+    memset(m_zoneHashes, 0, 128);
+  }
+
   ZeDMDFrame frame = {0};
   frame.command = command;
   frame.size = size;
@@ -246,8 +251,8 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size,
   }
 }
 
-void ZeDMDComm::QueueCommand(char command, uint16_t* data, int size,
-                             uint16_t width, uint16_t height) {
+void ZeDMDComm::QueueRgb565Command(char command, uint16_t* data, int size,
+                                   uint16_t width, uint16_t height) {
   uint8_t buffer[256 * 16 * 2 + 16];
   uint16_t bufferSize = 0;
   uint8_t idx = 0;
