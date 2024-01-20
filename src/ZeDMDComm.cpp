@@ -46,6 +46,8 @@ void ZeDMDComm::Run() {
     int8_t lastStreamId = -1;
 
     while (IsConnected()) {
+      bool frame_completed = false;
+
       m_frameQueueMutex.lock();
 
       if (m_frames.empty()) {
@@ -89,12 +91,14 @@ void ZeDMDComm::Run() {
         if (frame.streamId != lastStreamId) {
           if (lastStreamId != -1) {
             m_frameCounter--;
+            frame_completed = true;
           }
 
           lastStreamId = frame.streamId;
         }
       } else {
         m_frameCounter--;
+        frame_completed = true;
       }
 
       m_frameQueueMutex.unlock();
@@ -112,6 +116,7 @@ void ZeDMDComm::Run() {
       }
 
       if (!success) {
+        // Allow ZeDMD to empty its buffers.
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
       }
     }
@@ -472,7 +477,7 @@ bool ZeDMDComm::Connect(char* pDevice) {
                              ZEDMD_COMM_SERIAL_READ_TIMEOUT) &&
             data[0] == 'R') {
           data[0] = ZEDMD_COMM_COMMAND::Chunk;
-          data[1] = ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE / 256;
+          data[1] = ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE / 32;
           sp_blocking_write(m_pSerialPort, (void*)CTRL_CHARS_HEADER, 6,
                             ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
           sp_blocking_write(m_pSerialPort, (void*)data, 2,
