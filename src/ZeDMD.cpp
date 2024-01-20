@@ -397,6 +397,29 @@ void ZeDMD::RenderRgb24(uint8_t* pFrame) {
   }
 }
 
+void ZeDMD::RenderRgb24EncodedAs565(uint8_t* pFrame) {
+  if (!(m_usb || m_wifi) || !UpdateFrameBuffer24(pFrame)) {
+    return;
+  }
+
+  uint16_t width;
+  uint16_t height;
+
+  int bufferSize = Scale(m_pPlanes, m_pFrameBuffer, 3, &width, &height);
+  int rgb565BufferSize = bufferSize / 3;
+  uint16_t* rgb565Buffer = (uint16_t*)malloc(rgb565BufferSize);
+  for (uint16_t i = 0; i < rgb565BufferSize; i++) {
+    rgb565Buffer[i] = (((uint16_t)(m_pPlanes[i * 3] & 0xF8)) << 8) |
+                      (((uint16_t)(m_pPlanes[i * 3 + 1] & 0xFC)) << 3) |
+                      (m_pPlanes[i * 3 + 2] >> 3);
+  }
+
+  if (!m_wifi) {
+    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::RGB565ZonesStream,
+                               rgb565Buffer, rgb565BufferSize, width, height);
+  }
+}
+
 bool ZeDMD::UpdateFrameBuffer8(uint8_t* pFrame) {
   if (!memcmp(m_pFrameBuffer, pFrame, m_romWidth * m_romHeight)) {
     return false;

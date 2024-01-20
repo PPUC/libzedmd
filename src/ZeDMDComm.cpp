@@ -241,6 +241,78 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size,
   }
 }
 
+void ZeDMDComm::QueueCommand(char command, uint16_t* data, int size,
+                             uint16_t width, uint16_t height) {
+  uint8_t buffer[256 * 16 * 2 + 16];
+  uint16_t bufferSize = 0;
+  uint8_t idx = 0;
+  uint8_t zone[16 * 8 * 2] = {0};
+  uint16_t zonesBytesLimit = 0;
+  if (m_zonesBytesLimit) {
+    while (zonesBytesLimit < m_zonesBytesLimit) {
+      zonesBytesLimit += m_zoneWidth * m_zoneHeight * 2 + 1;
+    }
+  } else {
+    zonesBytesLimit = width * m_zoneHeight * 2 + 16;
+  }
+
+  if (++m_streamId > 64) {
+    m_streamId = 0;
+  }
+
+  bool delayed = false;
+  if (FillDelayed()) {
+    delayed = true;
+    m_delayedFrameMutex.lock();
+    m_delayedFrameReady = false;
+    while (m_delayedFrames.size() > 0) {
+      m_delayedFrames.pop();
+    }
+
+    m_delayedFrameMutex.unlock();
+    // A delayed frame needs to be complete.
+    memset(m_zoneHashes, 0, 128);
+  }
+
+  for (uint16_t y = 0; y < height; y += m_zoneHeight) {
+    for (uint16_t x = 0; x < width; x += m_zoneWidth) {
+      for (uint8_t z = 0; z < m_zoneHeight; z++) {
+        for (uint8_t w = 0; w < m_zoneWidth; w++) {
+          zone[(z * m_zoneWidth) + (w * 2)] =
+              data[((y + z) * width + x) + w] >> 8;
+          zone[(z * m_zoneWidth) + (w * 2)] =
+              data[((y + z) * width + x) + w] & 0xFF;
+        }
+      }
+
+      uint64_t hash = komihash(zone, m_zoneWidth * m_zoneHeight * 2, 0);
+      if (hash != m_zoneHashes[idx]) {
+        m_zoneHashes[idx] = hash;
+
+        buffer[bufferSize++] = idx;
+        memcpy(&buffer[bufferSize], zone, m_zoneWidth * m_zoneHeight * 2);
+        bufferSize += m_zoneWidth * m_zoneHeight * 2;
+
+        if (bufferSize >= zonesBytesLimit) {
+          QueueCommand(command, buffer, bufferSize, m_streamId, delayed);
+          bufferSize = 0;
+        }
+      }
+      idx++;
+    }
+  }
+
+  if (bufferSize > 0) {
+    QueueCommand(command, buffer, bufferSize, m_streamId, delayed);
+  }
+
+  if (delayed) {
+    m_delayedFrameMutex.lock();
+    m_delayedFrameReady = true;
+    m_delayedFrameMutex.unlock();
+  }
+}
+
 bool ZeDMDComm::FillDelayed() {
   uint8_t count = 0;
   bool delayed = false;

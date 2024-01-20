@@ -78,6 +78,7 @@ class ZEDMDAPI ZeDMD {
   void RenderColoredGray6(uint8_t* frame, uint8_t* palette, uint8_t* rotations);
   void RenderColoredGray6(uint8_t* frame, uint8_t* rotations);
   void RenderRgb24(uint8_t* frame);
+  void RenderRgb24EncodedAs565(uint8_t* frame);
 
  private:
   bool UpdateFrameBuffer8(uint8_t* pFrame);
@@ -166,6 +167,8 @@ extern ZEDMDAPI void ZeDMD_RenderGray4(ZeDMD* pZeDMD, uint8_t* frame);
 extern ZEDMDAPI void ZeDMD_RenderColoredGray6(ZeDMD* pZeDMD, uint8_t* frame,
                                               uint8_t* rotations);
 extern ZEDMDAPI void ZeDMD_RenderRgb24(ZeDMD* pZeDMD, uint8_t* frame);
+extern ZEDMDAPI void ZeDMD_RenderRgb24EncodedAs565(ZeDMD* pZeDMD,
+                                                   uint8_t* frame);
 
 #ifdef __cplusplus
 }
