@@ -890,3 +890,7 @@ ZEDMDAPI void ZeDMD_RenderColoredGray6(ZeDMD* pZeDMD, uint8_t* frame,
 ZEDMDAPI void ZeDMD_RenderRgb24(ZeDMD* pZeDMD, uint8_t* frame) {
   return pZeDMD->RenderRgb24(frame);
 }
+
+ZEDMDAPI void ZeDMD_RenderRgb24EncodedAs565(ZeDMD* pZeDMD, uint8_t* frame) {
+  return pZeDMD->RenderRgb24EncodedAs565(frame);
+}
