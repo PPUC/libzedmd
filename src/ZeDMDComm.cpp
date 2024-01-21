@@ -131,11 +131,6 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size,
     return;
   }
 
-  if (command == ZEDMD_COMM_COMMAND::ClearScreen) {
-    // Next frame needs to be complete.
-    memset(m_zoneHashes, 0, 128);
-  }
-
   ZeDMDFrame frame = {0};
   frame.command = command;
   frame.size = size;
@@ -157,6 +152,8 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size,
     m_delayedFrameReady = true;
     m_delayedFrameMutex.unlock();
     m_lastStreamId = -1;
+    // Next streaming needs to be complete.
+    memset(m_zoneHashes, 0, 128);
   }
   // delayed streamed zones
   else if (streamId != -1 && delayed) {
@@ -172,6 +169,10 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size,
     }
     m_frames.push(frame);
     m_frameQueueMutex.unlock();
+    if (streamId == -1) {
+      // Next streaming needs to be complete.
+      memset(m_zoneHashes, 0, 128);
+    }
   }
 }
 
