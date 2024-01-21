@@ -153,7 +153,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size,
     m_delayedFrameMutex.unlock();
     m_lastStreamId = -1;
     // Next streaming needs to be complete.
-    memset(m_zoneHashes, 0, 128);
+    memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
   }
   // delayed streamed zones
   else if (streamId != -1 && delayed) {
@@ -171,7 +171,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size,
     m_frameQueueMutex.unlock();
     if (streamId == -1) {
       // Next streaming needs to be complete.
-      memset(m_zoneHashes, 0, 128);
+      memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
     }
   }
 }
@@ -214,7 +214,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size,
 
     m_delayedFrameMutex.unlock();
     // A delayed frame needs to be complete.
-    memset(m_zoneHashes, 0, 128);
+    memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
   }
 
   for (uint16_t y = 0; y < height; y += m_zoneHeight) {
@@ -282,7 +282,7 @@ void ZeDMDComm::QueueRgb565Command(char command, uint16_t* data, int size,
 
     m_delayedFrameMutex.unlock();
     // A delayed frame needs to be complete.
-    memset(m_zoneHashes, 0, 128);
+    memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
   }
 
   for (uint16_t y = 0; y < height; y += m_zoneHeight) {

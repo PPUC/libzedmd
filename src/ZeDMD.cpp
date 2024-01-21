@@ -422,7 +422,7 @@ void ZeDMD::RenderRgb24EncodedAs565(uint8_t* pFrame) {
   }
 
   if (m_usb) {
-    m_pZeDMDWiFi->QueueRgb565Command(ZEDMD_COMM_COMMAND::RGB565ZonesStream,
+    m_pZeDMDComm->QueueRgb565Command(ZEDMD_COMM_COMMAND::RGB565ZonesStream,
                                      m_pRgb565Buffer, rgb565BufferSize, width,
                                      height);
   }

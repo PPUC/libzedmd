@@ -1,5 +1,5 @@
 #include <stdarg.h>
-
+#include <stdlib.h>
 #include <chrono>
 #include <thread>
 
@@ -42,7 +42,7 @@ int main(int argc, const char* argv[]) {
   pZeDMD->SetLogCallback(LogCallback, nullptr);
 
   if (pZeDMD->Open(128, 32)) {
-    pZeDMD->EnableDebug();
+    //pZeDMD->EnableDebug();
 
     uint8_t* pImage2 = CreateImage(2);
     uint8_t* pImage4 = CreateImage(4);
@@ -54,27 +54,27 @@ int main(int argc, const char* argv[]) {
       printf("Grey2\n");
       pZeDMD->SetDefaultPalette(2);
       pZeDMD->RenderGray2(pImage2);
-      std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+      std::this_thread::sleep_for(std::chrono::milliseconds(500));
       pZeDMD->ClearScreen();
 
       printf("Grey4\n");
       pZeDMD->SetDefaultPalette(4);
       pZeDMD->RenderGray4(pImage4);
-      std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+      std::this_thread::sleep_for(std::chrono::milliseconds(500));
       pZeDMD->ClearScreen();
 
-      printf("RGB24 Streming\n");
+      printf("RGB24 Streaming\n");
       pZeDMD->RenderRgb24(pImage24);
-      std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+      std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
-      printf("RGB24 Streming\n");
+      printf("RGB24 Streaming\n");
       pZeDMD->RenderRgb24(pImage24);
-      std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+      std::this_thread::sleep_for(std::chrono::milliseconds(500));
       pZeDMD->ClearScreen();
 
-      printf("RGB24 Streming\n");
+      printf("RGB24 Streaming\n");
       pZeDMD->RenderRgb24(pImage24);
-      std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+      std::this_thread::sleep_for(std::chrono::milliseconds(500));
       pZeDMD->ClearScreen();
     }
 
@@ -86,23 +86,23 @@ int main(int argc, const char* argv[]) {
       printf("Grey2\n");
       pZeDMD->SetDefaultPalette(2);
       pZeDMD->RenderGray2(pImage2);
-      std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+      std::this_thread::sleep_for(std::chrono::milliseconds(500));
       pZeDMD->ClearScreen();
 
       printf("Grey4\n");
       pZeDMD->SetDefaultPalette(4);
       pZeDMD->RenderGray4(pImage4);
-      std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+      std::this_thread::sleep_for(std::chrono::milliseconds(500));
       pZeDMD->ClearScreen();
 
       printf("RGB24\n");
       pZeDMD->RenderRgb24(pImage24);
-      std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+      std::this_thread::sleep_for(std::chrono::milliseconds(500));
       pZeDMD->ClearScreen();
 
-      printf("RGB24 Streming\n");
+      printf("RGB24 Streaming\n");
       pZeDMD->RenderRgb24(pImage24);
-      std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+      std::this_thread::sleep_for(std::chrono::milliseconds(500));
       pZeDMD->ClearScreen();
 
     }
@@ -115,23 +115,23 @@ int main(int argc, const char* argv[]) {
       printf("Grey2\n");
       pZeDMD->SetDefaultPalette(2);
       pZeDMD->RenderGray2(pImage2);
-      std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+      std::this_thread::sleep_for(std::chrono::milliseconds(500));
       pZeDMD->ClearScreen();
 
       printf("Grey4\n");
       pZeDMD->SetDefaultPalette(4);
       pZeDMD->RenderGray4(pImage4);
-      std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+      std::this_thread::sleep_for(std::chrono::milliseconds(500));
       pZeDMD->ClearScreen();
 
       printf("RGB24\n");
       pZeDMD->RenderRgb24(pImage24);
-      std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+      std::this_thread::sleep_for(std::chrono::milliseconds(500));
       pZeDMD->ClearScreen();
 
       printf("RGB24 as RGB565\n");
       pZeDMD->RenderRgb24EncodedAs565(pImage24);
-      std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+      std::this_thread::sleep_for(std::chrono::milliseconds(500));
       pZeDMD->ClearScreen();
     }
 
