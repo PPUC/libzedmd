@@ -81,7 +81,7 @@ struct ZeDMDFrame {
 
 #define ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT 10
 #define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX 8
-#define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX_DELAYED 2
+#define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX_DELAYED 4
 
 typedef void(ZEDMDCALLBACK* ZeDMD_LogCallback)(const char* format, va_list args,
                                                const void* userData);
