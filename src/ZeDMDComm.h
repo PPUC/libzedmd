@@ -50,6 +50,7 @@ typedef enum {
 
   RGB24 = 0x03,
   RGB24ZonesStream = 0x04,
+  RGB565ZonesStream = 0x05,
   Gray2 = 0x08,
   ColGray4 = 0x09,
   ColGray6 = 0x0b,
@@ -69,11 +70,11 @@ struct ZeDMDFrame {
 #define ZEDMD_COMM_BAUD_RATE 921600
 
 #if defined(_WIN32) || defined(_WIN64)
-#define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 8192
+#define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 1888
 #define ZEDMD_COMM_SERIAL_READ_TIMEOUT 16
 #define ZEDMD_COMM_SERIAL_WRITE_TIMEOUT 16
 #else
-#define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 4096
+#define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 1888
 #define ZEDMD_COMM_SERIAL_READ_TIMEOUT 32
 #define ZEDMD_COMM_SERIAL_WRITE_TIMEOUT 16
 #endif
@@ -107,6 +108,8 @@ class ZeDMDComm {
   void Run();
   void QueueCommand(char command, uint8_t* buffer, int size, uint16_t width,
                     uint16_t height);
+  void QueueRgb565Command(char command, uint16_t* buffer, int size,
+                          uint16_t width, uint16_t height);
   void QueueCommand(char command, uint8_t* buffer, int size,
                     int8_t streamId = -1, bool delayed = false);
   void QueueCommand(char command);

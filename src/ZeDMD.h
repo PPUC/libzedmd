@@ -1,8 +1,8 @@
 #pragma once
 
 #define ZEDMD_VERSION_MAJOR 0  // X Digits
-#define ZEDMD_VERSION_MINOR 4  // Max 2 Digits
-#define ZEDMD_VERSION_PATCH 1  // Max 2 Digits
+#define ZEDMD_VERSION_MINOR 5  // Max 2 Digits
+#define ZEDMD_VERSION_PATCH 0  // Max 2 Digits
 
 #define _ZEDMD_STR(x) #x
 #define ZEDMD_STR(x) _ZEDMD_STR(x)
@@ -78,6 +78,7 @@ class ZEDMDAPI ZeDMD {
   void RenderColoredGray6(uint8_t* frame, uint8_t* palette, uint8_t* rotations);
   void RenderColoredGray6(uint8_t* frame, uint8_t* rotations);
   void RenderRgb24(uint8_t* frame);
+  void RenderRgb24EncodedAs565(uint8_t* frame);
 
  private:
   bool UpdateFrameBuffer8(uint8_t* pFrame);
@@ -111,6 +112,7 @@ class ZEDMDAPI ZeDMD {
   uint8_t* m_pScaledFrameBuffer;
   uint8_t* m_pCommandBuffer;
   uint8_t* m_pPlanes;
+  uint16_t* m_pRgb565Buffer;
 
   uint8_t m_palette4[4 * 3] = {0};
   uint8_t m_palette16[16 * 3] = {0};
@@ -166,6 +168,8 @@ extern ZEDMDAPI void ZeDMD_RenderGray4(ZeDMD* pZeDMD, uint8_t* frame);
 extern ZEDMDAPI void ZeDMD_RenderColoredGray6(ZeDMD* pZeDMD, uint8_t* frame,
                                               uint8_t* rotations);
 extern ZEDMDAPI void ZeDMD_RenderRgb24(ZeDMD* pZeDMD, uint8_t* frame);
+extern ZEDMDAPI void ZeDMD_RenderRgb24EncodedAs565(ZeDMD* pZeDMD,
+                                                   uint8_t* frame);
 
 #ifdef __cplusplus
 }

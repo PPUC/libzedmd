@@ -46,6 +46,8 @@ void ZeDMDComm::Run() {
     int8_t lastStreamId = -1;
 
     while (IsConnected()) {
+      bool frame_completed = false;
+
       m_frameQueueMutex.lock();
 
       if (m_frames.empty()) {
@@ -89,12 +91,14 @@ void ZeDMDComm::Run() {
         if (frame.streamId != lastStreamId) {
           if (lastStreamId != -1) {
             m_frameCounter--;
+            frame_completed = true;
           }
 
           lastStreamId = frame.streamId;
         }
       } else {
         m_frameCounter--;
+        frame_completed = true;
       }
 
       m_frameQueueMutex.unlock();
@@ -112,6 +116,7 @@ void ZeDMDComm::Run() {
       }
 
       if (!success) {
+        // Allow ZeDMD to empty its buffers.
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
       }
     }
@@ -147,6 +152,8 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size,
     m_delayedFrameReady = true;
     m_delayedFrameMutex.unlock();
     m_lastStreamId = -1;
+    // Next streaming needs to be complete.
+    memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
   }
   // delayed streamed zones
   else if (streamId != -1 && delayed) {
@@ -162,6 +169,10 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size,
     }
     m_frames.push(frame);
     m_frameQueueMutex.unlock();
+    if (streamId == -1) {
+      // Next streaming needs to be complete.
+      memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
+    }
   }
 }
 
@@ -203,7 +214,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size,
 
     m_delayedFrameMutex.unlock();
     // A delayed frame needs to be complete.
-    memset(m_zoneHashes, 0, 128);
+    memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
   }
 
   for (uint16_t y = 0; y < height; y += m_zoneHeight) {
@@ -220,6 +231,78 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size,
         buffer[bufferSize++] = idx;
         memcpy(&buffer[bufferSize], zone, m_zoneWidth * m_zoneHeight * 3);
         bufferSize += m_zoneWidth * m_zoneHeight * 3;
+
+        if (bufferSize >= zonesBytesLimit) {
+          QueueCommand(command, buffer, bufferSize, m_streamId, delayed);
+          bufferSize = 0;
+        }
+      }
+      idx++;
+    }
+  }
+
+  if (bufferSize > 0) {
+    QueueCommand(command, buffer, bufferSize, m_streamId, delayed);
+  }
+
+  if (delayed) {
+    m_delayedFrameMutex.lock();
+    m_delayedFrameReady = true;
+    m_delayedFrameMutex.unlock();
+  }
+}
+
+void ZeDMDComm::QueueRgb565Command(char command, uint16_t* data, int size,
+                                   uint16_t width, uint16_t height) {
+  uint8_t buffer[256 * 16 * 2 + 16];
+  uint16_t bufferSize = 0;
+  uint8_t idx = 0;
+  uint8_t zone[16 * 8 * 2] = {0};
+  uint16_t zonesBytesLimit = 0;
+  if (m_zonesBytesLimit) {
+    while (zonesBytesLimit < m_zonesBytesLimit) {
+      zonesBytesLimit += m_zoneWidth * m_zoneHeight * 2 + 1;
+    }
+  } else {
+    zonesBytesLimit = width * m_zoneHeight * 2 + 16;
+  }
+
+  if (++m_streamId > 64) {
+    m_streamId = 0;
+  }
+
+  bool delayed = false;
+  if (FillDelayed()) {
+    delayed = true;
+    m_delayedFrameMutex.lock();
+    m_delayedFrameReady = false;
+    while (m_delayedFrames.size() > 0) {
+      m_delayedFrames.pop();
+    }
+
+    m_delayedFrameMutex.unlock();
+    // A delayed frame needs to be complete.
+    memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
+  }
+
+  for (uint16_t y = 0; y < height; y += m_zoneHeight) {
+    for (uint16_t x = 0; x < width; x += m_zoneWidth) {
+      for (uint8_t zy = 0; zy < m_zoneHeight; zy++) {
+        for (uint8_t zx = 0; zx < m_zoneWidth; zx++) {
+          zone[(zy * m_zoneWidth + zx) * 2] =
+              data[((y + zy) * width) + x + zx] >> 8;
+          zone[(zy * m_zoneWidth + zx) * 2 + 1] =
+              data[((y + zy) * width) + x + zx] & 0xFF;
+        }
+      }
+
+      uint64_t hash = komihash(zone, m_zoneWidth * m_zoneHeight * 2, 0);
+      if (hash != m_zoneHashes[idx]) {
+        m_zoneHashes[idx] = hash;
+
+        buffer[bufferSize++] = idx;
+        memcpy(&buffer[bufferSize], zone, m_zoneWidth * m_zoneHeight * 2);
+        bufferSize += m_zoneWidth * m_zoneHeight * 2;
 
         if (bufferSize >= zonesBytesLimit) {
           QueueCommand(command, buffer, bufferSize, m_streamId, delayed);
@@ -400,7 +483,7 @@ bool ZeDMDComm::Connect(char* pDevice) {
                              ZEDMD_COMM_SERIAL_READ_TIMEOUT) &&
             data[0] == 'R') {
           data[0] = ZEDMD_COMM_COMMAND::Chunk;
-          data[1] = ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE / 256;
+          data[1] = ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE / 32;
           sp_blocking_write(m_pSerialPort, (void*)CTRL_CHARS_HEADER, 6,
                             ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
           sp_blocking_write(m_pSerialPort, (void*)data, 2,
