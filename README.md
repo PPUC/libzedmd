@@ -1,8 +1,11 @@
 # libzedmd
 ZeDMD communication library
 
-## Compiling
+## API Documentation
 
+https://ppuc.github.io/libzedmd/docs/html/class_ze_d_m_d.html
+
+## Compiling
 
 #### Windows (x64)
 
