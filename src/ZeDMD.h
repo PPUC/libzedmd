@@ -1,3 +1,8 @@
+/** @file ZeDMD.h
+ *  @brief ZeDMD client library.
+ *
+ *  Connecting ZeDMD devices.
+ */
 #pragma once
 
 #define ZEDMD_VERSION_MAJOR 0  // X Digits
@@ -42,42 +47,353 @@ class ZEDMDAPI ZeDMD {
 
   void SetLogCallback(ZeDMD_LogCallback callback, const void* userData);
 
+  /** @brief Ignore a serial device when searching for ZeDMD
+   *
+   *  While searching for a ZeDMD any serial ports are tested.
+   *  This could cause trouble with other devices attached via
+   *  USB or serial ports.
+   *  Using this mfunction, a serial device could be excluded
+   *  from the scan.
+   *  This function could be called multiple times to ignore
+   *  multiple devices.
+   *  Another option to limit the searching is to use SetDevice().
+   *  @see SetDevice()
+   *  @see Open()
+   *
+   *  @param ignore_device the device to ignore
+   */
   void IgnoreDevice(const char* const ignore_device);
+
+  /** @brief Use a specific serial device for ZeDMD
+   *
+   *  Instead of serching through all serial devices for a ZeDMD,
+   *  just use this device.
+   *  @see Open()
+   *
+   *  @param device the device
+   */
   void SetDevice(const char* const device);
-  bool Open(uint16_t width, uint16_t height);
+
+  /** @brief Open the connection to ZeDMD
+   *
+   *  Open a cennection to ZeDMD. Therefore all serial ports will be
+   *  scanned. Use IgnoreDevice() to exclude one or more specific
+   *  serial devices during that scan. Use SetDevice() to omit the
+   *  the scan and to use a specific seriel device instead.
+   *  @see IgnoreDevice()
+   *  @see SetDevice()
+   */
   bool Open();
+
+  /** @brief Open the connection to ZeDMD
+   *
+   *  Backward compatibiility version of Open() which additionally
+   *  sets the frame size. Use Open() and SetFrameSize() instead.
+   *  @see Open()
+   *  @see SetFrameSize()
+   *
+   *  @deprecated
+   *
+   *  @param width the frame width
+   *  @param height the frame height
+   */
+  bool Open(uint16_t width, uint16_t height);
+
+  /** @brief Open a WiFi connection to ZeDMD
+   *
+   *  ZeDMD could be connected via WiFi instead of USB.
+   *  The WiFi settings need to be stored in ZeDMD's EEPROM
+   *  first using a USB connection.
+   *  @see Open()
+   *  @see SetWiFiSSID()
+   *  @see SetWiFiPassword()
+   *  @see SetWiFiPort()
+   *  @see SaveSettings()
+   *
+   *  @param ip the IPv4 address of the ZeDMD device
+   *  @param port the port
+   */
   bool OpenWiFi(const char* ip, int port);
+
+  /** @brief Close connection to ZeDMD
+   */
   void Close();
 
+  /** @brief Set the frame size
+   *
+   *  Set the frame size of the content that will be displayed
+   *  next on the ZeDMD device. Depending on the settings and
+   *  the physical dimensions of the LED panels, the content
+   *  will by centered and scaled correctly.
+   *  @see EnablePreDownscaling()
+   *  @see EnablePreUpscaling()
+   *  @see EnableDownscaling()
+   *  @see EnableUpscaling()
+   *
+   *  @param width the frame width
+   *  @param height the frame height
+   */
   void SetFrameSize(uint16_t width, uint16_t height);
-  void SetPalette(uint8_t* pPalette);
+
+  /** @brief Set the palette
+   *
+   *  Set the color palette to use to render gray scaled content.
+   *  This library stores and tracks changes to 4, 16 and 64
+   *  color palettes individually.
+   *  @see RenderGray2()
+   *  @see RenderGray4()
+   *
+   *  @param pPalette the palette as RGB array
+   *  @param numColors 4, 16, or 64 colors palette
+   */
   void SetPalette(uint8_t* pPalette, uint8_t numColors);
+
+  /** @brief Set the 4 color palette
+   *
+   *  Backward compatibility version of SetPalette() to directly
+   *  set the 4 color palette.
+   *  @see RenderGray4()
+   *
+   *  @param pPalette the palette as RGB array
+   *  @param numColors 4, 16, or 64 colors palette
+   */
+  void SetPalette(uint8_t* pPalette);
+
+  /** @brief Set the default palette
+   *
+   *  Use a default palette of shades of orange to render gray
+   *  scaled content.
+   *  @see RenderGray2()
+   *  @see RenderGray4()
+   *
+   *  @param bitDepth the bit depth, 2 means 4 colors, 4 means 16 colors
+   */
   void SetDefaultPalette(uint8_t bitDepth);
+
+  /** @brief Get the default palette
+   *
+   *  Get the values of a default palette of shades of orange.
+   *
+   *  @param bitDepth the bit depth, 2 means 4 colors, 4 means 16 colors
+   *  @return RGB array
+   */
   uint8_t* GetDefaultPalette(uint8_t bitDepth);
+
+  /** @brief Test the panels attached to ZeDMD
+   *
+   *  Renders a sequence of full red, full green and full blue frames.
+   */
   void LedTest();
+
+  /** @brief Enable debug mode
+   *
+   *  ZeDMD will display various debug information as overlay to
+   *  the displayed frame.
+   *  @see https://github.com/PPUC/ZeDMD
+   */
   void EnableDebug();
+
+  /** @brief Disable debug mode
+   *
+   *  @see EnableDebug()
+   */
   void DisableDebug();
+
+  /** @brief Set the RGB order
+   *
+   *  ZeDMD supports different LED panels.
+   *  Depending on the panel, the RGB order needs to be adjusted.
+   *  @see https://github.com/PPUC/ZeDMD
+   *
+   *  @param rgbOrder a value between 0 and 5
+   */
   void SetRGBOrder(uint8_t rgbOrder);
+
+  /** @brief Set the brightness
+   *
+   *  Set the brightness of the LED panels.
+   *  @see https://github.com/PPUC/ZeDMD
+   *
+   *  @param brightness a value between 0 and 15
+   */
   void SetBrightness(uint8_t brightness);
-  void SaveSettings();
-  void EnablePreDownscaling();
-  void DisablePreDownscaling();
-  void EnablePreUpscaling();
-  void DisablePreUpscaling();
-  void EnableUpscaling();
-  void DisableUpscaling();
+
+  /** @brief Set the WiFi SSID
+   *
+   *  Set the WiFi SSID ZeDMD should connect with.
+   *  @see https://github.com/PPUC/ZeDMD
+   *  @see
+   *
+   *  @param brightness a value between 0 and 15
+   */
   void SetWiFiSSID(const char* const ssid);
   void SetWiFiPassword(const char* const password);
   void SetWiFiPort(int port);
+
+  /** @brief Save the current setting
+   *
+   *  Saves all current setting within ZeDMD's EEPROM to be used
+   *  as defualt at its next start.
+   *  @see https://github.com/PPUC/ZeDMD
+   *  @see SetRGBOrder()
+   *  @see SetBrightness()
+   *  @see SetWiFiSSID()
+   *  @see SetWiFiPassword()
+   *  @see SetWiFiPort()
+   *
+   *  @param brightness a value between 0 and 15
+   */
+  void SaveSettings();
+
+  /** @brief Enable downscaling on the client side
+   *
+   *  If enabled, the content will centered and scaled down to
+   *  fit into the physical dimensions of the ZeDMD panels,
+   *  before the content gets send to ZeDMD, if required.
+   */
+  void EnablePreDownscaling();
+
+  /** @brief Disable downscaling on the client side
+   *
+   *  @see EnablePreDownscaling()
+   */
+  void DisablePreDownscaling();
+
+  /** @brief Enable upscaling on the client side
+   *
+   *  If enabled, the content will centered and scaled up to
+   *  fit into the physical dimensions of the ZeDMD panels,
+   *  before the content gets send to ZeDMD, if required.
+   */
+  void EnablePreUpscaling();
+
+  /** @brief Disable downscaling on the client side
+   *
+   *  @see EnablePreUpscaling()
+   */
+  void DisablePreUpscaling();
+
+  /** @brief Enable upscaling on ZeDMD itself
+   *
+   *  If enabled and required, the content will centered and scaled
+   *  up to fit into the physical dimensions of the ZeDMD panels
+   *  by ZeDMD itself. Compared to EnablePreUpscaling(), less data
+   *  needs to be send to ZeDMD and this might resut in a higher
+   *  frame rate.
+   *  But this optimized variant won't work with zone streaming modes.
+   *  @see EnforceStreaming()
+   *  @see DisableRGB24Streaming()
+   *  @see RenderRgb24EncodedAs565()
+   */
+  void EnableUpscaling();
+
+  /** @brief Disable upscaling on ZeDMD itself
+   *
+   *  @see EnableUpscaling()
+   */
+  void DisableUpscaling();
+
+  /** @brief Enforce zone streaming
+   *
+   *  ZeDMD has two different render modes. One renders entire frames.
+   *  This is the classic way and works pretty well.
+   *  The other one is "zone streaming" which will be enable by this
+   *  function. Zone streaming divides a frame into rectangular zones
+   *  and only updates zones that have changes compared to the previous
+   *  frame. This method results in less data that needs to be transfered
+   *  and in smoother animations. But it takes a bit longer if the entire
+   *  frame changes. Zone streaming is the default for RebderRGB24() and
+   *  RenderRgb24EncodedAs565(). All other modes use the classic way by
+   *  default unless EnforceStreaming() is called.
+   *  @see RenderGray2()
+   *  @see RenderGray4()
+   *  @see RenderColoredGray6()
+   *  @see RenderRgb24()
+   *  @see DisableRGB24Streaming()
+   */
   void EnforceStreaming();
+
+  /** @brief Disable zone streaming for RGB24
+   *
+   *  By default, "zone streaming" is used for RenderRgb24(). That could be
+   *  turned off using this function.
+   *  @see EnforceStreaming()
+   */
   void DisableRGB24Streaming();
 
+  /** @brief Clear the screen
+   *
+   *  Turn off all pixels of ZeDMD, so a blank black screen will be shown.
+   */
   void ClearScreen();
+
+  /** @brief Render a 2 bit gray scaled frame
+   *
+   *  Renders a 2 bit gray scaled (indexed) frame using 4 colors.
+   *  The colors will be used from the current palette set via SetPalette().
+   *  @see SetPalette()
+   *
+   *  @param frame the indexed frame
+   */
   void RenderGray2(uint8_t* frame);
+
+  /** @brief Render a 4 bit gray scaled frame
+   *
+   *  Renders a 4 bit gray scaled (indexed) frame using 16 colors.
+   *  The colors will be used from the current palette set via SetPalette().
+   *  @see SetPalette()
+   *
+   *  @param frame the indexed frame
+   */
   void RenderGray4(uint8_t* frame);
-  void RenderColoredGray6(uint8_t* frame, uint8_t* palette, uint8_t* rotations);
+
+  /** @brief Render a 6 bit frame
+   *
+   *  Renders a 6 bit(indexed) frame using 64 colors.
+   *  The colors will be used from the current palette set via SetPalette().
+   *  ZeDMD is able to rotate parts of the palette natively as defined by the
+   *  Serum format until the next frame is received.
+   *  @see SetPalette()
+   *
+   *  @param frame the indexed frame
+   *  @param rotations optional rotation command array according to the Serum
+   * format
+   */
   void RenderColoredGray6(uint8_t* frame, uint8_t* rotations);
+
+  /** @brief Render a 6 bit frame
+   *
+   *  Renders a 6 bit(indexed) frame using 64 colors.
+   *  In oposite to standrad RenderColoredGray6(), the colors will not be used
+   *  from the current palette set via SetPalette() but form the one provided
+   *  to this function.
+   *  ZeDMD is able to rotate parts of the palette natively as defined by the
+   *  Serum format until the next frame is received.
+   *
+   *  @param frame the indexed frame
+   *  @param palette the colors to use
+   *  @param rotations optional rotation command array according to the Serum
+   * format
+   */
+  void RenderColoredGray6(uint8_t* frame, uint8_t* palette, uint8_t* rotations);
+
+  /** @brief Render a RGB24 frame
+   *
+   *  Renders a true color RGB frame. By default the zone streaming mode is
+   *  used. The encoding is RGB888.
+   *  @see DisableRGB24Streaming()
+   *
+   *  @param frame the RGB frame
+   */
   void RenderRgb24(uint8_t* frame);
+
+  /** @brief Render a RGB24 frame
+   *
+   *  Renders a true color RGB frame. Only zone streaming mode is supported.
+   *  The encoding is RGB565.
+   *
+   *  @param frame the RGB frame
+   */
   void RenderRgb24EncodedAs565(uint8_t* frame);
 
  private:
