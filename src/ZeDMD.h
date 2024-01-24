@@ -116,6 +116,8 @@ class ZEDMDAPI ZeDMD {
   bool OpenWiFi(const char* ip, int port);
 
   /** @brief Close connection to ZeDMD
+   *
+   *  Close connection to ZeDMD.
    */
   void Close();
 
@@ -222,12 +224,27 @@ class ZEDMDAPI ZeDMD {
    *
    *  Set the WiFi SSID ZeDMD should connect with.
    *  @see https://github.com/PPUC/ZeDMD
-   *  @see
    *
    *  @param brightness a value between 0 and 15
    */
   void SetWiFiSSID(const char* const ssid);
+
+  /** @brief Set the WiFi Password
+   *
+   *  Set the WiFi Password ZeDMD should use to connect.
+   *  @see https://github.com/PPUC/ZeDMD
+   *
+   *  @param password the password
+   */
   void SetWiFiPassword(const char* const password);
+
+  /** @brief Set the WiFi Port
+   *
+   *  Set the Port ZeDMD should listen at over WiFi.
+   *  @see https://github.com/PPUC/ZeDMD
+   *
+   *  @param port the port
+   */
   void SetWiFiPort(int port);
 
   /** @brief Save the current setting
