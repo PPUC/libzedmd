@@ -137,6 +137,22 @@ class ZEDMDAPI ZeDMD {
    */
   void SetFrameSize(uint16_t width, uint16_t height);
 
+  /** @brief Get the physical panel width
+   *
+   *  Get the width of the physical dimensions of the LED panels.
+   *
+   *  @return width
+   */
+  uint16_t GetWidth();
+
+  /** @brief Get the physical panel height
+   *
+   *  Get the height of the physical dimensions of the LED panels.
+   *
+   *  @return height
+   */
+  uint16_t GetHeight();
+
   /** @brief Set the palette
    *
    *  Set the color palette to use to render gray scaled content.
@@ -413,10 +429,18 @@ class ZEDMDAPI ZeDMD {
    */
   void RenderRgb24EncodedAs565(uint8_t* frame);
 
+  /** @brief Render a RGB565 frame
+   *
+   *  Renders a true color RGB565 frame. Only zone streaming mode is supported.
+   *
+   *  @param frame the RGB565 frame
+   */
+  void RenderRgb565(uint16_t* frame);
+
  private:
   bool UpdateFrameBuffer8(uint8_t* pFrame);
   bool UpdateFrameBuffer24(uint8_t* pFrame);
-
+  bool UpdateFrameBuffer565(uint16_t* pFrame);
   void Split(uint8_t* planes, uint16_t width, uint16_t height, uint8_t bitlen,
              uint8_t* frame);
   void ConvertToRgb24(uint8_t* pFrameRgb24, uint8_t* pFrame, int size,
@@ -445,7 +469,7 @@ class ZEDMDAPI ZeDMD {
   uint8_t* m_pScaledFrameBuffer;
   uint8_t* m_pCommandBuffer;
   uint8_t* m_pPlanes;
-  uint16_t* m_pRgb565Buffer;
+  uint8_t* m_pRgb565Buffer;
 
   uint8_t m_palette4[4 * 3] = {0};
   uint8_t m_palette16[16 * 3] = {0};

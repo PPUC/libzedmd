@@ -137,7 +137,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size,
   frame.streamId = streamId;
 
   if (data && size > 0) {
-    frame.data = (uint8_t*)malloc(size);
+    frame.data = (uint8_t*)malloc(size * sizeof(uint8_t));
     memcpy(frame.data, data, size);
   }
 
@@ -185,18 +185,18 @@ void ZeDMDComm::QueueCommand(char command) {
 }
 
 void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size,
-                             uint16_t width, uint16_t height) {
-  uint8_t buffer[256 * 16 * 3 + 16];
+                             uint16_t width, uint16_t height, uint8_t bytes) {
+  uint8_t buffer[256 * 16 * bytes + 16];
   uint16_t bufferSize = 0;
   uint8_t idx = 0;
-  uint8_t zone[16 * 8 * 3] = {0};
+  uint8_t zone[16 * 8 * bytes] = {0};
   uint16_t zonesBytesLimit = 0;
   if (m_zonesBytesLimit) {
     while (zonesBytesLimit < m_zonesBytesLimit) {
-      zonesBytesLimit += m_zoneWidth * m_zoneHeight * 3 + 1;
+      zonesBytesLimit += m_zoneWidth * m_zoneHeight * bytes + 1;
     }
   } else {
-    zonesBytesLimit = width * m_zoneHeight * 3 + 16;
+    zonesBytesLimit = width * m_zoneHeight * bytes + 16;
   }
 
   if (++m_streamId > 64) {
@@ -220,89 +220,17 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size,
   for (uint16_t y = 0; y < height; y += m_zoneHeight) {
     for (uint16_t x = 0; x < width; x += m_zoneWidth) {
       for (uint8_t z = 0; z < m_zoneHeight; z++) {
-        memcpy(&zone[z * m_zoneWidth * 3], &data[((y + z) * width + x) * 3],
-               m_zoneWidth * 3);
+        memcpy(&zone[z * m_zoneWidth * bytes],
+               &data[((y + z) * width + x) * bytes], m_zoneWidth * bytes);
       }
 
-      uint64_t hash = komihash(zone, m_zoneWidth * m_zoneHeight * 3, 0);
+      uint64_t hash = komihash(zone, m_zoneWidth * m_zoneHeight * bytes, 0);
       if (hash != m_zoneHashes[idx]) {
         m_zoneHashes[idx] = hash;
 
         buffer[bufferSize++] = idx;
-        memcpy(&buffer[bufferSize], zone, m_zoneWidth * m_zoneHeight * 3);
-        bufferSize += m_zoneWidth * m_zoneHeight * 3;
-
-        if (bufferSize >= zonesBytesLimit) {
-          QueueCommand(command, buffer, bufferSize, m_streamId, delayed);
-          bufferSize = 0;
-        }
-      }
-      idx++;
-    }
-  }
-
-  if (bufferSize > 0) {
-    QueueCommand(command, buffer, bufferSize, m_streamId, delayed);
-  }
-
-  if (delayed) {
-    m_delayedFrameMutex.lock();
-    m_delayedFrameReady = true;
-    m_delayedFrameMutex.unlock();
-  }
-}
-
-void ZeDMDComm::QueueRgb565Command(char command, uint16_t* data, int size,
-                                   uint16_t width, uint16_t height) {
-  uint8_t buffer[256 * 16 * 2 + 16];
-  uint16_t bufferSize = 0;
-  uint8_t idx = 0;
-  uint8_t zone[16 * 8 * 2] = {0};
-  uint16_t zonesBytesLimit = 0;
-  if (m_zonesBytesLimit) {
-    while (zonesBytesLimit < m_zonesBytesLimit) {
-      zonesBytesLimit += m_zoneWidth * m_zoneHeight * 2 + 1;
-    }
-  } else {
-    zonesBytesLimit = width * m_zoneHeight * 2 + 16;
-  }
-
-  if (++m_streamId > 64) {
-    m_streamId = 0;
-  }
-
-  bool delayed = false;
-  if (FillDelayed()) {
-    delayed = true;
-    m_delayedFrameMutex.lock();
-    m_delayedFrameReady = false;
-    while (m_delayedFrames.size() > 0) {
-      m_delayedFrames.pop();
-    }
-
-    m_delayedFrameMutex.unlock();
-    // A delayed frame needs to be complete.
-    memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
-  }
-
-  for (uint16_t y = 0; y < height; y += m_zoneHeight) {
-    for (uint16_t x = 0; x < width; x += m_zoneWidth) {
-      for (uint8_t zy = 0; zy < m_zoneHeight; zy++) {
-        for (uint8_t zx = 0; zx < m_zoneWidth; zx++) {
-          zone[(zy * m_zoneWidth + zx) * 2] =
-              data[((y + zy) * width) + x + zx] >> 8;
-          zone[(zy * m_zoneWidth + zx) * 2 + 1] =
-              data[((y + zy) * width) + x + zx] & 0xFF;
-        }
-      }
-
-      uint64_t hash = komihash(zone, m_zoneWidth * m_zoneHeight * 2, 0);
-      if (hash != m_zoneHashes[idx]) {
-        m_zoneHashes[idx] = hash;
-
-        buffer[bufferSize++] = idx;
-        memcpy(&buffer[bufferSize], zone, m_zoneWidth * m_zoneHeight * 2);
-        bufferSize += m_zoneWidth * m_zoneHeight * 2;
+        memcpy(&buffer[bufferSize], zone, m_zoneWidth * m_zoneHeight * bytes);
+        bufferSize += m_zoneWidth * m_zoneHeight * bytes;
 
         if (bufferSize >= zonesBytesLimit) {
           QueueCommand(command, buffer, bufferSize, m_streamId, delayed);
