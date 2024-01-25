@@ -158,7 +158,7 @@ int main(int argc, const char* argv[]) {
     uint16_t* rgb565 = (uint16_t*)malloc(size / 2 * sizeof(uint16_t));
     char filename[34];
 
-    for (int i = 52; i <= 227; i++) {
+    for (int i = 1; i <= 100; i++) {
       snprintf(filename, 33, "test/rgb565_%dx%d/%04d.raw", width, height, i);
       printf("Render raw: %s\n", filename);
       fileptr = fopen(filename, "rb");
@@ -168,11 +168,30 @@ int main(int argc, const char* argv[]) {
       memcpy(rgb565, buffer, size);
       pZeDMD->RenderRgb565(rgb565);
       std::this_thread::sleep_for(
-          std::chrono::milliseconds(width == 256 ? 200 : 80));
+          std::chrono::milliseconds(width == 256 ? 240 : 80));
     }
 
     free(buffer);
     free(rgb565);
+
+    //pZeDMD->DisablePreUpscaling();
+
+    size = width * height * 3;
+    uint8_t* rgb888 = (uint8_t*)malloc(size * sizeof(uint8_t));
+
+    for (int i = 1; i <= 100; i++) {
+      snprintf(filename, 33, "test/rgb888_%dx%d/%04d.raw", width, height, i);
+      printf("Render raw: %s\n", filename);
+      fileptr = fopen(filename, "rb");
+      fread(rgb888, size, 1, fileptr);
+      fclose(fileptr);
+
+      pZeDMD->RenderRgb24(rgb888);
+      std::this_thread::sleep_for(
+          std::chrono::milliseconds(width == 256 ? 420 : 140));
+    }
+
+    free(rgb888);
 
     pZeDMD->LedTest();
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));

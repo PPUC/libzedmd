@@ -205,6 +205,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size,
 
   bool delayed = false;
   if (FillDelayed()) {
+    // printf("DELAYED\n");
     delayed = true;
     m_delayedFrameMutex.lock();
     m_delayedFrameReady = false;

@@ -335,7 +335,7 @@ class ZEDMDAPI ZeDMD {
    *  and only updates zones that have changes compared to the previous
    *  frame. This method results in less data that needs to be transfered
    *  and in smoother animations. But it takes a bit longer if the entire
-   *  frame changes. Zone streaming is the default for RebderRGB24() and
+   *  frame changes. Zone streaming is the default for RenderRGB24() and
    *  RenderRgb24EncodedAs565(). All other modes use the classic way by
    *  default unless EnforceStreaming() is called.
    *  @see RenderGray2()
