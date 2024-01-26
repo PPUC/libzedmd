@@ -107,9 +107,7 @@ class ZeDMDComm {
 
   void Run();
   void QueueCommand(char command, uint8_t* buffer, int size, uint16_t width,
-                    uint16_t height);
-  void QueueRgb565Command(char command, uint16_t* buffer, int size,
-                          uint16_t width, uint16_t height);
+                    uint16_t height, uint8_t bytes = 3);
   void QueueCommand(char command, uint8_t* buffer, int size,
                     int8_t streamId = -1, bool delayed = false);
   void QueueCommand(char command);

@@ -92,6 +92,14 @@ void ZeDMD::SetFrameSize(uint16_t width, uint16_t height) {
   }
 }
 
+uint16_t ZeDMD::GetWidth() {
+  return m_pZeDMDComm->GetWidth();
+}
+
+uint16_t ZeDMD::GetHeight() {
+  return m_pZeDMDComm->GetHeight();
+}
+
 void ZeDMD::LedTest() {
   m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::LEDTest);
 }
@@ -192,7 +200,7 @@ bool ZeDMD::Open() {
     m_pCommandBuffer =
         (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3 + 192);
     m_pPlanes = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
-    m_pRgb565Buffer = (uint16_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT);
+    m_pRgb565Buffer = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 2);
 
     m_hd = (m_pZeDMDComm->GetWidth() == 256);
 
@@ -414,17 +422,31 @@ void ZeDMD::RenderRgb24EncodedAs565(uint8_t* pFrame) {
   uint16_t height;
 
   int bufferSize = Scale(m_pPlanes, m_pFrameBuffer, 3, &width, &height);
-  int rgb565BufferSize = bufferSize / 3;
-  for (uint16_t i = 0; i < rgb565BufferSize; i++) {
-    m_pRgb565Buffer[i] = (((uint16_t)(m_pPlanes[i * 3] & 0xF8)) << 8) |
-                         (((uint16_t)(m_pPlanes[i * 3 + 1] & 0xFC)) << 3) |
-                         (m_pPlanes[i * 3 + 2] >> 3);
+  int rgb565Size = bufferSize / 3;
+  for (uint16_t i = 0; i < rgb565Size; i++) {
+    uint16_t tmp = (((uint16_t)(m_pPlanes[i * 3] & 0xF8)) << 8) |
+                   (((uint16_t)(m_pPlanes[i * 3 + 1] & 0xFC)) << 3) |
+                   (m_pPlanes[i * 3 + 2] >> 3);
+    m_pRgb565Buffer[i * 2] = tmp >> 8;
+    m_pRgb565Buffer[i * 2 + 1] = tmp & 0xFF;
   }
 
   if (m_usb) {
-    m_pZeDMDComm->QueueRgb565Command(ZEDMD_COMM_COMMAND::RGB565ZonesStream,
-                                     m_pRgb565Buffer, rgb565BufferSize, width,
-                                     height);
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB565ZonesStream,
+                               m_pRgb565Buffer, rgb565Size * 2, width, height,
+                               2);
+  }
+}
+
+void ZeDMD::RenderRgb565(uint16_t* pFrame) {
+  if (!m_usb || !UpdateFrameBuffer565(pFrame)) {
+    return;
+  }
+
+  if (m_usb) {
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB565ZonesStream,
+                               m_pFrameBuffer, m_romWidth * m_romHeight * 2,
+                               m_romWidth, m_romHeight, 2);
   }
 }
 
@@ -443,6 +465,15 @@ bool ZeDMD::UpdateFrameBuffer24(uint8_t* pFrame) {
   }
 
   memcpy(m_pFrameBuffer, pFrame, m_romWidth * m_romHeight * 3);
+  return true;
+}
+
+bool ZeDMD::UpdateFrameBuffer565(uint16_t* pFrame) {
+  if (!memcmp(m_pFrameBuffer, pFrame, m_romWidth * m_romHeight * 2)) {
+    return false;
+  }
+
+  memcpy(m_pFrameBuffer, pFrame, m_romWidth * m_romHeight * 2);
   return true;
 }
 
