@@ -104,6 +104,12 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>SetLogCallback</b> (Z
 <tr class="memitem:a741938398912b75832b6d1abb9f4b727" id="r_a741938398912b75832b6d1abb9f4b727"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a741938398912b75832b6d1abb9f4b727">SetFrameSize</a> (uint16_t width, uint16_t height)</td></tr>
 <tr class="memdesc:a741938398912b75832b6d1abb9f4b727"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the frame size.  <br /></td></tr>
 <tr class="separator:a741938398912b75832b6d1abb9f4b727"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab65ebb83795ac5bf5c8872c87f3d9568" id="r_ab65ebb83795ac5bf5c8872c87f3d9568"><td class="memItemLeft" align="right" valign="top">uint16_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ab65ebb83795ac5bf5c8872c87f3d9568">GetWidth</a> ()</td></tr>
+<tr class="memdesc:ab65ebb83795ac5bf5c8872c87f3d9568"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the physical panel width.  <br /></td></tr>
+<tr class="separator:ab65ebb83795ac5bf5c8872c87f3d9568"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a06d6c538c25ed80d7da9cf0e498f7de4" id="r_a06d6c538c25ed80d7da9cf0e498f7de4"><td class="memItemLeft" align="right" valign="top">uint16_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a06d6c538c25ed80d7da9cf0e498f7de4">GetHeight</a> ()</td></tr>
+<tr class="memdesc:a06d6c538c25ed80d7da9cf0e498f7de4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the physical panel height.  <br /></td></tr>
+<tr class="separator:a06d6c538c25ed80d7da9cf0e498f7de4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af30e1c74ab12142d0fb466265a67a8f2" id="r_af30e1c74ab12142d0fb466265a67a8f2"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#af30e1c74ab12142d0fb466265a67a8f2">SetPalette</a> (uint8_t *pPalette, uint8_t numColors)</td></tr>
 <tr class="memdesc:af30e1c74ab12142d0fb466265a67a8f2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the palette.  <br /></td></tr>
 <tr class="separator:af30e1c74ab12142d0fb466265a67a8f2"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -188,6 +194,9 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>SetLogCallback</b> (Z
 <tr class="memitem:ad06f69cffd2c48ee6ad31f2e65b2150b" id="r_ad06f69cffd2c48ee6ad31f2e65b2150b"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ad06f69cffd2c48ee6ad31f2e65b2150b">RenderRgb24EncodedAs565</a> (uint8_t *frame)</td></tr>
 <tr class="memdesc:ad06f69cffd2c48ee6ad31f2e65b2150b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Render a RGB24 frame.  <br /></td></tr>
 <tr class="separator:ad06f69cffd2c48ee6ad31f2e65b2150b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae167684f041fa33a317a5f99335c630c" id="r_ae167684f041fa33a317a5f99335c630c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ae167684f041fa33a317a5f99335c630c">RenderRgb565</a> (uint16_t *frame)</td></tr>
+<tr class="memdesc:ae167684f041fa33a317a5f99335c630c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Render a RGB565 frame.  <br /></td></tr>
+<tr class="separator:ae167684f041fa33a317a5f99335c630c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Member Function Documentation</h2>
 <a id="a2984689924a2d1a31e433a43d57f843c" name="a2984689924a2d1a31e433a43d57f843c"></a>
@@ -430,7 +439,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>SetLogCallback</b> (Z
 </div><div class="memdoc">
 
 <p>Enforce zone streaming. </p>
-<p><a class="el" href="class_ze_d_m_d.html">ZeDMD</a> has two different render modes. One renders entire frames. This is the classic way and works pretty well. The other one is "zone streaming" which will be enable by this function. Zone streaming divides a frame into rectangular zones and only updates zones that have changes compared to the previous frame. This method results in less data that needs to be transfered and in smoother animations. But it takes a bit longer if the entire frame changes. Zone streaming is the default for RebderRGB24() and <a class="el" href="#ad06f69cffd2c48ee6ad31f2e65b2150b" title="Render a RGB24 frame.">RenderRgb24EncodedAs565()</a>. All other modes use the classic way by default unless <a class="el" href="#aef05889f21559e2f3a3f5fe1288de7bd" title="Enforce zone streaming.">EnforceStreaming()</a> is called. </p><dl class="section see"><dt>See also</dt><dd><a class="el" href="#a82cf2fb5e909d745c3b8e6f4ab612c31" title="Render a 2 bit gray scaled frame.">RenderGray2()</a> </dd>
+<p><a class="el" href="class_ze_d_m_d.html">ZeDMD</a> has two different render modes. One renders entire frames. This is the classic way and works pretty well. The other one is "zone streaming" which will be enable by this function. Zone streaming divides a frame into rectangular zones and only updates zones that have changes compared to the previous frame. This method results in less data that needs to be transfered and in smoother animations. But it takes a bit longer if the entire frame changes. Zone streaming is the default for RenderRGB24() and <a class="el" href="#ad06f69cffd2c48ee6ad31f2e65b2150b" title="Render a RGB24 frame.">RenderRgb24EncodedAs565()</a>. All other modes use the classic way by default unless <a class="el" href="#aef05889f21559e2f3a3f5fe1288de7bd" title="Enforce zone streaming.">EnforceStreaming()</a> is called. </p><dl class="section see"><dt>See also</dt><dd><a class="el" href="#a82cf2fb5e909d745c3b8e6f4ab612c31" title="Render a 2 bit gray scaled frame.">RenderGray2()</a> </dd>
 <dd>
 <a class="el" href="#a7855bccff91c35545b82ce4f3f5f9a45" title="Render a 4 bit gray scaled frame.">RenderGray4()</a> </dd>
 <dd>
@@ -466,6 +475,48 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>SetLogCallback</b> (Z
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>RGB array </dd></dl>
+
+</div>
+</div>
+<a id="a06d6c538c25ed80d7da9cf0e498f7de4" name="a06d6c538c25ed80d7da9cf0e498f7de4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a06d6c538c25ed80d7da9cf0e498f7de4">&#9670;&#160;</a></span>GetHeight()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint16_t ZeDMD::GetHeight </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the physical panel height. </p>
+<p>Get the height of the physical dimensions of the LED panels.</p>
+<dl class="section return"><dt>Returns</dt><dd>height </dd></dl>
+
+</div>
+</div>
+<a id="ab65ebb83795ac5bf5c8872c87f3d9568" name="ab65ebb83795ac5bf5c8872c87f3d9568"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab65ebb83795ac5bf5c8872c87f3d9568">&#9670;&#160;</a></span>GetWidth()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint16_t ZeDMD::GetWidth </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the physical panel width. </p>
+<p>Get the width of the physical dimensions of the LED panels.</p>
+<dl class="section return"><dt>Returns</dt><dd>width </dd></dl>
 
 </div>
 </div>
@@ -778,6 +829,32 @@ SetWiFiPort() </dd>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">frame</td><td>the RGB frame </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="ae167684f041fa33a317a5f99335c630c" name="ae167684f041fa33a317a5f99335c630c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae167684f041fa33a317a5f99335c630c">&#9670;&#160;</a></span>RenderRgb565()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void ZeDMD::RenderRgb565 </td>
+          <td>(</td>
+          <td class="paramtype">uint16_t *</td>          <td class="paramname"><span class="paramname"><em>frame</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Render a RGB565 frame. </p>
+<p>Renders a true color RGB565 frame. Only zone streaming mode is supported.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">frame</td><td>the RGB565 frame </td></tr>
   </table>
   </dd>
 </dl>
