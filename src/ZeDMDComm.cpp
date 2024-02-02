@@ -186,10 +186,10 @@ void ZeDMDComm::QueueCommand(char command) {
 
 void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size,
                              uint16_t width, uint16_t height, uint8_t bytes) {
-  uint8_t buffer[256 * 16 * bytes + 16];
+  uint8_t *buffer = (uint8_t*)malloc(256 * 16 * bytes + 16);
   uint16_t bufferSize = 0;
   uint8_t idx = 0;
-  uint8_t zone[16 * 8 * bytes] = {0};
+  uint8_t *zone = (uint8_t*)malloc(16 * 8 * bytes);
   uint16_t zonesBytesLimit = 0;
   if (m_zonesBytesLimit) {
     while (zonesBytesLimit < m_zonesBytesLimit) {
@@ -205,7 +205,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size,
 
   bool delayed = false;
   if (FillDelayed()) {
-     printf("DELAYED\n");
+    // printf("DELAYED\n");
     delayed = true;
     m_delayedFrameMutex.lock();
     m_delayedFrameReady = false;
@@ -251,6 +251,9 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size,
     m_delayedFrameReady = true;
     m_delayedFrameMutex.unlock();
   }
+
+  free(buffer);
+  free(zone);
 }
 
 bool ZeDMDComm::FillDelayed() {
