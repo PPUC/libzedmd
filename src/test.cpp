@@ -168,7 +168,7 @@ int main(int argc, const char* argv[]) {
       memcpy(rgb565, buffer, size);
       pZeDMD->RenderRgb565(rgb565);
       std::this_thread::sleep_for(
-          std::chrono::milliseconds(width == 256 ? 240 : 80));
+          std::chrono::milliseconds(pZeDMD->IsS3() ? 120 : (width == 256 ? 240 : 80)));
     }
 
     free(buffer);
@@ -188,7 +188,7 @@ int main(int argc, const char* argv[]) {
 
       pZeDMD->RenderRgb24(rgb888);
       std::this_thread::sleep_for(
-          std::chrono::milliseconds(width == 256 ? 420 : 140));
+          std::chrono::milliseconds(pZeDMD->IsS3() ? 280 : (width == 256 ? 420 : 140)));
     }
 
     free(rgb888);

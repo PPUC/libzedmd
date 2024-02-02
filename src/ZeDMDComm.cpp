@@ -205,7 +205,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size,
 
   bool delayed = false;
   if (FillDelayed()) {
-    // printf("DELAYED\n");
+     printf("DELAYED\n");
     delayed = true;
     m_delayedFrameMutex.lock();
     m_delayedFrameReady = false;
@@ -363,7 +363,12 @@ bool ZeDMDComm::Connect(char* pDevice) {
   sp_new_config(&m_pSerialPortConfig);
   sp_get_config(m_pSerialPort, m_pSerialPortConfig);
 
-  sp_set_baudrate(m_pSerialPort, ZEDMD_COMM_BAUD_RATE);
+  if (strcmp(sp_get_port_usb_manufacturer(m_pSerialPort), "Espressif") == 0) {
+    // Native USB connection, hopefully an ESP32 S3.
+    m_s3 = true;
+  }
+
+  sp_set_baudrate(m_pSerialPort, m_s3 ? ZEDMD_S3_COMM_BAUD_RATE : ZEDMD_COMM_BAUD_RATE);
   sp_set_bits(m_pSerialPort, 8);
   sp_set_parity(m_pSerialPort, SP_PARITY_NONE);
   sp_set_stopbits(m_pSerialPort, 1);
@@ -476,16 +481,30 @@ void ZeDMDComm::Reset() {
     return;
   }
 
-  sp_set_dtr(m_pSerialPort, SP_DTR_OFF);
-  sp_set_rts(m_pSerialPort, SP_RTS_ON);
-  std::this_thread::sleep_for(std::chrono::milliseconds(200));
+  if (m_s3) {
+    // Hard reset, see
+    // https://github.com/espressif/esptool/blob/master/esptool/reset.py
+    sp_set_rts(m_pSerialPort, SP_RTS_ON);
+    sp_set_dtr(m_pSerialPort, SP_DTR_OFF);
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    sp_set_rts(m_pSerialPort, SP_RTS_OFF);
+    sp_set_dtr(m_pSerialPort, SP_DTR_OFF);
+    // At least under Linux we need to wait very long until the USB JTAG port
+    // re-appears.
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+  } else {
+    // Could be an ESP32.
+    sp_set_dtr(m_pSerialPort, SP_DTR_OFF);
+    sp_set_rts(m_pSerialPort, SP_RTS_ON);
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
-  sp_set_rts(m_pSerialPort, SP_RTS_OFF);
-  sp_set_dtr(m_pSerialPort, SP_DTR_OFF);
-  std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    sp_set_rts(m_pSerialPort, SP_RTS_OFF);
+    sp_set_dtr(m_pSerialPort, SP_DTR_OFF);
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
-  sp_flush(m_pSerialPort, SP_BUF_BOTH);
-  std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    sp_flush(m_pSerialPort, SP_BUF_BOTH);
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+  }
 #endif
 }
 
@@ -569,3 +588,5 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame) {
 uint16_t ZeDMDComm::GetWidth() { return m_width; }
 
 uint16_t ZeDMDComm::GetHeight() { return m_height; }
+
+bool ZeDMDComm::IsS3() { return m_s3; }

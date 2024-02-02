@@ -100,6 +100,10 @@ uint16_t ZeDMD::GetHeight() {
   return m_pZeDMDComm->GetHeight();
 }
 
+bool ZeDMD::IsS3() {
+  return m_pZeDMDComm->IsS3();
+}
+
 void ZeDMD::LedTest() {
   m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::LEDTest);
 }
