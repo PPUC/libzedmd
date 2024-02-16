@@ -186,10 +186,10 @@ void ZeDMDComm::QueueCommand(char command) {
 
 void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size,
                              uint16_t width, uint16_t height, uint8_t bytes) {
-  uint8_t *buffer = (uint8_t*)malloc(256 * 16 * bytes + 16);
+  uint8_t* buffer = (uint8_t*)malloc(256 * 16 * bytes + 16);
   uint16_t bufferSize = 0;
   uint8_t idx = 0;
-  uint8_t *zone = (uint8_t*)malloc(16 * 8 * bytes);
+  uint8_t* zone = (uint8_t*)malloc(16 * 8 * bytes);
   uint16_t zonesBytesLimit = 0;
   if (m_zonesBytesLimit) {
     while (zonesBytesLimit < m_zonesBytesLimit) {
@@ -366,12 +366,14 @@ bool ZeDMDComm::Connect(char* pDevice) {
   sp_new_config(&m_pSerialPortConfig);
   sp_get_config(m_pSerialPort, m_pSerialPortConfig);
 
-  if (strcmp(sp_get_port_usb_manufacturer(m_pSerialPort), "Espressif") == 0) {
+  const char* manufacturer = sp_get_port_usb_manufacturer(m_pSerialPort);
+  if (manufacturer && strcmp(manufacturer, "Espressif") == 0) {
     // Native USB connection, hopefully an ESP32 S3.
     m_s3 = true;
   }
 
-  sp_set_baudrate(m_pSerialPort, m_s3 ? ZEDMD_S3_COMM_BAUD_RATE : ZEDMD_COMM_BAUD_RATE);
+  sp_set_baudrate(m_pSerialPort,
+                  m_s3 ? ZEDMD_S3_COMM_BAUD_RATE : ZEDMD_COMM_BAUD_RATE);
   sp_set_bits(m_pSerialPort, 8);
   sp_set_parity(m_pSerialPort, SP_PARITY_NONE);
   sp_set_stopbits(m_pSerialPort, 1);

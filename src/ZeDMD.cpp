@@ -5,6 +5,9 @@
 #include "ZeDMDComm.h"
 #include "ZeDMDWiFi.h"
 
+const int endian_check = 1;
+#define is_bigendian() ((*(char*)&endian_check) == 0)
+
 ZeDMD::ZeDMD() {
   m_romWidth = 0;
   m_romHeight = 0;
@@ -92,17 +95,11 @@ void ZeDMD::SetFrameSize(uint16_t width, uint16_t height) {
   }
 }
 
-uint16_t ZeDMD::GetWidth() {
-  return m_pZeDMDComm->GetWidth();
-}
+uint16_t ZeDMD::GetWidth() { return m_pZeDMDComm->GetWidth(); }
 
-uint16_t ZeDMD::GetHeight() {
-  return m_pZeDMDComm->GetHeight();
-}
+uint16_t ZeDMD::GetHeight() { return m_pZeDMDComm->GetHeight(); }
 
-bool ZeDMD::IsS3() {
-  return m_pZeDMDComm->IsS3();
-}
+bool ZeDMD::IsS3() { return m_pZeDMDComm->IsS3(); }
 
 void ZeDMD::LedTest() {
   m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::LEDTest);
@@ -431,8 +428,8 @@ void ZeDMD::RenderRgb24EncodedAs565(uint8_t* pFrame) {
     uint16_t tmp = (((uint16_t)(m_pPlanes[i * 3] & 0xF8)) << 8) |
                    (((uint16_t)(m_pPlanes[i * 3 + 1] & 0xFC)) << 3) |
                    (m_pPlanes[i * 3 + 2] >> 3);
-    m_pRgb565Buffer[i * 2] = tmp >> 8;
-    m_pRgb565Buffer[i * 2 + 1] = tmp & 0xFF;
+    m_pRgb565Buffer[i * 2 + 1] = tmp >> 8;
+    m_pRgb565Buffer[i * 2] = tmp & 0xFF;
   }
 
   if (m_usb) {
@@ -448,9 +445,22 @@ void ZeDMD::RenderRgb565(uint16_t* pFrame) {
   }
 
   if (m_usb) {
-    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB565ZonesStream,
-                               m_pFrameBuffer, m_romWidth * m_romHeight * 2,
-                               m_romWidth, m_romHeight, 2);
+    if (!is_bigendian()) {
+      m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB565ZonesStream,
+                                 m_pFrameBuffer, m_romWidth * m_romHeight * 2,
+                                 m_romWidth, m_romHeight, 2);
+    } else {
+      uint8_t littleEndianFrameBufer[256 * 64 * 2];
+      int length = m_romWidth * m_romHeight * 2;
+      for (int i = 0; i < length; i += 2) {
+        littleEndianFrameBufer[i] = m_pFrameBuffer[i + 1];
+        littleEndianFrameBufer[i + 1] = m_pFrameBuffer[i];
+      }
+
+      m_pZeDMDComm->QueueCommand(
+          ZEDMD_COMM_COMMAND::RGB565ZonesStream, littleEndianFrameBufer,
+          m_romWidth * m_romHeight * 2, m_romWidth, m_romHeight, 2);
+    }
   }
 }
 
