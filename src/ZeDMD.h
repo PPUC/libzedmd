@@ -153,6 +153,15 @@ class ZEDMDAPI ZeDMD {
    */
   uint16_t GetHeight();
 
+  /** @brief Does ZeDMD run on an ESP32 S3?
+   *
+   *  On an ESP32 S3 a native USB connection is used to increase
+   *  the bandwidth. Furthermore double buffering is active.
+   *
+   *  @return true if an ESP32 S3 is used.
+   */
+  bool IsS3();
+
   /** @brief Set the palette
    *
    *  Set the color palette to use to render gray scaled content.

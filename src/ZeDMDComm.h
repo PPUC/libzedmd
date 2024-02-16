@@ -68,6 +68,7 @@ struct ZeDMDFrame {
 };
 
 #define ZEDMD_COMM_BAUD_RATE 921600
+#define ZEDMD_S3_COMM_BAUD_RATE 921600 * 8
 
 #if defined(_WIN32) || defined(_WIN64)
 #define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 1888
@@ -116,6 +117,7 @@ class ZeDMDComm {
 
   uint16_t GetWidth();
   uint16_t GetHeight();
+  bool IsS3();
 
  protected:
   virtual bool StreamBytes(ZeDMDFrame* pFrame);
@@ -154,4 +156,5 @@ class ZeDMDComm {
   std::queue<ZeDMDFrame> m_delayedFrames;
   std::mutex m_delayedFrameMutex;
   bool m_delayedFrameReady = false;
+  bool m_s3 = false;
 };
