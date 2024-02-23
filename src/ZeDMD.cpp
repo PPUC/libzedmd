@@ -95,11 +95,11 @@ void ZeDMD::SetFrameSize(uint16_t width, uint16_t height) {
   }
 }
 
-uint16_t ZeDMD::GetWidth() { return m_pZeDMDComm->GetWidth(); }
+uint16_t const ZeDMD::GetWidth() { return m_pZeDMDComm->GetWidth(); }
 
-uint16_t ZeDMD::GetHeight() { return m_pZeDMDComm->GetHeight(); }
+uint16_t const ZeDMD::GetHeight() { return m_pZeDMDComm->GetHeight(); }
 
-bool ZeDMD::IsS3() { return m_pZeDMDComm->IsS3(); }
+bool const ZeDMD::IsS3() { return m_pZeDMDComm->IsS3(); }
 
 void ZeDMD::LedTest() {
   m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::LEDTest);

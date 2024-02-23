@@ -32,7 +32,7 @@
 
 #include <inttypes.h>
 #include <stdarg.h>
-#include <stdio.h>
+#include <cstdio>
 
 typedef void(ZEDMDCALLBACK* ZeDMD_LogCallback)(const char* format, va_list args,
                                                const void* userData);
@@ -143,7 +143,7 @@ class ZEDMDAPI ZeDMD {
    *
    *  @return width
    */
-  uint16_t GetWidth();
+  uint16_t const GetWidth();
 
   /** @brief Get the physical panel height
    *
@@ -151,7 +151,7 @@ class ZEDMDAPI ZeDMD {
    *
    *  @return height
    */
-  uint16_t GetHeight();
+  uint16_t const GetHeight();
 
   /** @brief Does ZeDMD run on an ESP32 S3?
    *
@@ -160,7 +160,7 @@ class ZEDMDAPI ZeDMD {
    *
    *  @return true if an ESP32 S3 is used.
    */
-  bool IsS3();
+  bool const IsS3();
 
   /** @brief Set the palette
    *

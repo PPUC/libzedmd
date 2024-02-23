@@ -590,8 +590,8 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame) {
 #endif
 }
 
-uint16_t ZeDMDComm::GetWidth() { return m_width; }
+uint16_t const ZeDMDComm::GetWidth() { return m_width; }
 
-uint16_t ZeDMDComm::GetHeight() { return m_height; }
+uint16_t const ZeDMDComm::GetHeight() { return m_height; }
 
-bool ZeDMDComm::IsS3() { return m_s3; }
+bool const ZeDMDComm::IsS3() { return m_s3; }

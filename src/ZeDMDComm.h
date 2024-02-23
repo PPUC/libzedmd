@@ -12,7 +12,7 @@
 
 #include <inttypes.h>
 #include <stdarg.h>
-#include <stdio.h>
+#include <cstdio>
 
 #include <mutex>
 #include <queue>
@@ -115,9 +115,9 @@ class ZeDMDComm {
   void QueueCommand(char command, uint8_t value);
   bool FillDelayed();
 
-  uint16_t GetWidth();
-  uint16_t GetHeight();
-  bool IsS3();
+  uint16_t const GetWidth();
+  uint16_t const GetHeight();
+  bool const IsS3();
 
  protected:
   virtual bool StreamBytes(ZeDMDFrame* pFrame);
