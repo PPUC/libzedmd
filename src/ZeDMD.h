@@ -32,6 +32,7 @@
 
 #include <inttypes.h>
 #include <stdarg.h>
+
 #include <cstdio>
 
 typedef void(ZEDMDCALLBACK* ZeDMD_LogCallback)(const char* format, va_list args,
@@ -438,6 +439,17 @@ class ZEDMDAPI ZeDMD {
    */
   void RenderRgb24EncodedAs565(uint8_t* frame);
 
+  /** @brief Render a RGB24 frame
+   *
+   *  Renders a true color RGB frame. Only zone streaming mode is supported.
+   *  The encoding is RGB16. In fact, RGB16 is just another name for RGB565.
+   *
+   *  @param frame the RGB frame
+   */
+  void RenderRgb24EncodedAs16(uint8_t* frame) {
+    RenderRgb24EncodedAs565(frame);
+  }
+
   /** @brief Render a RGB565 frame
    *
    *  Renders a true color RGB565 frame. Only zone streaming mode is supported.
@@ -445,6 +457,15 @@ class ZEDMDAPI ZeDMD {
    *  @param frame the RGB565 frame
    */
   void RenderRgb565(uint16_t* frame);
+
+  /** @brief Render a RGB16 frame
+   *
+   *  Renders a true color RGB16 frame. Only zone streaming mode is supported.
+   *  In fact, RGB16 is just another name for RGB565.
+   *
+   *  @param frame the RGB16 frame
+   */
+  void RenderRgb16(uint16_t* frame) { RenderRgb565(frame); }
 
  private:
   bool UpdateFrameBuffer8(uint8_t* pFrame);
@@ -456,8 +477,13 @@ class ZEDMDAPI ZeDMD {
                       uint8_t* pPalette);
   bool CmpColor(uint8_t* px1, uint8_t* px2, uint8_t colors);
   void SetColor(uint8_t* px1, uint8_t* px2, uint8_t colors);
+  uint8_t GetScaleMode(uint16_t frameWidth, uint16_t frameHeight,
+                       uint16_t* pWidth, uint16_t* pHeight, uint8_t* pXOffset,
+                       uint8_t* pYOffset);
   int Scale(uint8_t* pScaledFrame, uint8_t* pFrame, uint8_t colors,
             uint16_t* width, uint16_t* height);
+  int Scale16(uint8_t* pScaledFrame, uint16_t* pFrame, uint16_t* width,
+              uint16_t* height, bool bigEndian);
 
   ZeDMDComm* m_pZeDMDComm;
   ZeDMDWiFi* m_pZeDMDWiFi;

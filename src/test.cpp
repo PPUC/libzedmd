@@ -167,14 +167,49 @@ int main(int argc, const char* argv[]) {
 
       memcpy(rgb565, buffer, size);
       pZeDMD->RenderRgb565(rgb565);
-      std::this_thread::sleep_for(
-          std::chrono::milliseconds(pZeDMD->IsS3() ? 120 : (width == 256 ? 240 : 80)));
+      std::this_thread::sleep_for(std::chrono::milliseconds(
+          pZeDMD->IsS3() ? 120 : (width == 256 ? 240 : 80)));
+    }
+
+    if (width == 256) {
+      // test RGB565 upscaling
+      size = 128 * 32 * 2;
+      pZeDMD->SetFrameSize(128, 32);
+
+      for (int i = 1; i <= 20; i++) {
+        snprintf(filename, 33, "test/rgb565_128x32/%04d.raw", i);
+        printf("Render raw: %s\n", filename);
+        fileptr = fopen(filename, "rb");
+        fread(buffer, size, 1, fileptr);
+        fclose(fileptr);
+
+        memcpy(rgb565, buffer, size);
+        pZeDMD->RenderRgb565(rgb565);
+        std::this_thread::sleep_for(
+            std::chrono::milliseconds(pZeDMD->IsS3() ? 60 : 120));
+      }
+
+      // test RGB565 centering
+      pZeDMD->DisablePreUpscaling();
+
+      for (int i = 1; i <= 100; i++) {
+        snprintf(filename, 33, "test/rgb565_128x32/%04d.raw", i);
+        printf("Render raw: %s\n", filename);
+        fileptr = fopen(filename, "rb");
+        fread(buffer, size, 1, fileptr);
+        fclose(fileptr);
+
+        memcpy(rgb565, buffer, size);
+        pZeDMD->RenderRgb565(rgb565);
+        std::this_thread::sleep_for(
+            std::chrono::milliseconds(pZeDMD->IsS3() ? 40 : 80));
+      }
+
+      pZeDMD->SetFrameSize(width, height);
     }
 
     free(buffer);
     free(rgb565);
-
-    //pZeDMD->DisablePreUpscaling();
 
     size = width * height * 3;
     uint8_t* rgb888 = (uint8_t*)malloc(size * sizeof(uint8_t));
@@ -187,8 +222,8 @@ int main(int argc, const char* argv[]) {
       fclose(fileptr);
 
       pZeDMD->RenderRgb24(rgb888);
-      std::this_thread::sleep_for(
-          std::chrono::milliseconds(pZeDMD->IsS3() ? 280 : (width == 256 ? 420 : 140)));
+      std::this_thread::sleep_for(std::chrono::milliseconds(
+          pZeDMD->IsS3() ? 280 : (width == 256 ? 420 : 140)));
     }
 
     free(rgb888);

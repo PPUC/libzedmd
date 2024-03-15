@@ -292,7 +292,7 @@ void ZeDMD::RenderGray2(uint8_t* pFrame) {
   int bufferSize =
       Scale(m_pScaledFrameBuffer, m_pFrameBuffer, 1, &width, &height);
 
-  if (m_hd || m_wifi || m_streaming) {
+  if (m_wifi || m_streaming) {
     ConvertToRgb24(m_pPlanes, m_pScaledFrameBuffer, bufferSize, m_palette4);
 
     if (m_wifi) {
@@ -325,7 +325,7 @@ void ZeDMD::RenderGray4(uint8_t* pFrame) {
   int bufferSize =
       Scale(m_pScaledFrameBuffer, m_pFrameBuffer, 1, &width, &height);
 
-  if (m_hd || m_wifi || m_streaming) {
+  if (m_wifi || m_streaming) {
     ConvertToRgb24(m_pPlanes, m_pScaledFrameBuffer, bufferSize, m_palette16);
 
     if (m_wifi) {
@@ -364,7 +364,7 @@ void ZeDMD::RenderColoredGray6(uint8_t* pFrame, uint8_t* pRotations) {
   int bufferSize =
       Scale(m_pScaledFrameBuffer, m_pFrameBuffer, 1, &width, &height);
 
-  if (m_hd || m_wifi || m_streaming) {
+  if (m_wifi || m_streaming) {
     ConvertToRgb24(m_pPlanes, m_pScaledFrameBuffer, bufferSize, m_palette64);
 
     if (m_wifi) {
@@ -444,23 +444,14 @@ void ZeDMD::RenderRgb565(uint16_t* pFrame) {
     return;
   }
 
-  if (m_usb) {
-    if (!is_bigendian()) {
-      m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB565ZonesStream,
-                                 m_pFrameBuffer, m_romWidth * m_romHeight * 2,
-                                 m_romWidth, m_romHeight, 2);
-    } else {
-      uint8_t littleEndianFrameBufer[256 * 64 * 2];
-      int length = m_romWidth * m_romHeight * 2;
-      for (int i = 0; i < length; i += 2) {
-        littleEndianFrameBufer[i] = m_pFrameBuffer[i + 1];
-        littleEndianFrameBufer[i + 1] = m_pFrameBuffer[i];
-      }
+  uint16_t width;
+  uint16_t height;
 
-      m_pZeDMDComm->QueueCommand(
-          ZEDMD_COMM_COMMAND::RGB565ZonesStream, littleEndianFrameBufer,
-          m_romWidth * m_romHeight * 2, m_romWidth, m_romHeight, 2);
-    }
+  int rgb565Size = Scale16(m_pPlanes, pFrame, &width, &height, is_bigendian());
+
+  if (m_usb) {
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB565ZonesStream, m_pPlanes,
+                               rgb565Size, width, height, 2);
   }
 }
 
@@ -551,51 +542,60 @@ void ZeDMD::SetColor(uint8_t* px1, uint8_t* px2, uint8_t colors) {
   }
 }
 
+uint8_t ZeDMD::GetScaleMode(uint16_t frameWidth, uint16_t frameHeight,
+                            uint16_t* pWidth, uint16_t* pHeight,
+                            uint8_t* pXOffset, uint8_t* pYOffset) {
+  if (m_upscaling && m_romWidth == 192 && frameWidth == 256) {
+    (*pWidth) = frameWidth;
+    (*pHeight) = frameHeight;
+    (*pXOffset) = 32;
+    return 0;
+  } else if (m_downscaling && m_romWidth == 192) {
+    (*pWidth) = frameWidth;
+    (*pHeight) = frameHeight;
+    (*pXOffset) = 16;
+    return 1;
+  } else if (m_upscaling && m_romHeight == 16 && frameHeight == 32) {
+    (*pWidth) = frameWidth;
+    (*pHeight) = frameHeight;
+    (*pYOffset) = 8;
+  } else if (m_upscaling && m_romHeight == 16 && frameHeight == 64) {
+    (*pWidth) = frameWidth;
+    (*pHeight) = frameHeight;
+    (*pYOffset) = 16;
+    return 2;
+  } else if (m_downscaling && m_romWidth == 256 && frameWidth == 128) {
+    (*pWidth) = frameWidth;
+    (*pHeight) = frameHeight;
+    return 1;
+  } else if (m_upscaling && m_romWidth == 128 && frameWidth == 256) {
+    (*pWidth) = frameWidth;
+    (*pHeight) = frameHeight;
+    return 2;
+  } else if (!m_upscaling && m_romWidth == 128 && frameWidth == 256) {
+    (*pWidth) = frameWidth;
+    (*pHeight) = frameHeight;
+    (*pXOffset) = 64;
+    (*pYOffset) = 16;
+    return 0;
+  }
+
+  (*pWidth) = m_romWidth;
+  (*pHeight) = m_romHeight;
+  return 255;
+}
+
 int ZeDMD::Scale(uint8_t* pScaledFrame, uint8_t* pFrame, uint8_t colors,
                  uint16_t* width, uint16_t* height) {
-  int xoffset = 0;
-  int yoffset = 0;
-  uint8_t scale = 0;  // 0 - no scale, 1 - half scale, 2 - double scale
+  uint8_t xoffset = 0;
+  uint8_t yoffset = 0;
   uint16_t frameWidth = m_pZeDMDComm->GetWidth();
   uint16_t frameHeight = m_pZeDMDComm->GetHeight();
   int bufferSize = m_romWidth * m_romHeight * colors;
+  uint8_t scale =
+      GetScaleMode(frameWidth, frameHeight, width, height, &xoffset, &yoffset);
 
-  if (m_upscaling && m_romWidth == 192 && frameWidth == 256) {
-    (*width) = frameWidth;
-    (*height) = frameHeight;
-
-    xoffset = 32;
-  } else if (m_downscaling && m_romWidth == 192) {
-    (*width) = frameWidth;
-    (*height) = frameHeight;
-
-    xoffset = 16;
-    scale = 1;
-  } else if (m_upscaling && m_romHeight == 16 && frameHeight == 32) {
-    (*width) = frameWidth;
-    (*height) = frameHeight;
-
-    yoffset = 8;
-  } else if (m_upscaling && m_romHeight == 16 && frameHeight == 64) {
-    (*width) = frameWidth;
-    (*height) = frameHeight;
-
-    yoffset = 16;
-    scale = 2;
-  } else if (m_downscaling && m_romWidth == 256 && frameWidth == 128) {
-    (*width) = frameWidth;
-    (*height) = frameHeight;
-
-    scale = 1;
-  } else if (m_upscaling && m_romWidth == 128 && frameWidth == 256) {
-    (*width) = frameWidth;
-    (*height) = frameHeight;
-
-    scale = 2;
-  } else {
-    (*width) = m_romWidth;
-    (*height) = m_romHeight;
-
+  if (scale == 255) {
     memcpy(pScaledFrame, pFrame, bufferSize);
     return bufferSize;
   }
@@ -606,8 +606,8 @@ int ZeDMD::Scale(uint8_t* pScaledFrame, uint8_t* pFrame, uint8_t colors,
   if (scale == 1) {
     // for half scaling we take the 4 points and look if there is one colour
     // repeated
-    for (int y = 0; y < m_romHeight; y += 2) {
-      for (int x = 0; x < m_romWidth; x += 2) {
+    for (uint16_t y = 0; y < m_romHeight; y += 2) {
+      for (uint16_t x = 0; x < m_romWidth; x += 2) {
         uint16_t upper_left = y * m_romWidth * colors + x * colors;
         uint16_t upper_right = upper_left + colors;
         uint16_t lower_left = upper_left + m_romWidth * colors;
@@ -699,8 +699,8 @@ int ZeDMD::Scale(uint8_t* pScaledFrame, uint8_t* pFrame, uint8_t colors,
     uint8_t* h = (uint8_t*)malloc(colors);
     uint8_t* i = (uint8_t*)malloc(colors);
 
-    for (int x = 0; x < m_romHeight; x++) {
-      for (int y = 0; y < m_romWidth; y++) {
+    for (uint16_t x = 0; x < m_romHeight; x++) {
+      for (uint16_t y = 0; y < m_romWidth; y++) {
         for (uint8_t tc = 0; tc < colors; tc++) {
           if (y == 0 && x == 0) {
             a[tc] = b[tc] = d[tc] = e[tc] = pFrame[tc];
@@ -815,8 +815,8 @@ int ZeDMD::Scale(uint8_t* pScaledFrame, uint8_t* pFrame, uint8_t colors,
     free(i);
   } else  // offset!=0
   {
-    for (int y = 0; y < m_romHeight; y++) {
-      for (int x = 0; x < m_romWidth; x++) {
+    for (int16_t y = 0; y < m_romHeight; y++) {
+      for (int16_t x = 0; x < m_romWidth; x++) {
         for (uint8_t c = 0; c < colors; c++) {
           pScaledFrame[((yoffset + y) * frameWidth + xoffset + x) * colors +
                        c] = pFrame[(y * m_romWidth + x) * colors + c];
@@ -826,6 +826,128 @@ int ZeDMD::Scale(uint8_t* pScaledFrame, uint8_t* pFrame, uint8_t colors,
   }
 
   return bufferSize;
+}
+
+int ZeDMD::Scale16(uint8_t* pScaledFrame, uint16_t* pFrame, uint16_t* width,
+                   uint16_t* height, bool bigEndian) {
+  uint8_t xoffset = 0;
+  uint8_t yoffset = 0;
+  uint16_t frameWidth = m_pZeDMDComm->GetWidth();
+  uint16_t frameHeight = m_pZeDMDComm->GetHeight();
+  int bufferSize8Bit = m_romWidth * m_romHeight * 2;
+  // 0 - no scale, 1 - half scale, 2 - double scale
+  uint8_t scale =
+      GetScaleMode(frameWidth, frameHeight, width, height, &xoffset, &yoffset);
+  if (scale == 255) {
+    memcpy(pScaledFrame, pFrame, bufferSize8Bit);
+    return bufferSize8Bit;
+  }
+
+  bufferSize8Bit = frameWidth * frameHeight * 2;
+  memset(pScaledFrame, 0, bufferSize8Bit);
+
+  if (scale == 1) {
+    // for half scaling we take the 4 points and look if there is one colour
+    // repeated
+    for (uint16_t y = 0; y < m_romHeight; y += 2) {
+      for (uint16_t x = 0; x < m_romWidth; x += 2) {
+        uint16_t upper_left = y * m_romWidth + x;
+        uint16_t upper_right = upper_left + 1;
+        uint16_t lower_left = upper_left + m_romWidth;
+        uint16_t lower_right = lower_left + 1;
+        uint16_t source;
+        uint16_t target = (xoffset + (x / 2) + (y / 2) * frameWidth) * 2;
+
+        // Prefer most outer upper_lefts.
+        if (x < m_romWidth / 2) {
+          if (y < m_romHeight / 2) {
+            if (pFrame[upper_left] == pFrame[upper_right] ||
+                pFrame[upper_left] == pFrame[lower_left] ||
+                pFrame[upper_left] == pFrame[lower_right]) {
+              source = upper_left;
+            } else if (pFrame[upper_right] == pFrame[lower_left] ||
+                       pFrame[upper_right] == pFrame[lower_right]) {
+              source = upper_right;
+            } else if (pFrame[lower_left] == pFrame[lower_right]) {
+              source = lower_left;
+            } else {
+              source = upper_left;
+            }
+          } else {
+            if (pFrame[lower_left] == pFrame[lower_right] ||
+                pFrame[lower_left] == pFrame[upper_left] ||
+                pFrame[lower_left] == pFrame[upper_right]) {
+              source = lower_left;
+            } else if (pFrame[lower_right] == pFrame[upper_left] ||
+                       pFrame[lower_right] == pFrame[upper_right]) {
+              source = lower_right;
+            } else if (pFrame[upper_left] == pFrame[upper_right]) {
+              source = upper_left;
+            } else {
+              source = lower_left;
+            }
+          }
+        } else {
+          if (y < m_romHeight / 2) {
+            if (pFrame[upper_right] == pFrame[upper_left] ||
+                pFrame[upper_right] == pFrame[lower_right] ||
+                pFrame[upper_right] == pFrame[lower_left]) {
+              source = upper_right;
+            } else if (pFrame[upper_left] == pFrame[lower_right] ||
+                       pFrame[upper_left] == pFrame[lower_left]) {
+              source = upper_left;
+            } else if (pFrame[lower_right] == pFrame[lower_left]) {
+              source = lower_right;
+            } else {
+              source = upper_right;
+            }
+          } else {
+            if (pFrame[lower_right] == pFrame[lower_left] ||
+                pFrame[lower_right] == pFrame[upper_right] ||
+                pFrame[lower_right] == pFrame[upper_left]) {
+              source = lower_right;
+            } else if (pFrame[lower_left] == pFrame[upper_right] ||
+                       pFrame[lower_left] == pFrame[upper_left]) {
+              source = lower_left;
+            } else if (pFrame[upper_right] == pFrame[upper_left]) {
+              source = upper_right;
+            } else {
+              source = lower_right;
+            }
+          }
+        }
+        pScaledFrame[target + !bigEndian] = pFrame[source] >> 8;
+        pScaledFrame[target + bigEndian] = pFrame[source] & 0xFF;
+      }
+    }
+  } else if (scale == 2) {
+    uint8_t upscaleFactor = 2;
+    for (uint16_t y = 0; y < m_romHeight; ++y) {
+      for (uint16_t x = 0; x < m_romWidth; ++x) {
+        uint16_t pixel = pFrame[y * m_romWidth + x];
+
+        for (int dy = 0; dy < upscaleFactor; ++dy) {
+          for (int dx = 0; dx < upscaleFactor; ++dx) {
+            uint16_t target = ((y * upscaleFactor + dy) * m_romWidth * 2 +
+                               (x * upscaleFactor + dx)) * 2;
+            pScaledFrame[target + !bigEndian] = pixel >> 8;
+            pScaledFrame[target + bigEndian] = pixel & 0xFF;
+          }
+        }
+      }
+    }
+  } else  // offset!=0
+  {
+    for (int16_t y = 0; y < m_romHeight; y++) {
+      for (int16_t x = 0; x < m_romWidth; x++) {
+        uint16_t target = ((yoffset + y) * frameWidth + xoffset + x) * 2;
+        pScaledFrame[target + !bigEndian] = pFrame[y * m_romWidth + x] >> 8;
+        pScaledFrame[target + bigEndian] = pFrame[y * m_romWidth + x] & 0xFF;
+      }
+    }
+  }
+
+  return bufferSize8Bit;
 }
 
 ZEDMDAPI ZeDMD* ZeDMD_GetInstance() { return new ZeDMD(); }
