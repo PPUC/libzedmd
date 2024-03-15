@@ -138,7 +138,6 @@ void ZeDMD::EnablePreUpscaling() {
 
 void ZeDMD::DisablePreUpscaling() {
   m_upscaling = false;
-  m_hd = false;
 }
 
 void ZeDMD::EnableUpscaling() {
@@ -292,7 +291,7 @@ void ZeDMD::RenderGray2(uint8_t* pFrame) {
   int bufferSize =
       Scale(m_pScaledFrameBuffer, m_pFrameBuffer, 1, &width, &height);
 
-  if (m_wifi || m_streaming) {
+  if (m_hd || m_wifi || m_streaming) {
     ConvertToRgb24(m_pPlanes, m_pScaledFrameBuffer, bufferSize, m_palette4);
 
     if (m_wifi) {
@@ -325,7 +324,7 @@ void ZeDMD::RenderGray4(uint8_t* pFrame) {
   int bufferSize =
       Scale(m_pScaledFrameBuffer, m_pFrameBuffer, 1, &width, &height);
 
-  if (m_wifi || m_streaming) {
+  if (m_hd || m_wifi || m_streaming) {
     ConvertToRgb24(m_pPlanes, m_pScaledFrameBuffer, bufferSize, m_palette16);
 
     if (m_wifi) {
@@ -364,7 +363,7 @@ void ZeDMD::RenderColoredGray6(uint8_t* pFrame, uint8_t* pRotations) {
   int bufferSize =
       Scale(m_pScaledFrameBuffer, m_pFrameBuffer, 1, &width, &height);
 
-  if (m_wifi || m_streaming) {
+  if (m_hd || m_wifi || m_streaming) {
     ConvertToRgb24(m_pPlanes, m_pScaledFrameBuffer, bufferSize, m_palette64);
 
     if (m_wifi) {
