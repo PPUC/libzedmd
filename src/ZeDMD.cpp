@@ -61,6 +61,10 @@ void ZeDMD::Close() {
   m_pZeDMDWiFi->Disconnect();
 }
 
+void ZeDMD::Reset() {
+  m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::Reset);
+}
+
 void ZeDMD::IgnoreDevice(const char* const ignore_device) {
   m_pZeDMDComm->IgnoreDevice(ignore_device);
 }

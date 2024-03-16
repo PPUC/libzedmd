@@ -122,6 +122,12 @@ class ZEDMDAPI ZeDMD {
    */
   void Close();
 
+  /** @brief Reset ZeDMD
+   *
+   *  Reset ZeDMD.
+   */
+  void Reset();
+
   /** @brief Set the frame size
    *
    *  Set the frame size of the content that will be displayed
