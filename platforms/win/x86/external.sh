@@ -3,9 +3,11 @@
 set -e
 
 LIBSERIALPORT_SHA=fd20b0fc5a34cd7f776e4af6c763f59041de223b
+LIBFRAMEUTIL_SHA=519a747450ad13ed1c03ceaffcb525158bb1e803
 
 echo "Building libraries..."
 echo "  LIBSERIALPORT_SHA: ${LIBSERIALPORT_SHA}"
+echo "  LIBFRAMEUTIL_SHA: ${LIBFRAMEUTIL_SHA}"
 echo ""
 
 rm -rf external
@@ -23,4 +25,14 @@ cp libserialport.h ../../third-party/include
 msbuild.exe libserialport.sln -p:Configuration=Release -p:Platform=x86
 cp Release/libserialport.lib ../../third-party/build-libs/win/x86
 cp Release/libserialport.dll ../../third-party/runtime-libs/win/x86
+cd ..
+
+#
+# copy libframeutil
+#
+
+curl -sL https://github.com/ppuc/libframeutil/archive/${LIBFRAMEUTIL_SHA}.zip -o libframeutil.zip
+unzip libframeutil.zip
+cd libframeutil-$LIBFRAMEUTIL_SHA
+cp include/* ../../third-party/include
 cd ..

@@ -3,11 +3,13 @@
 set -e
 
 LIBSERIALPORT_SHA=fd20b0fc5a34cd7f776e4af6c763f59041de223b
+LIBFRAMEUTIL_SHA=519a747450ad13ed1c03ceaffcb525158bb1e803
 
-NUM_PROCS=$(sysctl -n hw.ncpu)
+NUM_PROCS=$(nproc)
 
 echo "Building libraries..."
 echo "  LIBSERIALPORT_SHA: ${LIBSERIALPORT_SHA}"
+echo "  LIBFRAMEUTIL_SHA: ${LIBFRAMEUTIL_SHA}"
 echo "  NUM_PROCS: ${NUM_PROCS}"
 echo ""
 
@@ -28,4 +30,14 @@ cp libserialport.h ../../third-party/include
 make -j${NUM_PROCS}
 cp .libs/libserialport.a ../../third-party/build-libs/macos/arm64
 cp .libs/libserialport.dylib ../../third-party/runtime-libs/macos/arm64
+cd ..
+
+#
+# copy libframeutil
+#
+
+curl -sL https://github.com/ppuc/libframeutil/archive/${LIBFRAMEUTIL_SHA}.zip -o libframeutil.zip
+unzip libframeutil.zip
+cd libframeutil-$LIBFRAMEUTIL_SHA
+cp include/* ../../third-party/include
 cd ..
