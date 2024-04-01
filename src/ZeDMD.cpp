@@ -530,6 +530,7 @@ uint8_t ZeDMD::GetScaleMode(uint16_t frameWidth, uint16_t frameHeight,
 
 int ZeDMD::Scale(uint8_t* pScaledFrame, uint8_t* pFrame, uint8_t bytes,
                  uint16_t* width, uint16_t* height) {
+  uint8_t bits = bytes * 8;
   uint8_t xoffset = 0;
   uint8_t yoffset = 0;
   uint16_t frameWidth = m_pZeDMDComm->GetWidth();
@@ -548,20 +549,20 @@ int ZeDMD::Scale(uint8_t* pScaledFrame, uint8_t* pFrame, uint8_t bytes,
 
   if (scale == 1) {
     FrameUtil::Helper::ScaleDown(pScaledFrame, *width, *height, pFrame,
-                                 m_romWidth, m_romHeight, bytes);
+                                 m_romWidth, m_romHeight, bits);
   } else if (scale == 2) {
     FrameUtil::Helper::ScaleUp(pScaledFrame, pFrame, m_romWidth, m_romHeight,
-                               bytes);
+                               bits);
     if (*width > (m_romWidth * 2) || *height > (m_romHeight * 2)) {
       uint8_t* pUncenteredFrame = (uint8_t*)malloc(bufferSize);
       memcpy(pUncenteredFrame, pScaledFrame, bufferSize);
       FrameUtil::Helper::Center(pScaledFrame, *width, *height, pUncenteredFrame,
-                                m_romWidth * 2, m_romHeight * 2, bytes);
+                                m_romWidth * 2, m_romHeight * 2, bits);
       free(pUncenteredFrame);
     }
   } else {
     FrameUtil::Helper::Center(pScaledFrame, *width, *height, pFrame, m_romWidth,
-                              m_romHeight, bytes);
+                              m_romHeight, bits);
   }
 
   return bufferSize;

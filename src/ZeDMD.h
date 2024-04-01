@@ -480,8 +480,8 @@ class ZEDMDAPI ZeDMD {
   uint8_t GetScaleMode(uint16_t frameWidth, uint16_t frameHeight,
                        uint16_t* pWidth, uint16_t* pHeight, uint8_t* pXOffset,
                        uint8_t* pYOffset);
-  int Scale(uint8_t* pScaledFrame, uint8_t* pFrame, uint8_t colors,
-            uint16_t* width, uint16_t* bytes);
+  int Scale(uint8_t* pScaledFrame, uint8_t* pFrame, uint8_t bytes,
+            uint16_t* width, uint16_t* height);
   int Scale16(uint8_t* pScaledFrame, uint16_t* pFrame, uint16_t* width,
               uint16_t* height, bool bigEndian);
 
