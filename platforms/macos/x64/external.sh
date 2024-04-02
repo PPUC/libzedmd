@@ -5,7 +5,7 @@ set -e
 LIBSERIALPORT_SHA=fd20b0fc5a34cd7f776e4af6c763f59041de223b
 LIBFRAMEUTIL_SHA=4da694f9518a01fcf13105c33c2ae1a396ec0aea
 
-NUM_PROCS=$(nproc)
+NUM_PROCS=$(sysctl -n hw.ncpu)
 
 echo "Building libraries..."
 echo "  LIBSERIALPORT_SHA: ${LIBSERIALPORT_SHA}"
