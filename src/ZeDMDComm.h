@@ -4,16 +4,16 @@
 #include <TargetConditionals.h>
 #endif
 
-#if !((defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || \
-                              (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \
-      defined(__ANDROID__))
+#if !(                                                                                                                \
+    (defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \
+    defined(__ANDROID__))
 #include "libserialport.h"
 #endif
 
 #include <inttypes.h>
 #include <stdarg.h>
-#include <stdio.h>
 
+#include <cstdio>
 #include <mutex>
 #include <queue>
 #include <string>
@@ -25,7 +25,8 @@
 #define ZEDMDCALLBACK
 #endif
 
-typedef enum {
+typedef enum
+{
   FrameSize = 0x02,
   Handshake = 0x0c,
   Chunk = 0x0d,
@@ -60,7 +61,8 @@ typedef enum {
   EnableDebug = 0x63,
 } ZEDMD_COMM_COMMAND;
 
-struct ZeDMDFrame {
+struct ZeDMDFrame
+{
   uint8_t command;
   uint8_t* data;
   int size;
@@ -68,6 +70,7 @@ struct ZeDMDFrame {
 };
 
 #define ZEDMD_COMM_BAUD_RATE 921600
+#define ZEDMD_S3_COMM_BAUD_RATE 921600 * 8
 
 #if defined(_WIN32) || defined(_WIN64)
 #define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 1888
@@ -83,14 +86,13 @@ struct ZeDMDFrame {
 #define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX 8
 #define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX_DELAYED 2
 
-typedef void(ZEDMDCALLBACK* ZeDMD_LogCallback)(const char* format, va_list args,
-                                               const void* userData);
+typedef void(ZEDMDCALLBACK* ZeDMD_LogCallback)(const char* format, va_list args, const void* userData);
 
-class ZeDMDComm {
+class ZeDMDComm
+{
  public:
   static const int CTRL_CHARS_HEADER_SIZE = 6;
-  static constexpr uint8_t CTRL_CHARS_HEADER[] = {0x5a, 0x65, 0x64,
-                                                  0x72, 0x75, 0x6d};
+  static constexpr uint8_t CTRL_CHARS_HEADER[] = {0x5a, 0x65, 0x64, 0x72, 0x75, 0x6d};
 
  public:
   ZeDMDComm();
@@ -106,16 +108,15 @@ class ZeDMDComm {
   virtual bool IsConnected();
 
   void Run();
-  void QueueCommand(char command, uint8_t* buffer, int size, uint16_t width,
-                    uint16_t height, uint8_t bytes = 3);
-  void QueueCommand(char command, uint8_t* buffer, int size,
-                    int8_t streamId = -1, bool delayed = false);
+  void QueueCommand(char command, uint8_t* buffer, int size, uint16_t width, uint16_t height, uint8_t bytes = 3);
+  void QueueCommand(char command, uint8_t* buffer, int size, int8_t streamId = -1, bool delayed = false);
   void QueueCommand(char command);
   void QueueCommand(char command, uint8_t value);
   bool FillDelayed();
 
-  uint16_t GetWidth();
-  uint16_t GetHeight();
+  uint16_t const GetWidth();
+  uint16_t const GetHeight();
+  bool const IsS3();
 
  protected:
   virtual bool StreamBytes(ZeDMDFrame* pFrame);
@@ -141,9 +142,9 @@ class ZeDMDComm {
   char m_ignoredDevices[10][32] = {0};
   uint8_t m_ignoredDevicesCounter = 0;
   char m_device[32] = {0};
-#if !((defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || \
-                              (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \
-      defined(__ANDROID__))
+#if !(                                                                                                                \
+    (defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \
+    defined(__ANDROID__))
   struct sp_port* m_pSerialPort;
   struct sp_port_config* m_pSerialPortConfig;
 #endif
@@ -154,4 +155,5 @@ class ZeDMDComm {
   std::queue<ZeDMDFrame> m_delayedFrames;
   std::mutex m_delayedFrameMutex;
   bool m_delayedFrameReady = false;
+  bool m_s3 = false;
 };

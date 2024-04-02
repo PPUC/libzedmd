@@ -12,11 +12,10 @@
 
 #define ZEDMD_WIFI_ZONES_BYTES_LIMIT 1800
 
-class ZeDMDWiFi : public ZeDMDComm {
+class ZeDMDWiFi : public ZeDMDComm
+{
  public:
-  ZeDMDWiFi() : ZeDMDComm() {
-    m_zonesBytesLimit = ZEDMD_WIFI_ZONES_BYTES_LIMIT;
-  }
+  ZeDMDWiFi() : ZeDMDComm() { m_zonesBytesLimit = ZEDMD_WIFI_ZONES_BYTES_LIMIT; }
 
   virtual bool Connect(const char* ip, int port);
   virtual void Disconnect();
