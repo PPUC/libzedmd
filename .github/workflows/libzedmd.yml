@@ -200,7 +200,7 @@ jobs:
           zip -r libzedmd-${{ needs.version.outputs.tag }}-win-x64.zip libzedmd-${{ needs.version.outputs.tag }}-win-x64
           zip -r libzedmd-${{ needs.version.outputs.tag }}-win-x86.zip libzedmd-${{ needs.version.outputs.tag }}-win-x86
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           draft: true
