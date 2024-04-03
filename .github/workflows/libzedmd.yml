@@ -113,15 +113,11 @@ jobs:
           if [[ "${{ matrix.platform }}" == "win" ]]; then
              ARTIFACT_PATH="tmp"
              if [[ "${{ matrix.arch }}" == "x64" ]]; then
-                cp build/Release/zedmd64.lib tmp
-                cp build/Release/zedmd64.dll tmp
-                cp build/Release/libserialport64.lib tmp
-                cp build/Release/libserialport64.dll tmp
+                cp build/Release/*64.lib tmp
+                cp build/Release/*64.dll tmp
              else
-                cp build/Release/zedmd.lib tmp
-                cp build/Release/zedmd.dll tmp
-                cp build/Release/libserialport.lib tmp
-                cp build/Release/libserialport.dll tmp
+                cp build/Release/*.lib tmp
+                cp build/Release/*.dll tmp
              fi
              cp build/Release/zedmd_static.lib tmp
              cp build/Release/zedmd_test_s.exe tmp
@@ -130,19 +126,17 @@ jobs:
             ARTIFACT_PATH="libzedmd-${{ needs.version.outputs.tag }}-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz"
             if [[ "${{ matrix.platform }}" == "macos" ]]; then
                cp build/libzedmd.a tmp
-               cp build/libzedmd.*.dylib tmp
-               cp build/libserialport.dylib tmp
+               cp -a build/*.dylib tmp
                cp build/zedmd_test_s tmp
                cp build/zedmd_test tmp
             elif [[ "${{ matrix.platform }}" == "linux" ]]; then
                cp build/libzedmd.a tmp
-               cp build/libzedmd.so.* tmp
-               cp build/libserialport.so.* tmp
+               cp -a build/*.{so,so.*} tmp
                cp build/zedmd_test_s tmp
                cp build/zedmd_test tmp
             elif [[ "${{ matrix.platform }}" == "ios" || "${{ matrix.platform }}" == "tvos" ]]; then
                cp build/libzedmd.a tmp
-               cp build/libzedmd.*.dylib tmp
+               cp -a build/*.dylib tmp
             elif [[ "${{ matrix.platform }}" == "android" ]]; then
                cp build/libzedmd.a tmp
                cp build/libzedmd.so tmp
@@ -173,18 +167,21 @@ jobs:
       - name: Combine macos architectures
         run: |
           mkdir tmp
-          lipo -create -output tmp/libzedmd-${{ needs.version.outputs.tag }}.dylib \
-             libzedmd-${{ needs.version.outputs.tag }}-macos-arm64/libzedmd.${{ needs.version.outputs.tag }}.dylib \
-             libzedmd-${{ needs.version.outputs.tag }}-macos-x64/libzedmd.${{ needs.version.outputs.tag }}.dylib
-          lipo -create -output tmp/libserialport.dylib \
-             libzedmd-${{ needs.version.outputs.tag }}-macos-arm64/libserialport.dylib \
-             libzedmd-${{ needs.version.outputs.tag }}-macos-x64/libserialport.dylib
-          lipo -create -output tmp/zedmd_test \
-             libzedmd-${{ needs.version.outputs.tag }}-macos-arm64/zedmd_test \
-             libzedmd-${{ needs.version.outputs.tag }}-macos-x64/zedmd_test
-          lipo -create -output tmp/zedmd_test_s \
-             libzedmd-${{ needs.version.outputs.tag }}-macos-arm64/zedmd_test_s \
-             libzedmd-${{ needs.version.outputs.tag }}-macos-x64/zedmd_test_s
+          find "libzedmd-${{ needs.version.outputs.tag }}-macos-arm64" -name "*.dylib" | while read -r file; do
+            if [ -L "$file" ]; then
+              cp -a "$file" "tmp/"
+            elif [ -f "$file" ]; then
+              filename=$(basename "$file")
+              lipo -create -output "tmp/$filename" \
+                "libzedmd-${{ needs.version.outputs.tag }}-macos-arm64/$filename" \
+                "libzedmd-${{ needs.version.outputs.tag }}-macos-x64/$filename"
+            fi
+          done
+          for filename in zedmd_test zedmd_test_s; do
+            lipo -create -output "tmp/$filename" \
+               "libzedmd-${{ needs.version.outputs.tag }}-macos-arm64/$filename" \
+               "libzedmd-${{ needs.version.outputs.tag }}-macos-x64/$filename"
+          done
       - name: Prepare artifacts
         run: |
           cd tmp
