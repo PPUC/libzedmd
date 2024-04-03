@@ -8,4 +8,3 @@ external
 third-party/runtime-libs
 third-party/build-libs
 third-party/include/libserialport.h
-third-party/include/FrameUtil.h
