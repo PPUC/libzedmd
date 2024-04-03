@@ -29,7 +29,7 @@ cp libserialport.h ../../third-party/include
 ./configure
 make -j${NUM_PROCS}
 cp .libs/libserialport.a ../../third-party/build-libs/linux/x64
-cp .libs/libserialport.so.0 ../../third-party/runtime-libs/linux/x64
+cp -a .libs/*.{so,so.*} ../../third-party/runtime-libs/linux/x64
 cd ..
 
 #

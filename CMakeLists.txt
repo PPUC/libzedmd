@@ -5,12 +5,14 @@ set(ARCH "x64" CACHE STRING "Arch")
 
 option(BUILD_SHARED "Option to build shared library" ON)
 option(BUILD_STATIC "Option to build static library" ON)
+option(POST_BUILD_COPY_EXT_LIBS "Option to copy external libraries to build directory" ON)
 
 message(STATUS "PLATFORM: ${PLATFORM}")
 message(STATUS "ARCH: ${ARCH}")
 
 message(STATUS "BUILD_SHARED: ${BUILD_SHARED}")
 message(STATUS "BUILD_STATIC: ${BUILD_STATIC}")
+message(STATUS "POST_BUILD_COPY_EXT_LIBS: ${POST_BUILD_COPY_EXT_LIBS}")
 
 if(PLATFORM STREQUAL "ios")
    set(CMAKE_SYSTEM_NAME iOS)
@@ -100,7 +102,7 @@ if(BUILD_SHARED)
       target_link_directories(zedmd_shared PUBLIC
          third-party/runtime-libs/${PLATFORM}/${ARCH}
       )
-      target_link_libraries(zedmd_shared PUBLIC -l:libserialport.so.0)
+      target_link_libraries(zedmd_shared PUBLIC serialport)
    endif()
 
    if(PLATFORM STREQUAL "win" AND ARCH STREQUAL "x64")
@@ -126,26 +128,29 @@ if(BUILD_SHARED)
 
       target_link_libraries(zedmd_test PUBLIC zedmd_shared)
 
-      if(PLATFORM STREQUAL "win")
-         if(ARCH STREQUAL "x64")
+      if(POST_BUILD_COPY_EXT_LIBS)
+         if(PLATFORM STREQUAL "win")
+            if(ARCH STREQUAL "x64")
+               add_custom_command(TARGET zedmd_test POST_BUILD
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/libserialport64.lib" "$<TARGET_FILE_DIR:zedmd_test>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport64.dll" "$<TARGET_FILE_DIR:zedmd_test>"
+               )
+            else()
+               add_custom_command(TARGET zedmd_test POST_BUILD
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/libserialport.lib" "$<TARGET_FILE_DIR:zedmd_test>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport.dll" "$<TARGET_FILE_DIR:zedmd_test>"
+               )
+            endif()
+         elseif(PLATFORM STREQUAL "macos")
             add_custom_command(TARGET zedmd_test POST_BUILD
-               COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/libserialport64.lib" "$<TARGET_FILE_DIR:zedmd_test>"
-               COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport64.dll" "$<TARGET_FILE_DIR:zedmd_test>"
+               COMMAND cp -a "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/*.dylib" "$<TARGET_FILE_DIR:zedmd_test>"
             )
-         else()
+         elseif(PLATFORM STREQUAL "linux")
             add_custom_command(TARGET zedmd_test POST_BUILD
-               COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/libserialport.lib" "$<TARGET_FILE_DIR:zedmd_test>"
-               COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport.dll" "$<TARGET_FILE_DIR:zedmd_test>"
+               COMMAND cp -a "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/*.so" "$<TARGET_FILE_DIR:zedmd_test>"
+               COMMAND cp -a "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/*.so.*" "$<TARGET_FILE_DIR:zedmd_test>"
             )
          endif()
-      elseif(PLATFORM STREQUAL "macos")
-         add_custom_command(TARGET zedmd_test POST_BUILD
-            COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport.dylib" "$<TARGET_FILE_DIR:zedmd_test>"
-         )
-      elseif(PLATFORM STREQUAL "linux")
-         add_custom_command(TARGET zedmd_test POST_BUILD
-            COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport.so.0" "$<TARGET_FILE_DIR:zedmd_test>"
-         )
       endif()
    endif()
 endif()
@@ -183,37 +188,44 @@ if(BUILD_STATIC)
 
          if(ARCH STREQUAL "x64")
             target_link_libraries(zedmd_test_s PUBLIC zedmd_static libserialport64 ws2_32)
-
-            add_custom_command(TARGET zedmd_test POST_BUILD
-               COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/libserialport64.lib" "$<TARGET_FILE_DIR:zedmd_test>"
-               COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport64.dll" "$<TARGET_FILE_DIR:zedmd_test>"
-            )
          else()
             target_link_libraries(zedmd_test_s PUBLIC zedmd_static libserialport ws2_32)
-
-            add_custom_command(TARGET zedmd_test POST_BUILD
-               COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/libserialport.lib" "$<TARGET_FILE_DIR:zedmd_test>"
-               COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport.dll" "$<TARGET_FILE_DIR:zedmd_test>"
-            )
          endif()
       elseif(PLATFORM STREQUAL "macos")
          target_link_directories(zedmd_test_s PUBLIC
             third-party/runtime-libs/${PLATFORM}/${ARCH}
          )
          target_link_libraries(zedmd_test_s PUBLIC zedmd_static serialport)
-
-         add_custom_command(TARGET zedmd_test_s POST_BUILD
-            COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport.dylib" "$<TARGET_FILE_DIR:zedmd_test_s>"
-         )
       elseif(PLATFORM STREQUAL "linux")
          target_link_directories(zedmd_test_s PUBLIC
             third-party/runtime-libs/${PLATFORM}/${ARCH}
          )
-         target_link_libraries(zedmd_test_s PUBLIC zedmd_static -l:libserialport.so.0)
+         target_link_libraries(zedmd_test_s PUBLIC zedmd_static serialport)
+      endif()
 
-         add_custom_command(TARGET zedmd_test_s POST_BUILD
-           COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport.so.0" "$<TARGET_FILE_DIR:zedmd_test_s>"
-         )
+      if(POST_BUILD_COPY_EXT_LIBS)
+         if(PLATFORM STREQUAL "win")
+            if(ARCH STREQUAL "x64")
+               add_custom_command(TARGET zedmd_test_s POST_BUILD
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/libserialport64.lib" "$<TARGET_FILE_DIR:zedmd_test_s>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport64.dll" "$<TARGET_FILE_DIR:zedmd_test_s>"
+               )
+            else()
+               add_custom_command(TARGET zedmd_test_s POST_BUILD
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/libserialport.lib" "$<TARGET_FILE_DIR:zedmd_test_s>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport.dll" "$<TARGET_FILE_DIR:zedmd_test_s>"
+               )
+            endif()
+         elseif(PLATFORM STREQUAL "macos")
+            add_custom_command(TARGET zedmd_test_s POST_BUILD
+               COMMAND cp -a "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/*.dylib" "$<TARGET_FILE_DIR:zedmd_test_s>"
+            )
+         elseif(PLATFORM STREQUAL "linux")
+            add_custom_command(TARGET zedmd_test_s POST_BUILD
+               COMMAND cp -a "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/*.so" "$<TARGET_FILE_DIR:zedmd_test_s>"
+               COMMAND cp -a "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/*.so.*" "$<TARGET_FILE_DIR:zedmd_test_s>"
+            )
+         endif()
       endif()
    endif()
 endif()
