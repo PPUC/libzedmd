@@ -86,6 +86,8 @@ struct ZeDMDFrame
 #define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX 8
 #define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX_DELAYED 2
 
+#define ZEDMD_COMM_NO_READY_SIGNAL_MAX 24
+
 typedef void(ZEDMDCALLBACK* ZeDMD_LogCallback)(const char* format, va_list args, const void* userData);
 
 class ZeDMDComm
@@ -139,6 +141,7 @@ class ZeDMDComm
   int8_t m_streamId = -1;
   int8_t m_lastStreamId = -1;
   uint8_t m_flowControlCounter = 0;
+  uint8_t m_noReadySignalCounter = 0;
   char m_ignoredDevices[10][32] = {0};
   uint8_t m_ignoredDevicesCounter = 0;
   char m_device[32] = {0};

@@ -393,6 +393,8 @@ void ZeDMDComm::Disconnect()
   }
 
   Reset();
+  // Wait a bit to let the reset command be transmitted.
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
 #if !(                                                                                                                \
     (defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \
@@ -495,16 +497,12 @@ bool ZeDMDComm::Connect(char* pDevice)
 
             if (sp_blocking_read(m_pSerialPort, data, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT) && data[0] == 'A')
             {
+              // Store the device name for reconnects.
+              SetDevice(pDevice);
+              m_noReadySignalCounter = 0;
               m_flowControlCounter = 1;
 
-              if (pDevice)
-              {
-                Log("ZeDMD found: device=%s, width=%d, height=%d", pDevice, m_width, m_height);
-              }
-              else
-              {
-                Log("ZeDMD found: width=%d, height=%d", m_width, m_height);
-              }
+              Log("ZeDMD found: device=%s, width=%d, height=%d", pDevice, m_width, m_height);
 
               return true;
             }
@@ -611,6 +609,7 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
   {
     int position = 0;
     success = true;
+    m_noReadySignalCounter = 0;
 
     while (position < size && success)
     {
@@ -647,7 +646,13 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
   }
   else
   {
-    Log("No Ready Signal");
+    Log("No Ready Signal, counter is %d", ++m_noReadySignalCounter);
+    if (m_noReadySignalCounter > ZEDMD_COMM_NO_READY_SIGNAL_MAX)
+    {
+      Log("Too many missing Ready Signals, try to reconnect ...");
+      Disconnect();
+      Connect();
+    }
   }
 
   free(data);
