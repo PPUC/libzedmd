@@ -532,7 +532,7 @@ uint8_t ZeDMD::GetScaleMode(uint16_t frameWidth, uint16_t frameHeight, uint16_t*
     (*pXOffset) = 32;
     return 0;
   }
-  else if (m_downscaling && m_romWidth == 192)
+  else if (m_downscaling && m_romWidth == 192 && frameWidth == 128)
   {
     (*pWidth) = frameWidth;
     (*pHeight) = frameHeight;
@@ -544,6 +544,7 @@ uint8_t ZeDMD::GetScaleMode(uint16_t frameWidth, uint16_t frameHeight, uint16_t*
     (*pWidth) = frameWidth;
     (*pHeight) = frameHeight;
     (*pYOffset) = 8;
+    return 0;
   }
   else if (m_upscaling && m_romHeight == 16 && frameHeight == 64)
   {

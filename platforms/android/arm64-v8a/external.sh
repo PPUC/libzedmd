@@ -2,7 +2,7 @@
 
 set -e
 
-LIBFRAMEUTIL_SHA=d9bde3069786f1a33d2021afe19566d812e873f5
+LIBFRAMEUTIL_SHA=30048ca23d41ca0a8f7d5ab75d3f646a19a90182
 
 if [[ $(uname) == "Linux" ]]; then
    NUM_PROCS=$(nproc)

@@ -298,21 +298,21 @@ inline void Helper::ScaleDownPUP(uint8_t* pDestFrame, const uint16_t destWidth, 
 inline void Helper::ScaleDown(uint8_t* pDestFrame, const uint16_t destWidth, const uint8_t destHeight,
                               const uint8_t* pSrcFrame, const uint16_t srcWidth, const uint8_t srcHeight, uint8_t bits)
 {
-  memset(pDestFrame, 0, destWidth * destHeight);
   uint8_t xOffset = (destWidth - (srcWidth / 2)) / 2;
   uint8_t yOffset = (destHeight - (srcHeight / 2)) / 2;
-  uint8_t bytes = bits / 8;  // RGB24 (3 byte) or RGB16 (2 byte)
+  uint8_t bytes = bits / 8;  // RGB24 (3 byte) or RGB16 (2 byte) or indexed (1 byte)
+  memset(pDestFrame, 0, destWidth * destHeight * bytes);
 
   for (uint8_t y = 0; y < srcHeight; y += 2)
   {
+    uint16_t upper_left = (y * srcWidth) * bytes;
+    uint16_t upper_right = upper_left + bytes;
+    uint16_t lower_left = upper_left + (srcWidth * bytes);
+    uint16_t lower_right = lower_left + bytes;
+    uint16_t target = ((((y / 2) + yOffset) * destWidth) + xOffset) * bytes;
+
     for (uint16_t x = 0; x < srcWidth; x += 2)
     {
-      uint16_t upper_left = y * srcWidth * bytes + x * bytes;
-      uint16_t upper_right = upper_left + bytes;
-      uint16_t lower_left = upper_left + srcWidth * bytes;
-      uint16_t lower_right = lower_left + bytes;
-      uint16_t target = (xOffset + (x / 2) + (y / 2) * destHeight) * bytes;
-
       if (x < srcWidth / 2)
       {
         if (y < srcHeight / 2)
@@ -375,6 +375,12 @@ inline void Helper::ScaleDown(uint8_t* pDestFrame, const uint16_t destWidth, con
             memcpy(&pDestFrame[target], &pSrcFrame[lower_right], bytes);
         }
       }
+
+      upper_left += 2 * bytes;
+      upper_right += 2 * bytes;
+      lower_left += 2 * bytes;
+      lower_right += 2 * bytes;
+      target += bytes;
     }
   }
 }
@@ -519,11 +525,11 @@ inline void Helper::ScaleUpIndexed(uint8_t* pDestFrame, const uint8_t* pSrcFrame
 inline void Helper::Center(uint8_t* pDestFrame, const uint16_t destWidth, const uint8_t destHeight,
                            const uint8_t* pSrcFrame, const uint16_t srcWidth, const uint8_t srcHeight, uint8_t bits)
 {
+  uint8_t xOffset = (destWidth - srcWidth) / 2;
+  uint8_t yOffset = (destHeight - srcHeight) / 2;
   uint8_t bytes = bits / 8;  // RGB24 (3 byte) or RGB16 (2 byte) or indexed (1 byte)
 
   memset(pDestFrame, 0, destWidth * destHeight * bytes);
-  uint8_t xOffset = (destWidth - srcWidth) / 2;
-  uint8_t yOffset = (destHeight - srcHeight) / 2;
 
   for (uint8_t y = 0; y < srcHeight; y++)
   {
