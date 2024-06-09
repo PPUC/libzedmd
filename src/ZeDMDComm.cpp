@@ -64,11 +64,10 @@ void ZeDMDComm::Run()
             m_delayedFrameMutex.lock();
             if (m_delayedFrameReady)
             {
-              while (m_delayedFrames.size() > 0)
+              while (!m_delayedFrames.empty())
               {
-                ZeDMDFrame frame = m_delayedFrames.front();
-                lastStreamId = frame.streamId;
-                m_frames.push(frame);
+                lastStreamId = m_delayedFrames.front().streamId;
+                m_frames.push(std::move(m_delayedFrames.front()));
                 m_delayedFrames.pop();
               }
               m_delayedFrameReady = false;
@@ -91,7 +90,7 @@ void ZeDMDComm::Run()
 
             if (delay && m_frameCounter > ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX_DELAYED)
             {
-              while (m_frames.size() > 0)
+              while (!m_frames.empty())
               {
                 m_frames.pop();
               }
@@ -101,11 +100,9 @@ void ZeDMDComm::Run()
             }
           }
 
-          ZeDMDFrame frame = m_frames.front();
-          m_frames.pop();
-          if (frame.streamId != -1)
+          if (m_frames.front().streamId != -1)
           {
-            if (frame.streamId != lastStreamId)
+            if (m_frames.front().streamId != lastStreamId)
             {
               if (lastStreamId != -1)
               {
@@ -113,7 +110,7 @@ void ZeDMDComm::Run()
                 frame_completed = true;
               }
 
-              lastStreamId = frame.streamId;
+              lastStreamId = m_frames.front().streamId;
             }
           }
           else
@@ -124,19 +121,16 @@ void ZeDMDComm::Run()
 
           m_frameQueueMutex.unlock();
 
-          bool success = StreamBytes(&frame);
-          if (!success && frame.size < ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT)
+          bool success = StreamBytes(&(m_frames.front()));
+          if (!success && m_frames.front().size < ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT)
           {
             std::this_thread::sleep_for(std::chrono::milliseconds(8));
             // Try to send the command again, in case the wait for the (R)eady
             // signal ran into a timeout.
-            success = StreamBytes(&frame);
+            success = StreamBytes(&(m_frames.front()));
           }
 
-          if (frame.data)
-          {
-            free(frame.data);
-          }
+          m_frames.pop();
 
           if (!success)
           {
@@ -171,12 +165,12 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, int8_t strea
   if (streamId == -1 && FillDelayed())
   {
     m_delayedFrameMutex.lock();
-    while (m_delayedFrames.size() > 0)
+    while (!m_delayedFrames.empty())
     {
       m_delayedFrames.pop();
     }
 
-    m_delayedFrames.push(frame);
+    m_delayedFrames.push(std::move(frame));
     m_delayedFrameReady = true;
     m_delayedFrameMutex.unlock();
     m_lastStreamId = -1;
@@ -187,7 +181,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, int8_t strea
   else if (streamId != -1 && delayed)
   {
     m_delayedFrameMutex.lock();
-    m_delayedFrames.push(frame);
+    m_delayedFrames.push(std::move(frame));
     m_delayedFrameMutex.unlock();
     m_lastStreamId = streamId;
   }
@@ -199,7 +193,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, int8_t strea
       m_frameCounter++;
       m_lastStreamId = streamId;
     }
-    m_frames.push(frame);
+    m_frames.push(std::move(frame));
     m_frameQueueMutex.unlock();
     if (streamId == -1)
     {
@@ -244,7 +238,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
     delayed = true;
     m_delayedFrameMutex.lock();
     m_delayedFrameReady = false;
-    while (m_delayedFrames.size() > 0)
+    while (!m_delayedFrames.empty())
     {
       m_delayedFrames.pop();
     }

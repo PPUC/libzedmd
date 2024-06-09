@@ -67,6 +67,45 @@ struct ZeDMDFrame
   uint8_t* data;
   int size;
   int8_t streamId;
+
+  ZeDMDFrame(uint8_t cmd = 0, int sz = 0, int8_t sid = 0) : command(cmd), size(sz), streamId(sid)
+  {
+    data = (sz > 0) ? new uint8_t[sz] : nullptr;
+  }
+
+  // Destructor to clean up the data
+  ~ZeDMDFrame() { delete[] data; }
+
+  // Copy constructor (deleted to avoid accidental copying)
+  ZeDMDFrame(const ZeDMDFrame&) = delete;
+  ZeDMDFrame& operator=(const ZeDMDFrame&) = delete;
+
+  // Move constructor
+  ZeDMDFrame(ZeDMDFrame&& other) noexcept
+      : command(other.command), data(other.data), size(other.size), streamId(other.streamId)
+  {
+    other.data = nullptr;  // Nullify the other's data pointer to avoid double deletion
+  }
+
+  // Move assignment operator
+  ZeDMDFrame& operator=(ZeDMDFrame&& other) noexcept
+  {
+    if (this != &other)
+    {
+      // Free existing resource
+      delete[] data;
+
+      // Transfer ownership
+      command = other.command;
+      data = other.data;
+      size = other.size;
+      streamId = other.streamId;
+
+      // Nullify the other's data pointer to avoid double deletion
+      other.data = nullptr;
+    }
+    return *this;
+  }
 };
 
 #define ZEDMD_COMM_BAUD_RATE 921600
