@@ -631,7 +631,10 @@ int ZeDMD::Scale16(uint8_t* pScaledFrame, uint16_t* pFrame, uint16_t* width, uin
     pConvertedFrame[i * 2 + bigEndian] = pFrame[i] & 0xFF;
   }
 
-  return Scale(pScaledFrame, pConvertedFrame, 2, width, height);
+  bufferSize = Scale(pScaledFrame, pConvertedFrame, 2, width, height);
+  free(pConvertedFrame);
+
+  return bufferSize;
 }
 
 ZEDMDAPI ZeDMD* ZeDMD_GetInstance() { return new ZeDMD(); }
