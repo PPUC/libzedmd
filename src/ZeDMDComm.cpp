@@ -618,6 +618,13 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
         sp_blocking_read(m_pSerialPort, &response, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
       } while (response == flowControlCounter);
 
+      u_int8_t i = 0;
+      while (response != 'A' && response != 'E' && i++ < 2)
+      {
+        // The S3 sometimes sends some wrong chars before the real one.
+        sp_blocking_read(m_pSerialPort, &response, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
+      }
+
       if (response == 'A')
       {
         position += ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE;
