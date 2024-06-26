@@ -59,6 +59,9 @@ jobs:
             platform: ios
             arch: arm64
           - os: macos-latest
+            platform: ios-simulator
+            arch: arm64
+          - os: macos-latest
             platform: tvos
             arch: arm64
     steps:
@@ -134,7 +137,7 @@ jobs:
                cp -a build/*.{so,so.*} tmp
                cp build/zedmd_test_s tmp
                cp build/zedmd_test tmp
-            elif [[ "${{ matrix.platform }}" == "ios" || "${{ matrix.platform }}" == "tvos" ]]; then
+            elif [[ "${{ matrix.platform }}" == "ios" || "${{ matrix.platform }}" == "ios-simulator" || "${{ matrix.platform }}" == "tvos" ]]; then
                cp build/libzedmd.a tmp
                cp -a build/*.dylib tmp
             elif [[ "${{ matrix.platform }}" == "android" ]]; then
@@ -210,5 +213,6 @@ jobs:
             libzedmd-${{ needs.version.outputs.tag }}-linux-x64/libzedmd-${{ needs.version.outputs.tag }}-linux-x64.tar.gz
             libzedmd-${{ needs.version.outputs.tag }}-linux-aarch64/libzedmd-${{ needs.version.outputs.tag }}-linux-aarch64.tar.gz
             libzedmd-${{ needs.version.outputs.tag }}-ios-arm64/libzedmd-${{ needs.version.outputs.tag }}-ios-arm64.tar.gz
+            libzedmd-${{ needs.version.outputs.tag }}-ios-simulator-arm64/libzedmd-${{ needs.version.outputs.tag }}-ios-simulator-arm64.tar.gz
             libzedmd-${{ needs.version.outputs.tag }}-tvos-arm64/libzedmd-${{ needs.version.outputs.tag }}-tvos-arm64.tar.gz
             libzedmd-${{ needs.version.outputs.tag }}-android-arm64-v8a/libzedmd-${{ needs.version.outputs.tag }}-android-arm64-v8a.tar.gz
