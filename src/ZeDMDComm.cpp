@@ -595,7 +595,7 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
   uint8_t flowControlCounter;
   do
   {
-    sp_nonblocking_read(m_pSerialPort, &flowControlCounter, 1);
+    sp_blocking_read(m_pSerialPort, &flowControlCounter, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
   } while (flowControlCounter != 0 && flowControlCounter != m_flowControlCounter);
 
   if (flowControlCounter == m_flowControlCounter)
@@ -619,7 +619,7 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
       uint8_t i = 0;
       while (response != 'A' && response != 'E' && i++ < 2)
       {
-        // The S3 sometimes sends some wrong chars before the real one.
+        // The ESP32 sometimes sends some wrong chars before the real one.
         sp_nonblocking_read(m_pSerialPort, &response, 1);
       }
 
