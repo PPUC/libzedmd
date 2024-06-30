@@ -445,13 +445,13 @@ bool ZeDMDComm::Connect(char* pDevice)
 
   while (sp_input_waiting(m_pSerialPort) > 0)
   {
-    sp_blocking_read(m_pSerialPort, data, 8, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
+    sp_nonblocking_read(m_pSerialPort, data, 8);
   }
 
   std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
   data[0] = ZEDMD_COMM_COMMAND::Handshake;
-  sp_blocking_write(m_pSerialPort, (void*)CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
+  sp_nonblocking_write(m_pSerialPort, (void*)CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
   sp_blocking_write(m_pSerialPort, (void*)data, 1, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
 
   std::this_thread::sleep_for(std::chrono::milliseconds(200));
@@ -468,7 +468,7 @@ bool ZeDMDComm::Connect(char* pDevice)
       if (sp_blocking_read(m_pSerialPort, data, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT) && data[0] == 'R')
       {
         data[0] = ZEDMD_COMM_COMMAND::Compression;
-        sp_blocking_write(m_pSerialPort, (void*)CTRL_CHARS_HEADER, 6, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
+        sp_nonblocking_write(m_pSerialPort, (void*)CTRL_CHARS_HEADER, 6);
         sp_blocking_write(m_pSerialPort, (void*)data, 1, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
         std::this_thread::sleep_for(std::chrono::milliseconds(4));
 
@@ -477,7 +477,7 @@ bool ZeDMDComm::Connect(char* pDevice)
         {
           data[0] = ZEDMD_COMM_COMMAND::Chunk;
           data[1] = ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE / 32;
-          sp_blocking_write(m_pSerialPort, (void*)CTRL_CHARS_HEADER, 6, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
+          sp_nonblocking_write(m_pSerialPort, (void*)CTRL_CHARS_HEADER, 6);
           sp_blocking_write(m_pSerialPort, (void*)data, 2, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
           std::this_thread::sleep_for(std::chrono::milliseconds(4));
 
@@ -485,7 +485,7 @@ bool ZeDMDComm::Connect(char* pDevice)
               sp_blocking_read(m_pSerialPort, data, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT) && data[0] == 'R')
           {
             data[0] = ZEDMD_COMM_COMMAND::EnableFlowControlV2;
-            sp_blocking_write(m_pSerialPort, (void*)CTRL_CHARS_HEADER, 6, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
+            sp_nonblocking_write(m_pSerialPort, (void*)CTRL_CHARS_HEADER, 6);
             sp_blocking_write(m_pSerialPort, (void*)data, 1, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
             std::this_thread::sleep_for(std::chrono::milliseconds(4));
 
@@ -496,7 +496,7 @@ bool ZeDMDComm::Connect(char* pDevice)
               m_noReadySignalCounter = 0;
               m_flowControlCounter = 1;
 
-              Log("ZeDMD found: device=%s, width=%d, height=%d", pDevice, m_width, m_height);
+              Log("ZeDMD found: %sdevice=%s, width=%d, height=%d", m_s3 ? "S3 " : "", pDevice, m_width, m_height);
 
               return true;
             }
@@ -544,7 +544,7 @@ void ZeDMDComm::Reset()
     sp_set_dtr(m_pSerialPort, SP_DTR_OFF);
     // At least under Linux we need to wait very long until the USB JTAG port
     // re-appears.
-    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
   }
   else
   {
@@ -595,8 +595,7 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
   uint8_t flowControlCounter;
   do
   {
-    // In case of a timeout, ReadByte() returns 0.
-    sp_blocking_read(m_pSerialPort, &flowControlCounter, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
+    sp_nonblocking_read(m_pSerialPort, &flowControlCounter, 1);
   } while (flowControlCounter != 0 && flowControlCounter != m_flowControlCounter);
 
   if (flowControlCounter == m_flowControlCounter)
@@ -607,10 +606,9 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
 
     while (position < size && success)
     {
-      sp_blocking_write(m_pSerialPort, data + position,
+      sp_nonblocking_write(m_pSerialPort, data + position,
                         ((size - position) < ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE) ? (size - position)
-                                                                                  : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE,
-                        ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
+                                                                                  : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
 
       uint8_t response;
       do
@@ -622,7 +620,7 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
       while (response != 'A' && response != 'E' && i++ < 2)
       {
         // The S3 sometimes sends some wrong chars before the real one.
-        sp_blocking_read(m_pSerialPort, &response, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
+        sp_nonblocking_read(m_pSerialPort, &response, 1);
       }
 
       if (response == 'A')
