@@ -592,11 +592,18 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
 
   bool success = false;
 
-  uint8_t flowControlCounter;
+  uint8_t flowControlCounter = 255;
+  int8_t status;
+  int32_t bytes_waiting;
+
   do
   {
-    sp_blocking_read(m_pSerialPort, &flowControlCounter, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
-  } while (flowControlCounter != 0 && flowControlCounter != m_flowControlCounter);
+    status = sp_blocking_read(m_pSerialPort, &flowControlCounter, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
+    bytes_waiting = sp_input_waiting(m_pSerialPort);
+    // Log("%d %d %d", status, bytes_waiting, flowControlCounter);
+  } while (bytes_waiting > 0 || (bytes_waiting == 0 && status != 1) ||
+           (flowControlCounter == 'A' || flowControlCounter == 'E'));
+  // Log("next stream");
 
   if (flowControlCounter == m_flowControlCounter)
   {
@@ -607,21 +614,17 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
     while (position < size && success)
     {
       sp_nonblocking_write(m_pSerialPort, data + position,
-                        ((size - position) < ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE) ? (size - position)
-                                                                                  : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
+                           ((size - position) < ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE)
+                               ? (size - position)
+                               : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
 
-      uint8_t response;
+      uint8_t response = 255;
       do
       {
-        sp_blocking_read(m_pSerialPort, &response, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
-      } while (response == flowControlCounter);
-
-      uint8_t i = 0;
-      while (response != 'A' && response != 'E' && i++ < 2)
-      {
-        // The ESP32 sometimes sends some wrong chars before the real one.
-        sp_nonblocking_read(m_pSerialPort, &response, 1);
-      }
+        status = sp_blocking_read(m_pSerialPort, &response, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
+        // It could be that we got one more flowcontrol counter on the line (race condition).
+      } while (status != 1 ||
+               (status == 1 && ((response != 'A' && response != 'E') || response == m_flowControlCounter)));
 
       if (response == 'A')
       {
@@ -630,15 +633,11 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
       else
       {
         success = false;
-        Log("Write bytes failure: response=%c", response);
+        Log("Write bytes failure: response=%d", response);
       }
     }
 
-    if (m_flowControlCounter < 32)
-    {
-      m_flowControlCounter++;
-    }
-    else
+    if (++m_flowControlCounter > 32)
     {
       m_flowControlCounter = 1;
     }

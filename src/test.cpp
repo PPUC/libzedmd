@@ -162,7 +162,6 @@ int main(int argc, const char* argv[])
     free(pImage24);
 
     pZeDMD->SetFrameSize(width, height);
-
     FILE* fileptr;
     uint16_t size = width * height * 2;
     uint8_t* buffer = (uint8_t*)malloc(size * sizeof(uint8_t));
@@ -179,7 +178,7 @@ int main(int argc, const char* argv[])
 
       memcpy(rgb565, buffer, size);
       pZeDMD->RenderRgb565(rgb565);
-      std::this_thread::sleep_for(std::chrono::milliseconds(pZeDMD->IsS3() ? 120 : (width == 256 ? 240 : 80)));
+      std::this_thread::sleep_for(std::chrono::milliseconds(pZeDMD->IsS3() ? 50 : (width == 256 ? 240 : 80)));
     }
 
     if (width == 256)
@@ -198,7 +197,7 @@ int main(int argc, const char* argv[])
 
         memcpy(rgb565, buffer, size);
         pZeDMD->RenderRgb565(rgb565);
-        std::this_thread::sleep_for(std::chrono::milliseconds(pZeDMD->IsS3() ? 60 : 120));
+        std::this_thread::sleep_for(std::chrono::milliseconds(pZeDMD->IsS3() ? 50 : 120));
       }
 
       // test RGB565 centering
@@ -214,7 +213,7 @@ int main(int argc, const char* argv[])
 
         memcpy(rgb565, buffer, size);
         pZeDMD->RenderRgb565(rgb565);
-        std::this_thread::sleep_for(std::chrono::milliseconds(pZeDMD->IsS3() ? 40 : 80));
+        std::this_thread::sleep_for(std::chrono::milliseconds(pZeDMD->IsS3() ? 50 : 80));
       }
 
       pZeDMD->SetFrameSize(width, height);
@@ -235,7 +234,7 @@ int main(int argc, const char* argv[])
       fclose(fileptr);
 
       pZeDMD->RenderRgb24(rgb888);
-      std::this_thread::sleep_for(std::chrono::milliseconds(pZeDMD->IsS3() ? 280 : (width == 256 ? 420 : 140)));
+      std::this_thread::sleep_for(std::chrono::milliseconds(pZeDMD->IsS3() ? 50 : (width == 256 ? 420 : 140)));
     }
 
     free(rgb888);
