@@ -427,9 +427,16 @@ bool ZeDMDComm::Connect(char* pDevice)
   sp_get_config(m_pSerialPort, m_pSerialPortConfig);
 
   const char* manufacturer = sp_get_port_usb_manufacturer(m_pSerialPort);
+  int usb_vid, usb_pid;
+  sp_get_port_usb_vid_pid(m_pSerialPort, &usb_vid, &usb_pid);
   if (manufacturer && strcmp(manufacturer, "Espressif") == 0)
   {
     // Native USB connection, hopefully an ESP32 S3.
+    m_s3 = true;
+  }
+  else if (usb_vid == 6790 && usb_pid == 21971)
+  {
+    // UART
     m_s3 = true;
   }
 
@@ -456,7 +463,8 @@ bool ZeDMDComm::Connect(char* pDevice)
 
   std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
-  if (sp_blocking_read(m_pSerialPort, data, 8, ZEDMD_COMM_SERIAL_READ_TIMEOUT))
+  int status;
+  if (status = sp_blocking_read(m_pSerialPort, data, 8, ZEDMD_COMM_SERIAL_READ_TIMEOUT))
   {
     if (!memcmp(data, CTRL_CHARS_HEADER, 4))
     {
