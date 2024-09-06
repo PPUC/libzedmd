@@ -446,7 +446,7 @@ void ZeDMD::RenderRgb24(uint8_t* pFrame)
 
 void ZeDMD::RenderRgb24EncodedAs565(uint8_t* pFrame)
 {
-  if (!(m_usb || !m_wifi) || !UpdateFrameBuffer24(pFrame))
+  if (!(m_usb || m_wifi) || !UpdateFrameBuffer24(pFrame))
   {
     return;
   }
