@@ -446,7 +446,7 @@ void ZeDMD::RenderRgb24(uint8_t* pFrame)
 
 void ZeDMD::RenderRgb24EncodedAs565(uint8_t* pFrame)
 {
-  if (!m_usb || !UpdateFrameBuffer24(pFrame))
+  if (!(m_usb || m_wifi) || !UpdateFrameBuffer24(pFrame))
   {
     return;
   }
@@ -464,16 +464,19 @@ void ZeDMD::RenderRgb24EncodedAs565(uint8_t* pFrame)
     m_pRgb565Buffer[i * 2] = tmp & 0xFF;
   }
 
-  if (m_usb)
+  if (m_wifi)
   {
-    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB565ZonesStream, m_pRgb565Buffer, rgb565Size * 2, width, height,
-                               2);
+    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::RGB565ZonesStream, m_pRgb565Buffer, rgb565Size * 2, width, height, 2);
+  }
+  else if (m_usb)
+  {
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB565ZonesStream, m_pRgb565Buffer, rgb565Size * 2, width, height, 2);
   }
 }
 
 void ZeDMD::RenderRgb565(uint16_t* pFrame)
 {
-  if (!m_usb || !UpdateFrameBuffer565(pFrame))
+  if (!(m_usb || m_wifi) || !UpdateFrameBuffer565(pFrame))
   {
     return;
   }
@@ -483,7 +486,11 @@ void ZeDMD::RenderRgb565(uint16_t* pFrame)
 
   int rgb565Size = Scale16(m_pPlanes, pFrame, &width, &height, is_bigendian());
 
-  if (m_usb)
+  if (m_wifi)
+  {
+    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::RGB565ZonesStream, m_pPlanes, rgb565Size, width, height, 2);
+  }
+  else if (m_usb)
   {
     m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB565ZonesStream, m_pPlanes, rgb565Size, width, height, 2);
   }

@@ -168,11 +168,19 @@ int main(int argc, const char* argv[])
     uint16_t* rgb565 = (uint16_t*)malloc(size / 2 * sizeof(uint16_t));
     char filename[34];
 
+    
+
     for (int i = 1; i <= 100; i++)
     {
       snprintf(filename, 33, "test/rgb565_%dx%d/%04d.raw", width, height, i);
       printf("Render raw: %s\n", filename);
       fileptr = fopen(filename, "rb");
+
+      if (fileptr == NULL) {
+          printf("Failed to open file, make sure to copy the test folder with the RAW files!");
+          break;
+      }
+
       fread(buffer, size, 1, fileptr);
       fclose(fileptr);
 

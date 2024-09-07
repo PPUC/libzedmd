@@ -10,7 +10,7 @@
 #include <sys/socket.h>
 #endif
 
-#define ZEDMD_WIFI_ZONES_BYTES_LIMIT 1800
+#define ZEDMD_WIFI_ZONES_BYTES_LIMIT 1600
 
 class ZeDMDWiFi : public ZeDMDComm
 {
