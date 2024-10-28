@@ -437,9 +437,7 @@ bool ZeDMDComm::Connect(char* pDevice)
   sp_set_stopbits(m_pSerialPort, 1);
   sp_set_xon_xoff(m_pSerialPort, SP_XONXOFF_DISABLED);
 
-  // A reset should not be required here anymore since dmdext got some fixes in Dispose() and dmdserver doesn't do
-  // reconnects at all.
-  // HardReset();
+  HardReset();
 
   uint8_t data[8] = {0};
 
@@ -560,8 +558,6 @@ void ZeDMDComm::HardReset()
     sp_flush(m_pSerialPort, SP_BUF_BOTH);
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
   }
-#else
-  SoftReset();
 #endif
 }
 
