@@ -386,9 +386,7 @@ void ZeDMDComm::Disconnect()
     return;
   }
 
-  Reset();
-  // Wait a bit to let the reset command be transmitted.
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  SoftReset();
 
 #if !(                                                                                                                \
     (defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \
@@ -439,7 +437,9 @@ bool ZeDMDComm::Connect(char* pDevice)
   sp_set_stopbits(m_pSerialPort, 1);
   sp_set_xon_xoff(m_pSerialPort, SP_XONXOFF_DISABLED);
 
-  Reset();
+  // A reset should not be required here anymore since dmdext got some fixes in Dispose() and dmdserver doesn't do
+  // reconnects at all.
+  // HardReset();
 
   uint8_t data[8] = {0};
 
@@ -523,7 +523,7 @@ bool ZeDMDComm::IsConnected()
 #endif
 }
 
-void ZeDMDComm::Reset()
+void ZeDMDComm::HardReset()
 {
 #if !(                                                                                                                \
     (defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \
@@ -560,7 +560,15 @@ void ZeDMDComm::Reset()
     sp_flush(m_pSerialPort, SP_BUF_BOTH);
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
   }
+#else
+  SoftReset();
 #endif
+}
+
+void ZeDMDComm::SoftReset()
+{
+  QueueCommand(ZEDMD_COMM_COMMAND::Reset);
+  std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 }
 
 bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
