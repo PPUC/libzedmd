@@ -564,6 +564,7 @@ void ZeDMDComm::HardReset()
 void ZeDMDComm::SoftReset()
 {
   QueueCommand(ZEDMD_COMM_COMMAND::Reset);
+  // Wait a bit to let the reset command be transmitted.
   std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 }
 
