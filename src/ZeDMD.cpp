@@ -71,7 +71,17 @@ void ZeDMD::Close()
   m_pZeDMDWiFi->Disconnect();
 }
 
-void ZeDMD::Reset() { m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::Reset); }
+void ZeDMD::Reset()
+{
+  if (m_usb)
+  {
+    m_pZeDMDComm->SoftReset();
+  }
+  else if (m_wifi)
+  {
+    m_pZeDMDWiFi->SoftReset();
+  }
+}
 
 void ZeDMD::IgnoreDevice(const char* const ignore_device) { m_pZeDMDComm->IgnoreDevice(ignore_device); }
 
@@ -466,11 +476,13 @@ void ZeDMD::RenderRgb24EncodedAs565(uint8_t* pFrame)
 
   if (m_wifi)
   {
-    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::RGB565ZonesStream, m_pRgb565Buffer, rgb565Size * 2, width, height, 2);
+    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::RGB565ZonesStream, m_pRgb565Buffer, rgb565Size * 2, width, height,
+                               2);
   }
   else if (m_usb)
   {
-    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB565ZonesStream, m_pRgb565Buffer, rgb565Size * 2, width, height, 2);
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB565ZonesStream, m_pRgb565Buffer, rgb565Size * 2, width, height,
+                               2);
   }
 }
 

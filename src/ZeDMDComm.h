@@ -154,6 +154,7 @@ class ZeDMDComm
   void QueueCommand(char command);
   void QueueCommand(char command, uint8_t value);
   bool FillDelayed();
+  void SoftReset();
 
   uint16_t const GetWidth();
   uint16_t const GetHeight();

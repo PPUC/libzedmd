@@ -386,9 +386,7 @@ void ZeDMDComm::Disconnect()
     return;
   }
 
-  Reset();
-  // Wait a bit to let the reset command be transmitted.
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  SoftReset();
 
 #if !(                                                                                                                \
     (defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \
@@ -561,6 +559,13 @@ void ZeDMDComm::Reset()
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
   }
 #endif
+}
+
+void ZeDMDComm::SoftReset()
+{
+  QueueCommand(ZEDMD_COMM_COMMAND::Reset);
+  // Wait a bit to let the reset command be transmitted.
+  std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 }
 
 bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
