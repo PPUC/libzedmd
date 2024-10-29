@@ -25,9 +25,21 @@ class ZeDMDWiFi : public ZeDMDComm
  protected:
   virtual bool StreamBytes(ZeDMDFrame* pFrame);
   virtual void Reset();
+#if defined(_WIN32) || defined(_WIN64)
+  bool StartWSA()
+  {
+    if (!m_wsaStarted)
+    {
+      WSADATA wsaData;
+      m_wsaStarted = (WSAStartup(MAKEWORD(2, 2), &wsaData) != NO_ERROR);
+    }
+    return m_wsaStarted;
+  }
+#endif
 
  private:
   int m_wifiSocket;
   struct sockaddr_in m_wifiServer;
   bool m_connected = false;
+  bool m_wsaStarted = false;
 };

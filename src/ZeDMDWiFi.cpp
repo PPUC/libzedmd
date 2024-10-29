@@ -1,18 +1,17 @@
 #include "ZeDMDWiFi.h"
 
+#if defined(_WIN32) || defined(_WIN64)
+#include <ws2tcpip.h>
+#else
 #include <netdb.h>
-
+#endif
 #include "komihash/komihash.h"
 #include "miniz/miniz.h"
 
 bool ZeDMDWiFi::Connect(const char* ip, int port)
 {
 #if defined(_WIN32) || defined(_WIN64)
-  WSADATA wsaData;
-  if (WSAStartup(MAKEWORD(2, 2), &wsaData) != NO_ERROR)
-  {
-    return false;
-  }
+  if (!startWSA()) return false;
 #endif
 
   if ((m_wifiSocket = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
@@ -30,6 +29,10 @@ bool ZeDMDWiFi::Connect(const char* ip, int port)
 
 bool ZeDMDWiFi::Connect(int port)
 {
+#if defined(_WIN32) || defined(_WIN64)
+  if (!startWSA()) return false;
+#endif
+
   struct addrinfo hints, *res;
   memset(&hints, 0, sizeof(hints));
   hints.ai_family = AF_INET;        // Use IPv4
@@ -41,7 +44,7 @@ bool ZeDMDWiFi::Connect(int port)
     return false;
   }
 
-  struct sockaddr_in *ipv4 = (struct sockaddr_in *)res->ai_addr;
+  struct sockaddr_in* ipv4 = (struct sockaddr_in*)res->ai_addr;
   return Connect(inet_ntoa(ipv4->sin_addr), port);
 }
 
