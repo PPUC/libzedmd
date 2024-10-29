@@ -530,6 +530,7 @@ extern "C"
 #endif
 
   extern ZEDMDAPI ZeDMD* ZeDMD_GetInstance();
+  extern ZEDMDAPI const char* ZeDMD_GetVersion();
   extern ZEDMDAPI void ZeDMD_IgnoreDevice(ZeDMD* pZeDMD, const char* const ignore_device);
   extern ZEDMDAPI void ZeDMD_SetDevice(ZeDMD* pZeDMD, const char* const device);
   extern ZEDMDAPI bool ZeDMD_Open(ZeDMD* pZeDMD);

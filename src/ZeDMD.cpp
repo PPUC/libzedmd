@@ -677,6 +677,8 @@ int ZeDMD::Scale16(uint8_t* pScaledFrame, uint16_t* pFrame, uint16_t* width, uin
 
 ZEDMDAPI ZeDMD* ZeDMD_GetInstance() { return new ZeDMD(); }
 
+ZEDMDAPI const char* ZeDMD_GetVersion() { return ZEDMD_VERSION; };
+
 ZEDMDAPI void ZeDMD_IgnoreDevice(ZeDMD* pZeDMD, const char* const ignore_device)
 {
   return pZeDMD->IgnoreDevice(ignore_device);
