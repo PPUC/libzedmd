@@ -1,5 +1,7 @@
 #include "ZeDMDWiFi.h"
 
+#include <netdb.h>
+
 #include "komihash/komihash.h"
 #include "miniz/miniz.h"
 
@@ -24,6 +26,23 @@ bool ZeDMDWiFi::Connect(const char* ip, int port)
   m_connected = true;
 
   return true;
+}
+
+bool ZeDMDWiFi::Connect(int port)
+{
+  struct addrinfo hints, *res;
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_family = AF_INET;        // Use IPv4
+  hints.ai_socktype = SOCK_STREAM;  // Use TCP
+
+  // Resolve the hostname to an IP address
+  if (0 != getaddrinfo("zedmd-wifi.local", nullptr, &hints, &res))
+  {
+    return false;
+  }
+
+  struct sockaddr_in *ipv4 = (struct sockaddr_in *)res->ai_addr;
+  return Connect(inet_ntoa(ipv4->sin_addr), port);
 }
 
 void ZeDMDWiFi::Disconnect()

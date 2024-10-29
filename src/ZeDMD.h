@@ -103,7 +103,7 @@ class ZEDMDAPI ZeDMD
    *
    *  ZeDMD could be connected via WiFi instead of USB.
    *  The WiFi settings need to be stored in ZeDMD's EEPROM
-   *  first using a USB connection.
+   *  first using a USB connection or via the web interface.
    *  @see Open()
    *  @see SetWiFiSSID()
    *  @see SetWiFiPassword()
@@ -114,6 +114,21 @@ class ZEDMDAPI ZeDMD
    *  @param port the port
    */
   bool OpenWiFi(const char* ip, int port);
+
+  /** @brief Open a WiFi connection to ZeDMD using it's name
+   *
+   *  ZeDMD could be connected via WiFi instead of USB.
+   *  The WiFi settings need to be stored in ZeDMD's EEPROM
+   *  first using a USB connection or via the web interface.
+   *  @see Open()
+   *  @see SetWiFiSSID()
+   *  @see SetWiFiPassword()
+   *  @see SetWiFiPort()
+   *  @see SaveSettings()
+   *
+   *  @param port the port
+   */
+  bool OpenWiFi(int port);
 
   /** @brief Close connection to ZeDMD
    *
