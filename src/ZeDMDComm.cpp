@@ -437,7 +437,7 @@ bool ZeDMDComm::Connect(char* pDevice)
   sp_set_stopbits(m_pSerialPort, 1);
   sp_set_xon_xoff(m_pSerialPort, SP_XONXOFF_DISABLED);
 
-  HardReset();
+  Reset();
 
   uint8_t data[8] = {0};
 
@@ -521,7 +521,7 @@ bool ZeDMDComm::IsConnected()
 #endif
 }
 
-void ZeDMDComm::HardReset()
+void ZeDMDComm::Reset()
 {
 #if !(                                                                                                                \
     (defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \

@@ -161,7 +161,7 @@ class ZeDMDComm
 
  protected:
   virtual bool StreamBytes(ZeDMDFrame* pFrame);
-  virtual void HardReset();
+  virtual void Reset();
   virtual void SoftReset();
 
   uint16_t m_zonesBytesLimit = 0;
