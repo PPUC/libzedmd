@@ -11,7 +11,7 @@
 bool ZeDMDWiFi::Connect(const char* ip, int port)
 {
 #if defined(_WIN32) || defined(_WIN64)
-  if (!startWSA()) return false;
+  if (!StartWSA()) return false;
 #endif
 
   if ((m_wifiSocket = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
@@ -30,7 +30,7 @@ bool ZeDMDWiFi::Connect(const char* ip, int port)
 bool ZeDMDWiFi::Connect(int port)
 {
 #if defined(_WIN32) || defined(_WIN64)
-  if (!startWSA()) return false;
+  if (!StartWSA()) return false;
 #endif
 
   struct addrinfo hints, *res;
