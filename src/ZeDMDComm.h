@@ -154,6 +154,7 @@ class ZeDMDComm
   void QueueCommand(char command);
   void QueueCommand(char command, uint8_t value);
   bool FillDelayed();
+  void SoftReset();
 
   uint16_t const GetWidth();
   uint16_t const GetHeight();
@@ -162,7 +163,6 @@ class ZeDMDComm
  protected:
   virtual bool StreamBytes(ZeDMDFrame* pFrame);
   virtual void Reset();
-  void SoftReset();
 
   uint16_t m_zonesBytesLimit = 0;
   uint8_t m_zoneWidth = 8;
