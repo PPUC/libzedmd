@@ -12,34 +12,55 @@
 bool ZeDMDWiFi::Connect(const char* name_or_ip, int port)
 {
 #if defined(_WIN32) || defined(_WIN64)
-  if (!StartWSA()) return false;
+  if (!m_wsaStarted)
+  {
+    WSADATA wsaData;
+    m_wsaStarted = (WSAStartup(MAKEWORD(2, 2), &wsaData) == NO_ERROR);
+  }
+
+  if (!m_wsaStarted) return false;
 #endif
 
-  struct addrinfo hints, *res;
+  struct addrinfo hints, *res = nullptr;
   memset(&hints, 0, sizeof(hints));
   hints.ai_family = AF_INET;        // Use IPv4
-  hints.ai_socktype = SOCK_STREAM;  // Use TCP
+  hints.ai_socktype = SOCK_STREAM;  // Use TCP for hostname resolution
 
   // Resolve the hostname to an IP address
   if (0 != getaddrinfo(name_or_ip, nullptr, &hints, &res))
   {
+    // Try to use the IP directly if resolution fails
     return DoConnect(name_or_ip, port);
   }
 
   struct sockaddr_in* ipv4 = (struct sockaddr_in*)res->ai_addr;
-  return DoConnect(inet_ntoa(ipv4->sin_addr), port);
+  bool result = DoConnect(inet_ntoa(ipv4->sin_addr), port);
+  freeaddrinfo(res);
+
+  return result;
 }
 
 bool ZeDMDWiFi::DoConnect(const char* ip, int port)
 {
-  if ((m_wifiSocket = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
-  {
-    return false;
-  }
+  m_wifiSocket = socket(AF_INET, SOCK_DGRAM, 0);
+  if (m_wifiSocket < 0) return false;
 
-  m_wifiServer.sin_family = AF_INET;
+  m_wifiServer.sin_family = AF_INET;  // Use IPv4 and UDP
   m_wifiServer.sin_port = htons(port);
   m_wifiServer.sin_addr.s_addr = inet_addr(ip);
+
+  // Check if the IP address is valid
+  if (m_wifiServer.sin_addr.s_addr == INADDR_NONE)
+  {
+#if defined(_WIN32) || defined(_WIN64)
+    if (m_wifiSocket >= 0) closesocket(m_wifiSocket);
+#else
+    if (m_wifiSocket >= 0) close(m_wifiSocket);
+#endif
+    m_wifiSocket = -1;
+
+    return false;
+  }
   m_connected = true;
 
   return true;
@@ -48,12 +69,13 @@ bool ZeDMDWiFi::DoConnect(const char* ip, int port)
 void ZeDMDWiFi::Disconnect()
 {
 #if defined(_WIN32) || defined(_WIN64)
-  closesocket(m_wifiSocket);
-  WSACleanup();
+  if (m_wifiSocket >= 0) closesocket(m_wifiSocket);
+  if (m_wsaStarted) WSACleanup();
 #else
-  close(m_wifiSocket);
+  if (m_wifiSocket >= 0) close(m_wifiSocket);
 #endif
 
+  m_wifiSocket = -1;
   m_connected = false;
 }
 
