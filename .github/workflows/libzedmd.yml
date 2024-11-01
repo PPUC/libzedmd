@@ -37,33 +37,47 @@ jobs:
           - os: windows-latest
             platform: win
             arch: x64
+            type: Release
+          - os: windows-latest
+            platform: win
+            arch: x64
+            type: Debug
           - os: windows-latest
             platform: win
             arch: x86
+            type: Release
           - os: macos-latest
             platform: macos
             arch: arm64
+            type: Release
           - os: macos-latest
             platform: macos
             arch: x64
+            type: Release
           - os: ubuntu-latest
             platform: linux
             arch: x64
+            type: Release
           - os: ubuntu-latest
             platform: linux
             arch: aarch64
+            type: Release
           - os: ubuntu-latest
             platform: android
             arch: arm64-v8a
+            type: Release
           - os: macos-latest
             platform: ios
             arch: arm64
+            type: Release
           - os: macos-latest
             platform: ios-simulator
             arch: arm64
+            type: Release
           - os: macos-latest
             platform: tvos
             arch: arm64
+            type: Release
     steps:
       - uses: actions/checkout@v4
       - if: (matrix.platform == 'win')
@@ -83,14 +97,14 @@ jobs:
              else
                 cmake -G "Visual Studio 17 2022" -A Win32 -DPLATFORM=${{ matrix.platform }} -DARCH=${{ matrix.arch }} -B build
              fi
-             cmake --build build --config Release
+             cmake --build build --config ${{ matrix.type }}
           else
              if [[ "$(uname)" == "Darwin" ]]; then
                 NUM_PROCS=$(sysctl -n hw.ncpu)
              else
                 NUM_PROCS=$(nproc)
              fi
-             cmake -DCMAKE_BUILD_TYPE=Release -DPLATFORM=${{ matrix.platform }} -DARCH=${{ matrix.arch }} -B build
+             cmake -DCMAKE_BUILD_TYPE=${{ matrix.type }} -DPLATFORM=${{ matrix.platform }} -DARCH=${{ matrix.arch }} -B build
              cmake --build build -- -j${NUM_PROCS}
           fi
       - if: (matrix.platform == 'linux' && matrix.arch == 'aarch64')
@@ -107,7 +121,7 @@ jobs:
             apt-get install --no-install-recommends -y pkg-config cmake autoconf automake libtool
             ./platforms/${{ matrix.platform }}/${{ matrix.arch }}/external.sh
             NUM_PROCS=$(nproc)
-            cmake -DCMAKE_BUILD_TYPE=Release -DPLATFORM=${{ matrix.platform }} -DARCH=${{ matrix.arch }} -B build
+            cmake -DCMAKE_BUILD_TYPE=${{ matrix.type }} -DPLATFORM=${{ matrix.platform }} -DARCH=${{ matrix.arch }} -B build
             cmake --build build -- -j${NUM_PROCS}
       - name: Prepare artifacts
         id: artifacts
@@ -116,15 +130,15 @@ jobs:
           if [[ "${{ matrix.platform }}" == "win" ]]; then
              ARTIFACT_PATH="tmp"
              if [[ "${{ matrix.arch }}" == "x64" ]]; then
-                cp build/Release/*64.lib tmp
-                cp build/Release/*64.dll tmp
+                cp build/${{ matrix.type }}/*64.lib tmp
+                cp build/${{ matrix.type }}/*64.dll tmp
              else
-                cp build/Release/*.lib tmp
-                cp build/Release/*.dll tmp
+                cp build/${{ matrix.type }}/*.lib tmp
+                cp build/${{ matrix.type }}/*.dll tmp
              fi
-             cp build/Release/zedmd_static.lib tmp
-             cp build/Release/zedmd_test_s.exe tmp
-             cp build/Release/zedmd_test.exe tmp
+             cp build/${{ matrix.type }}/zedmd_static.lib tmp
+             cp build/${{ matrix.type }}/zedmd_test_s.exe tmp
+             cp build/${{ matrix.type }}/zedmd_test.exe tmp
           else
             ARTIFACT_PATH="libzedmd-${{ needs.version.outputs.tag }}-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz"
             if [[ "${{ matrix.platform }}" == "macos" ]]; then
@@ -151,7 +165,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: libzedmd-${{ needs.version.outputs.tag }}-${{ matrix.platform }}-${{ matrix.arch }}
+          name: libzedmd-${{ needs.version.outputs.tag }}-${{ matrix.platform }}-${{ matrix.arch }}-${{ matrix.type }}
           path: ${{ steps.artifacts.outputs.artifact_path }}
 
   post-build:
