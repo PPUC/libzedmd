@@ -8,26 +8,7 @@
 #include "komihash/komihash.h"
 #include "miniz/miniz.h"
 
-bool ZeDMDWiFi::Connect(const char* ip, int port)
-{
-#if defined(_WIN32) || defined(_WIN64)
-  if (!StartWSA()) return false;
-#endif
-
-  if ((m_wifiSocket = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
-  {
-    return false;
-  }
-
-  m_wifiServer.sin_family = AF_INET;
-  m_wifiServer.sin_port = htons(port);
-  m_wifiServer.sin_addr.s_addr = inet_addr(ip);
-  m_connected = true;
-
-  return true;
-}
-
-bool ZeDMDWiFi::Connect(int port)
+bool ZeDMDWiFi::Connect(const char* name_or_ip, int port)
 {
 #if defined(_WIN32) || defined(_WIN64)
   if (!StartWSA()) return false;
@@ -39,13 +20,28 @@ bool ZeDMDWiFi::Connect(int port)
   hints.ai_socktype = SOCK_STREAM;  // Use TCP
 
   // Resolve the hostname to an IP address
-  if (0 != getaddrinfo("zedmd-wifi.local", nullptr, &hints, &res))
+  if (0 != getaddrinfo(name_or_ip, nullptr, &hints, &res))
+  {
+    return DoConnect(name_or_ip, port);
+  }
+
+  struct sockaddr_in* ipv4 = (struct sockaddr_in*)res->ai_addr;
+  return DoConnect(inet_ntoa(ipv4->sin_addr), port);
+}
+
+bool ZeDMDWiFi::DoConnect(const char* ip, int port)
+{
+  if ((m_wifiSocket = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
   {
     return false;
   }
 
-  struct sockaddr_in* ipv4 = (struct sockaddr_in*)res->ai_addr;
-  return Connect(inet_ntoa(ipv4->sin_addr), port);
+  m_wifiServer.sin_family = AF_INET;
+  m_wifiServer.sin_port = htons(port);
+  m_wifiServer.sin_addr.s_addr = inet_addr(ip);
+  m_connected = true;
+
+  return true;
 }
 
 void ZeDMDWiFi::Disconnect()

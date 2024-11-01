@@ -191,7 +191,6 @@ bool ZeDMD::OpenWiFi(const char* ip, int port)
 {
   m_wifi = m_pZeDMDWiFi->Connect(ip, port);
 
-  // @todo allow parallel mode for USB commands
   if (m_wifi && !m_usb)
   {
     m_pFrameBuffer = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
@@ -205,29 +204,15 @@ bool ZeDMD::OpenWiFi(const char* ip, int port)
   return m_wifi;
 }
 
-bool ZeDMD::OpenWiFi(int port)
+bool ZeDMD::OpenDefaultWiFi()
 {
-  m_wifi = m_pZeDMDWiFi->Connect(port);
-
-  // @todo allow parallel mode for USB commands
-  if (m_wifi && !m_usb)
-  {
-    m_pFrameBuffer = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
-    m_pScaledFrameBuffer = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
-    m_pPlanes = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
-    m_pRgb565Buffer = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 2);
-
-    m_pZeDMDWiFi->Run();
-  }
-
-  return m_wifi;
+  return OpenWiFi("zedmd-wifi.local", 3333);
 }
 
 bool ZeDMD::Open()
 {
   m_usb = m_pZeDMDComm->Connect();
 
-  // @todo allow parallel connection for USB commands
   if (m_usb && !m_wifi)
   {
     m_pFrameBuffer = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
@@ -690,7 +675,7 @@ ZEDMDAPI bool ZeDMD_Open(ZeDMD* pZeDMD) { return pZeDMD->Open(); }
 
 ZEDMDAPI bool ZeDMD_OpenWiFi(ZeDMD* pZeDMD, const char* ip, int port) { return pZeDMD->OpenWiFi(ip, port); }
 
-ZEDMDAPI bool ZeDMD_OpenWiFiUsingPredefinedName(ZeDMD* pZeDMD, int port) { return pZeDMD->OpenWiFi(port); }
+ZEDMDAPI bool ZeDMD_OpenDefaultWiFi(ZeDMD* pZeDMD { return pZeDMD->OpenDefaultWiFi(); }
 
 ZEDMDAPI void ZeDMD_Close(ZeDMD* pZeDMD) { return pZeDMD->Close(); }
 

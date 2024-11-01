@@ -115,20 +115,17 @@ class ZEDMDAPI ZeDMD
    */
   bool OpenWiFi(const char* ip, int port);
 
-  /** @brief Open a WiFi connection to ZeDMD using it's name
+  /** @brief Open default WiFi connection to ZeDMD.
    *
    *  ZeDMD could be connected via WiFi instead of USB.
-   *  The WiFi settings need to be stored in ZeDMD's EEPROM
-   *  first using a USB connection or via the web interface.
-   *  @see Open()
-   *  @see SetWiFiSSID()
-   *  @see SetWiFiPassword()
-   *  @see SetWiFiPort()
-   *  @see SaveSettings()
-   *
-   *  @param port the port
+   *  The WiFi settings need to be stored in ZeDMD's EEPROM.
+   *  Connect to http://zedmd-wifi.local to configure the device.
+   *  For the first time configuration, establish a connection to
+   *  this network:
+   *  SSID: ZeDMD-WiFi
+   *  Password: zedmd1234
    */
-  bool OpenWiFi(int port);
+  bool OpenDefaultWiFi();
 
   /** @brief Close connection to ZeDMD
    *
@@ -535,6 +532,7 @@ extern "C"
   extern ZEDMDAPI void ZeDMD_SetDevice(ZeDMD* pZeDMD, const char* const device);
   extern ZEDMDAPI bool ZeDMD_Open(ZeDMD* pZeDMD);
   extern ZEDMDAPI bool ZeDMD_OpenWiFi(ZeDMD* pZeDMD, const char* ip, int port);
+  extern ZEDMDAPI bool ZeDMD_OpenDefaultWiFi(ZeDMD* pZeDMD);
   extern ZEDMDAPI void ZeDMD_Close(ZeDMD* pZeDMD);
 
   extern ZEDMDAPI void ZeDMD_SetFrameSize(ZeDMD* pZeDMD, uint16_t width, uint16_t height);
