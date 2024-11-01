@@ -128,17 +128,20 @@ jobs:
         run: |
           mkdir tmp
           if [[ "${{ matrix.platform }}" == "win" ]]; then
-             ARTIFACT_PATH="tmp"
-             if [[ "${{ matrix.arch }}" == "x64" ]]; then
-                cp build/${{ matrix.type }}/*64.lib tmp
-                cp build/${{ matrix.type }}/*64.dll tmp
-             else
-                cp build/${{ matrix.type }}/*.lib tmp
-                cp build/${{ matrix.type }}/*.dll tmp
-             fi
-             cp build/${{ matrix.type }}/zedmd_static.lib tmp
-             cp build/${{ matrix.type }}/zedmd_test_s.exe tmp
-             cp build/${{ matrix.type }}/zedmd_test.exe tmp
+            ARTIFACT_PATH="tmp"
+            if [[ "${{ matrix.arch }}" == "x64" ]]; then
+              cp build/${{ matrix.type }}/*64.lib tmp
+              cp build/${{ matrix.type }}/*64.dll tmp
+            else
+              cp build/${{ matrix.type }}/*.lib tmp
+              cp build/${{ matrix.type }}/*.dll tmp
+            fi
+            cp build/${{ matrix.type }}/zedmd_static.lib tmp
+            cp build/${{ matrix.type }}/zedmd_test_s.exe tmp
+            cp build/${{ matrix.type }}/zedmd_test.exe tmp
+            if [[ "${{ matrix.type }}" == "Debug" ]]; then
+              cp build/${{ matrix.type }}/*.pdb tmp
+            fi
           else
             ARTIFACT_PATH="libzedmd-${{ needs.version.outputs.tag }}-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz"
             if [[ "${{ matrix.platform }}" == "macos" ]]; then
