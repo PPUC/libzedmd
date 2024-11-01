@@ -4,6 +4,7 @@
 #include <ws2tcpip.h>
 #else
 #include <netdb.h>
+#include <unistd.h>
 #endif
 #include "komihash/komihash.h"
 #include "miniz/miniz.h"
@@ -47,8 +48,13 @@ bool ZeDMDWiFi::DoConnect(const char* ip, int port)
 void ZeDMDWiFi::Disconnect()
 {
 #if defined(_WIN32) || defined(_WIN64)
+  closesocket(m_wifiSocket);
   WSACleanup();
+#else
+  close(m_wifiSocket);
 #endif
+
+  m_connected = false;
 }
 
 bool ZeDMDWiFi::IsConnected() { return m_connected; }
