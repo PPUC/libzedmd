@@ -31,7 +31,7 @@ class ZeDMDWiFi : public ZeDMDComm
     if (!m_wsaStarted)
     {
       WSADATA wsaData;
-      m_wsaStarted = (WSAStartup(MAKEWORD(2, 2), &wsaData) != NO_ERROR);
+      m_wsaStarted = (WSAStartup(MAKEWORD(2, 2), &wsaData) == NO_ERROR);
     }
     return m_wsaStarted;
   }
