@@ -204,10 +204,7 @@ bool ZeDMD::OpenWiFi(const char* ip, int port)
   return m_wifi;
 }
 
-bool ZeDMD::OpenDefaultWiFi()
-{
-  return OpenWiFi("zedmd-wifi.local", 3333);
-}
+bool ZeDMD::OpenDefaultWiFi() { return OpenWiFi("zedmd-wifi.local", 3333); }
 
 bool ZeDMD::Open()
 {
@@ -675,7 +672,7 @@ ZEDMDAPI bool ZeDMD_Open(ZeDMD* pZeDMD) { return pZeDMD->Open(); }
 
 ZEDMDAPI bool ZeDMD_OpenWiFi(ZeDMD* pZeDMD, const char* ip, int port) { return pZeDMD->OpenWiFi(ip, port); }
 
-ZEDMDAPI bool ZeDMD_OpenDefaultWiFi(ZeDMD* pZeDMD { return pZeDMD->OpenDefaultWiFi(); }
+ZEDMDAPI bool ZeDMD_OpenDefaultWiFi(ZeDMD* pZeDMD) { return pZeDMD->OpenDefaultWiFi(); }
 
 ZEDMDAPI void ZeDMD_Close(ZeDMD* pZeDMD) { return pZeDMD->Close(); }
 
