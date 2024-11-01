@@ -27,7 +27,7 @@ jobs:
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
 
   build:
-    name: Build libzedmd-${{ matrix.platform }}-${{ matrix.arch }}
+    name: Build libzedmd-${{ matrix.platform }}-${{ matrix.arch }}-${{ matrix.type }}
     runs-on: ${{ matrix.os }}
     needs: [ version ]
     strategy:
@@ -187,20 +187,20 @@ jobs:
       - name: Combine macos architectures
         run: |
           mkdir tmp
-          find "libzedmd-${{ needs.version.outputs.tag }}-macos-arm64" -name "*.dylib" | while read -r file; do
+          find "libzedmd-${{ needs.version.outputs.tag }}-macos-arm64-Release" -name "*.dylib" | while read -r file; do
             if [ -L "$file" ]; then
               cp -a "$file" "tmp/"
             elif [ -f "$file" ]; then
               filename=$(basename "$file")
               lipo -create -output "tmp/$filename" \
-                "libzedmd-${{ needs.version.outputs.tag }}-macos-arm64/$filename" \
-                "libzedmd-${{ needs.version.outputs.tag }}-macos-x64/$filename"
+                "libzedmd-${{ needs.version.outputs.tag }}-macos-arm64-Release/$filename" \
+                "libzedmd-${{ needs.version.outputs.tag }}-macos-x64-Release/$filename"
             fi
           done
           for filename in zedmd_test zedmd_test_s; do
             lipo -create -output "tmp/$filename" \
-               "libzedmd-${{ needs.version.outputs.tag }}-macos-arm64/$filename" \
-               "libzedmd-${{ needs.version.outputs.tag }}-macos-x64/$filename"
+               "libzedmd-${{ needs.version.outputs.tag }}-macos-arm64-Release/$filename" \
+               "libzedmd-${{ needs.version.outputs.tag }}-macos-x64-Release/$filename"
           done
       - name: Prepare artifacts
         run: |
