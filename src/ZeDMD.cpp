@@ -92,51 +92,97 @@ void ZeDMD::SetFrameSize(uint16_t width, uint16_t height)
   m_romWidth = width;
   m_romHeight = height;
 
+  uint16_t frameWidth = m_pZeDMDComm->GetWidth();
+  uint16_t frameHeight = m_pZeDMDComm->GetHeight();
+  uint8_t size[4];
+
+  if ((m_downscaling && (width > frameWidth || height > frameHeight)) ||
+      (m_upscaling && (width < frameWidth || height < frameHeight)))
+  {
+    size[0] = (uint8_t)(frameWidth & 0xFF);
+    size[1] = (uint8_t)((frameWidth >> 8) & 0xFF);
+    size[2] = (uint8_t)(frameHeight & 0xFF);
+    size[3] = (uint8_t)((frameHeight >> 8) & 0xFF);
+  }
+  else
+  {
+    size[0] = (uint8_t)(width & 0xFF);
+    size[1] = (uint8_t)((width >> 8) & 0xFF);
+    size[2] = (uint8_t)(height & 0xFF);
+    size[3] = (uint8_t)((height >> 8) & 0xFF);
+  }
+
   if (m_usb)
   {
-    uint16_t frameWidth = m_pZeDMDComm->GetWidth();
-    uint16_t frameHeight = m_pZeDMDComm->GetHeight();
-    uint8_t size[4];
-
-    if ((m_downscaling && (width > frameWidth || height > frameHeight)) ||
-        (m_upscaling && (width < frameWidth || height < frameHeight)))
-    {
-      size[0] = (uint8_t)(frameWidth & 0xFF);
-      size[1] = (uint8_t)((frameWidth >> 8) & 0xFF);
-      size[2] = (uint8_t)(frameHeight & 0xFF);
-      size[3] = (uint8_t)((frameHeight >> 8) & 0xFF);
-    }
-    else
-    {
-      size[0] = (uint8_t)(width & 0xFF);
-      size[1] = (uint8_t)((width >> 8) & 0xFF);
-      size[2] = (uint8_t)(height & 0xFF);
-      size[3] = (uint8_t)((height >> 8) & 0xFF);
-    }
-
     m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::FrameSize, size, 4);
+  }
+  else if (m_wifi)
+  {
+    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::FrameSize, size, 4);
   }
 }
 
-uint16_t const ZeDMD::GetWidth() { return m_pZeDMDComm->GetWidth(); }
+uint16_t const ZeDMD::GetWidth()
+{
+  if (m_wifi)
+  {
+    return m_pZeDMDWiFi->GetWidth();
+  }
+  return m_pZeDMDComm->GetWidth();
+}
 
-uint16_t const ZeDMD::GetHeight() { return m_pZeDMDComm->GetHeight(); }
+uint16_t const ZeDMD::GetHeight()
+{
+  if (m_wifi)
+  {
+    return m_pZeDMDWiFi->GetHeight();
+  }
+  return m_pZeDMDComm->GetHeight();
+}
 
-bool const ZeDMD::IsS3() { return m_pZeDMDComm->IsS3(); }
+bool const ZeDMD::IsS3()
+{
+  if (m_wifi)
+  {
+    return m_pZeDMDWiFi->IsS3();
+  }
+  return m_pZeDMDComm->IsS3();
+}
 
 void ZeDMD::LedTest()
 {
-  if (m_usb) m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::LEDTest);
+  if (m_usb)
+  {
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::LEDTest);
+  }
+  else if (m_wifi)
+  {
+    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::LEDTest);
+  }
 }
 
 void ZeDMD::EnableDebug()
 {
-  if (m_usb) m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::EnableDebug);
+  if (m_usb)
+  {
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::EnableDebug);
+  }
+  else if (m_wifi)
+  {
+    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::EnableDebug);
+  }
 }
 
 void ZeDMD::DisableDebug()
 {
-  if (m_usb) m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::DisableDebug);
+  if (m_usb)
+  {
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::DisableDebug);
+  }
+  else if (m_wifi)
+  {
+    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::DisableDebug);
+  }
 }
 
 void ZeDMD::SetRGBOrder(uint8_t rgbOrder)
@@ -166,19 +212,41 @@ void ZeDMD::DisablePreDownscaling() { m_downscaling = false; }
 void ZeDMD::EnablePreUpscaling()
 {
   m_upscaling = true;
-  m_hd = (m_pZeDMDComm->GetWidth() == 256);
+  m_hd = false;
+  if (m_usb)
+  {
+    m_hd = (m_pZeDMDComm->GetWidth() == 256);
+  }
+  else if (m_wifi)
+  {
+    m_hd = (m_pZeDMDWiFi->GetWidth() == 256);
+  }
 }
 
 void ZeDMD::DisablePreUpscaling() { m_upscaling = false; }
 
 void ZeDMD::EnableUpscaling()
 {
-  if (m_usb) m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::EnableUpscaling);
+  if (m_usb)
+  {
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::EnableUpscaling);
+  }
+  else if (m_wifi)
+  {
+    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::EnableUpscaling);
+  }
 }
 
 void ZeDMD::DisableUpscaling()
 {
-  if (m_usb) m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::DisableUpscaling);
+  if (m_usb)
+  {
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::DisableUpscaling);
+  }
+  else if (m_wifi)
+  {
+    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::DisableUpscaling);
+  }
 }
 
 void ZeDMD::SetWiFiSSID(const char* const ssid)

@@ -42,29 +42,56 @@ bool ZeDMDWiFi::Connect(const char* name_or_ip, int port)
 
 bool ZeDMDWiFi::DoConnect(const char* ip, int port)
 {
-  m_wifiSocket = socket(AF_INET, SOCK_DGRAM, 0);
-  if (m_wifiSocket < 0) return false;
+  m_udpSocket = socket(AF_INET, SOCK_DGRAM, 0);  // UDP
+  if (m_udpSocket < 0) return false;
 
-  m_wifiServer.sin_family = AF_INET;  // Use IPv4 and UDP
-  m_wifiServer.sin_port = htons(port);
-  m_wifiServer.sin_addr.s_addr = inet_addr(ip);
+  m_udpServer.sin_family = AF_INET;  // Use IPv4 and UDP
+  m_udpServer.sin_port = htons(port);
+  m_udpServer.sin_addr.s_addr = inet_addr(ip);
 
   // Check if the IP address is valid
-  if (m_wifiServer.sin_addr.s_addr == INADDR_NONE)
+  if (m_udpServer.sin_addr.s_addr == INADDR_NONE)
   {
 #if defined(_WIN32) || defined(_WIN64)
-    if (m_wifiSocket >= 0) closesocket(m_wifiSocket);
+    if (m_udpSocket >= 0) closesocket(m_udpSocket);
 #else
-    if (m_wifiSocket >= 0) close(m_wifiSocket);
+    if (m_udpSocket >= 0) close(m_udpSocket);
 #endif
-    m_wifiSocket = -1;
+    m_udpSocket = -1;
 
     return false;
   }
+
+  m_tcpSocket = socket(AF_INET, SOCK_STREAM, 0);  // TCP
+  if (m_tcpSocket < 0) return false;
+
+  m_tcpServer.sin_family = AF_INET;
+  m_tcpServer.sin_port = htons(80);
+  m_tcpServer.sin_addr.s_addr = inet_addr(ip);
+
+  if (m_tcpServer.sin_addr.s_addr == INADDR_NONE ||
+      connect(m_tcpSocket, (struct sockaddr*)&m_tcpServer, sizeof(m_tcpServer)) < 0)
+  {
+#if defined(_WIN32) || defined(_WIN64)
+    if (m_tcpSocket >= 0) closesocket(m_tcpSocket);
+    if (m_udpSocket >= 0) closesocket(m_udpSocket);
+#else
+    if (m_tcpSocket >= 0) close(m_tcpSocket);
+    if (m_udpSocket >= 0) close(m_udpSocket);
+#endif
+    m_tcpSocket = -1;
+    m_udpSocket = -1;
+
+    return false;
+  }
+
   m_connected = true;
-  m_width = 128;
-  m_height = 32;
-  m_s3 = false;
+  SendGetRequest("/get_width");
+  m_width = std::stoi(ReceiveResponse());
+  SendGetRequest("/get_height");
+  m_height = std::stoi(ReceiveResponse());
+  SendGetRequest("/get_s3");
+  m_s3 = (ReceiveResponse() == "1");
 
   return true;
 }
@@ -72,14 +99,59 @@ bool ZeDMDWiFi::DoConnect(const char* ip, int port)
 void ZeDMDWiFi::Disconnect()
 {
 #if defined(_WIN32) || defined(_WIN64)
-  if (m_wifiSocket >= 0) closesocket(m_wifiSocket);
+  if (m_udpSocket >= 0) closesocket(m_udpSocket);
+  if (m_tcpSocket >= 0) closesocket(m_tcpSocket);
   if (m_wsaStarted) WSACleanup();
 #else
-  if (m_wifiSocket >= 0) close(m_wifiSocket);
+  if (m_udpSocket >= 0) close(m_udpSocket);
+  if (m_tcpSocket >= 0) close(m_tcpSocket);
 #endif
 
-  m_wifiSocket = -1;
+  m_udpSocket = -1;
+  m_tcpSocket = -1;
   m_connected = false;
+}
+
+bool ZeDMDWiFi::SendGetRequest(const std::string& path)
+{
+  if (!m_connected) return false;
+
+  std::string request = "GET " + path + " HTTP/1.1\r\n";
+  request += "Host: " + std::string(inet_ntoa(m_tcpServer.sin_addr)) + "\r\n";
+  request += "Connection: close\r\n\r\n";
+
+  int sentBytes = send(m_tcpSocket, request.c_str(), request.length(), 0);
+
+  return sentBytes == request.length();
+}
+
+bool ZeDMDWiFi::SendPostRequest(const std::string& path, const std::string& data)
+{
+  if (!m_connected) return false;
+
+  std::string request = "POST " + path + " HTTP/1.1\r\n";
+  request += "Host: " + std::string(inet_ntoa(m_tcpServer.sin_addr)) + "\r\n";
+  request += "Content-Type: application/x-www-form-urlencoded\r\n";
+  request += "Content-Length: " + std::to_string(data.length()) + "\r\n";
+  request += "Connection: close\r\n\r\n";
+  request += data;
+
+  int sentBytes = send(m_tcpSocket, request.c_str(), request.length(), 0);
+  return sentBytes == request.length();
+}
+
+std::string ZeDMDWiFi::ReceiveResponse()
+{
+  char buffer[1024];
+  std::string response;
+  int bytesReceived;
+
+  while ((bytesReceived = recv(m_tcpSocket, buffer, sizeof(buffer), 0)) > 0)
+  {
+    response.append(buffer, bytesReceived);
+  }
+
+  return response;
 }
 
 bool ZeDMDWiFi::IsConnected() { return m_connected; }
@@ -109,10 +181,9 @@ bool ZeDMDWiFi::StreamBytes(ZeDMDFrame* pFrame)
     for (int i = 0; i < 3; i++)
     {
 #if defined(_WIN32) || defined(_WIN64)
-      sendto(m_wifiSocket, (const char*)data, pFrame->size + 4, 0, (struct sockaddr*)&m_wifiServer,
-             sizeof(m_wifiServer));
+      sendto(m_udpSocket, (const char*)data, pFrame->size + 4, 0, (struct sockaddr*)&m_udpServer, sizeof(m_udpServer));
 #else
-      sendto(m_wifiSocket, data, pFrame->size + 4, 0, (struct sockaddr*)&m_wifiServer, sizeof(m_wifiServer));
+      sendto(m_udpSocket, data, pFrame->size + 4, 0, (struct sockaddr*)&m_udpServer, sizeof(m_udpServer));
 #endif
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
@@ -136,10 +207,10 @@ bool ZeDMDWiFi::StreamBytes(ZeDMDFrame* pFrame)
     if (status == MZ_OK)
     {
 #if defined(_WIN32) || defined(_WIN64)
-      sendto(m_wifiSocket, (const char*)data, compressedSize + 4, 0, (struct sockaddr*)&m_wifiServer,
-             sizeof(m_wifiServer));
+      sendto(m_udpSocket, (const char*)data, compressedSize + 4, 0, (struct sockaddr*)&m_udpServer,
+             sizeof(m_udpServer));
 #else
-      sendto(m_wifiSocket, data, compressedSize + 4, 0, (struct sockaddr*)&m_wifiServer, sizeof(m_wifiServer));
+      sendto(m_udpSocket, data, compressedSize + 4, 0, (struct sockaddr*)&m_udpServer, sizeof(m_udpServer));
 #endif
       return true;
     }

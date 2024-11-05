@@ -214,12 +214,11 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
   uint8_t idx = 0;
   uint8_t* zone = (uint8_t*)malloc(16 * 8 * bytes);
   uint16_t zonesBytesLimit = 0;
+
   if (m_zonesBytesLimit)
   {
-    while (zonesBytesLimit < m_zonesBytesLimit)
-    {
-      zonesBytesLimit += m_zoneWidth * m_zoneHeight * bytes + 1;
-    }
+    uint8_t zones = m_zonesBytesLimit / (m_zoneWidth * m_zoneHeight * bytes + 1);
+    zonesBytesLimit = zones * (m_zoneWidth * m_zoneHeight * bytes + 1);
   }
   else
   {

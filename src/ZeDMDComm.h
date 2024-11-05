@@ -164,6 +164,9 @@ class ZeDMDComm
   virtual bool StreamBytes(ZeDMDFrame* pFrame);
   virtual void Reset();
 
+  uint16_t m_width = 128;
+  uint16_t m_height = 32;
+  bool m_s3 = false;
   uint16_t m_zonesBytesLimit = 0;
   uint8_t m_zoneWidth = 8;
   uint8_t m_zoneHeight = 4;
@@ -176,8 +179,6 @@ class ZeDMDComm
   ZeDMD_LogCallback m_logCallback = nullptr;
   const void* m_logUserData = nullptr;
   uint64_t m_zoneHashes[128] = {0};
-  uint16_t m_width = 128;
-  uint16_t m_height = 32;
   int8_t m_streamId = -1;
   int8_t m_lastStreamId = -1;
   uint8_t m_flowControlCounter = 0;
@@ -198,5 +199,4 @@ class ZeDMDComm
   std::queue<ZeDMDFrame> m_delayedFrames;
   std::mutex m_delayedFrameMutex;
   bool m_delayedFrameReady = false;
-  bool m_s3 = false;
 };
