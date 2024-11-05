@@ -118,7 +118,7 @@ bool ZeDMDWiFi::SendGetRequest(const std::string& path)
 
   std::string request = "GET " + path + " HTTP/1.1\r\n";
   request += "Host: " + std::string(inet_ntoa(m_tcpServer.sin_addr)) + "\r\n";
-  request += "Connection: close\r\n\r\n";
+  request += "Connection: keep-alive\r\n\r\n";
 
   int sentBytes = send(m_tcpSocket, request.c_str(), request.length(), 0);
 
@@ -133,7 +133,7 @@ bool ZeDMDWiFi::SendPostRequest(const std::string& path, const std::string& data
   request += "Host: " + std::string(inet_ntoa(m_tcpServer.sin_addr)) + "\r\n";
   request += "Content-Type: application/x-www-form-urlencoded\r\n";
   request += "Content-Length: " + std::to_string(data.length()) + "\r\n";
-  request += "Connection: close\r\n\r\n";
+  request += "Connection: keep-alive\r\n\r\n";
   request += data;
 
   int sentBytes = send(m_tcpSocket, request.c_str(), request.length(), 0);
