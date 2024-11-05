@@ -69,8 +69,7 @@ bool ZeDMDWiFi::DoConnect(const char* ip, int port)
   m_tcpServer.sin_port = htons(80);
   m_tcpServer.sin_addr.s_addr = inet_addr(ip);
 
-  if (m_tcpServer.sin_addr.s_addr == INADDR_NONE ||
-      connect(m_tcpSocket, (struct sockaddr*)&m_tcpServer, sizeof(m_tcpServer)) < 0)
+  if (m_tcpServer.sin_addr.s_addr == INADDR_NONE)
   {
 #if defined(_WIN32) || defined(_WIN64)
     if (m_tcpSocket >= 0) closesocket(m_tcpSocket);
@@ -114,11 +113,11 @@ void ZeDMDWiFi::Disconnect()
 
 bool ZeDMDWiFi::SendGetRequest(const std::string& path)
 {
-  if (!m_connected) return false;
+  if (!m_connected || connect(m_tcpSocket, (struct sockaddr*)&m_tcpServer, sizeof(m_tcpServer)) < 0) return false;
 
   std::string request = "GET " + path + " HTTP/1.1\r\n";
   request += "Host: " + std::string(inet_ntoa(m_tcpServer.sin_addr)) + "\r\n";
-  request += "Connection: keep-alive\r\n\r\n";
+  request += "Connection: close\r\n\r\n";
 
   int sentBytes = send(m_tcpSocket, request.c_str(), request.length(), 0);
 
@@ -127,13 +126,13 @@ bool ZeDMDWiFi::SendGetRequest(const std::string& path)
 
 bool ZeDMDWiFi::SendPostRequest(const std::string& path, const std::string& data)
 {
-  if (!m_connected) return false;
+  if (!m_connected || connect(m_tcpSocket, (struct sockaddr*)&m_tcpServer, sizeof(m_tcpServer)) < 0) return false;
 
   std::string request = "POST " + path + " HTTP/1.1\r\n";
   request += "Host: " + std::string(inet_ntoa(m_tcpServer.sin_addr)) + "\r\n";
   request += "Content-Type: application/x-www-form-urlencoded\r\n";
   request += "Content-Length: " + std::to_string(data.length()) + "\r\n";
-  request += "Connection: keep-alive\r\n\r\n";
+  request += "Connection: close\r\n\r\n";
   request += data;
 
   int sentBytes = send(m_tcpSocket, request.c_str(), request.length(), 0);
