@@ -124,24 +124,39 @@ uint16_t const ZeDMD::GetHeight() { return m_pZeDMDComm->GetHeight(); }
 
 bool const ZeDMD::IsS3() { return m_pZeDMDComm->IsS3(); }
 
-void ZeDMD::LedTest() { m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::LEDTest); }
+void ZeDMD::LedTest()
+{
+  if (m_usb) m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::LEDTest);
+}
 
-void ZeDMD::EnableDebug() { m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::EnableDebug); }
+void ZeDMD::EnableDebug()
+{
+  if (m_usb) m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::EnableDebug);
+}
 
-void ZeDMD::DisableDebug() { m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::DisableDebug); }
+void ZeDMD::DisableDebug()
+{
+  if (m_usb) m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::DisableDebug);
+}
 
-void ZeDMD::SetRGBOrder(uint8_t rgbOrder) { m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGBOrder, rgbOrder); }
+void ZeDMD::SetRGBOrder(uint8_t rgbOrder)
+{
+  if (m_usb) m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGBOrder, rgbOrder);
+}
 
 void ZeDMD::SetBrightness(uint8_t brightness)
 {
-  m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::Brightness, brightness);
+  if (m_usb) m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::Brightness, brightness);
 }
 
 void ZeDMD::SaveSettings()
 {
-  m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SaveSettings);
-  // Avoid that client resets the device before settings are saved.
-  std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+  if (m_usb)
+  {
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SaveSettings);
+    // Avoid that client resets the device before settings are saved.
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+  }
 }
 
 void ZeDMD::EnablePreDownscaling() { m_downscaling = true; }
@@ -156,9 +171,15 @@ void ZeDMD::EnablePreUpscaling()
 
 void ZeDMD::DisablePreUpscaling() { m_upscaling = false; }
 
-void ZeDMD::EnableUpscaling() { m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::EnableUpscaling); }
+void ZeDMD::EnableUpscaling()
+{
+  if (m_usb) m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::EnableUpscaling);
+}
 
-void ZeDMD::DisableUpscaling() { m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::DisableUpscaling); }
+void ZeDMD::DisableUpscaling()
+{
+  if (m_usb) m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::DisableUpscaling);
+}
 
 void ZeDMD::SetWiFiSSID(const char* const ssid)
 {
@@ -329,7 +350,10 @@ void ZeDMD::RenderGray2(uint8_t* pFrame)
     {
       m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::RGB24ZonesStream, m_pPlanes, bufferSize * 3, width, height);
     }
-    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB24ZonesStream, m_pPlanes, bufferSize * 3, width, height);
+    else
+    {
+      m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB24ZonesStream, m_pPlanes, bufferSize * 3, width, height);
+    }
   }
   else if (m_usb)
   {
@@ -364,7 +388,10 @@ void ZeDMD::RenderGray4(uint8_t* pFrame)
     {
       m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::RGB24ZonesStream, m_pPlanes, bufferSize * 3, width, height);
     }
-    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB24ZonesStream, m_pPlanes, bufferSize * 3, width, height);
+    else
+    {
+      m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB24ZonesStream, m_pPlanes, bufferSize * 3, width, height);
+    }
   }
   else if (m_usb)
   {
@@ -405,7 +432,10 @@ void ZeDMD::RenderColoredGray6(uint8_t* pFrame, uint8_t* pRotations)
     {
       m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::RGB24ZonesStream, m_pPlanes, bufferSize * 3, width, height);
     }
-    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB24ZonesStream, m_pPlanes, bufferSize * 3, width, height);
+    else
+    {
+      m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB24ZonesStream, m_pPlanes, bufferSize * 3, width, height);
+    }
   }
   else if (m_usb)
   {

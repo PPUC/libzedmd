@@ -62,6 +62,9 @@ bool ZeDMDWiFi::DoConnect(const char* ip, int port)
     return false;
   }
   m_connected = true;
+  m_width = 128;
+  m_height = 32;
+  m_s3 = false;
 
   return true;
 }
