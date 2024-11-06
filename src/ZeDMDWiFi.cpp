@@ -64,12 +64,12 @@ bool ZeDMDWiFi::DoConnect(const char* ip, int port)
     return false;
   }
 
+  m_tcpSocket = socket(AF_INET, SOCK_STREAM, 0);  // TCP
+  if (m_tcpSocket < 0) return false;
+
   // Use non blocking socket for full control.
   int flags = fcntl(m_tcpSocket, F_GETFL, 0);
   fcntl(m_tcpSocket, F_SETFL, flags | O_NONBLOCK);
-
-  m_tcpSocket = socket(AF_INET, SOCK_STREAM, 0);  // TCP
-  if (m_tcpSocket < 0) return false;
 
   m_tcpServer.sin_family = AF_INET;
   m_tcpServer.sin_port = htons(80);
