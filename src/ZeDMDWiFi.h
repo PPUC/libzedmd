@@ -28,6 +28,7 @@ class ZeDMDWiFi : public ZeDMDComm
   bool SendGetRequest(const std::string& path);
   bool SendPostRequest(const std::string& path, const std::string& data);
   std::string ReceiveResponse();
+  uint8_t ReceiveBytePayload();
 
  private:
   int m_udpSocket = -1;

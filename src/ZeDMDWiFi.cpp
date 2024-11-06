@@ -6,6 +6,8 @@
 #include <netdb.h>
 #include <unistd.h>
 #endif
+#include <fcntl.h>
+
 #include "komihash/komihash.h"
 #include "miniz/miniz.h"
 
@@ -62,6 +64,10 @@ bool ZeDMDWiFi::DoConnect(const char* ip, int port)
     return false;
   }
 
+  // Use non blocking socket for full control.
+  int flags = fcntl(m_tcpSocket, F_GETFL, 0);
+  fcntl(m_tcpSocket, F_SETFL, flags | O_NONBLOCK);
+
   m_tcpSocket = socket(AF_INET, SOCK_STREAM, 0);  // TCP
   if (m_tcpSocket < 0) return false;
 
@@ -85,12 +91,9 @@ bool ZeDMDWiFi::DoConnect(const char* ip, int port)
   }
 
   m_connected = true;
-  SendGetRequest("/get_width");
-  m_width = std::stoi(ReceiveResponse());
-  SendGetRequest("/get_height");
-  m_height = std::stoi(ReceiveResponse());
-  SendGetRequest("/get_s3");
-  m_s3 = (ReceiveResponse() == "1");
+  if (SendGetRequest("/get_width")) m_width = ReceiveBytePayload();
+  if (SendGetRequest("/get_height")) m_height = ReceiveBytePayload();
+  if (SendGetRequest("/get_s3")) m_s3 = (ReceiveBytePayload() == 1);
 
   return true;
 }
@@ -145,12 +148,64 @@ std::string ZeDMDWiFi::ReceiveResponse()
   std::string response;
   int bytesReceived;
 
-  while ((bytesReceived = recv(m_tcpSocket, buffer, sizeof(buffer), 0)) > 0)
+  while (true)
   {
-    response.append(buffer, bytesReceived);
+    bytesReceived = recv(m_tcpSocket, buffer, sizeof(buffer), 0);
+
+    if (bytesReceived > 0)
+    {
+      response.append(buffer, bytesReceived);
+    }
+    else if (bytesReceived == 0)
+    {
+      // Connection closed by the server
+      break;
+    }
+    else if (errno == EAGAIN || errno == EWOULDBLOCK)
+    {
+      // No data available yet, we could sleep for a while or break
+      break;
+    }
+    else
+    {
+      // std::cerr << "recv failed: " << strerror(errno) << std::endl;
+      break;
+    }
   }
 
   return response;
+}
+
+uint8_t ZeDMDWiFi::ReceiveBytePayload()
+{
+  std::string response = ReceiveResponse();
+
+  size_t headerEnd = response.find("\r\n\r\n");
+  if (headerEnd == std::string::npos)
+  {
+    // std::cerr << "Invalid HTTP response (no headers found)." << std::endl;
+    return 0;  // Or another error code
+  }
+
+  // The payload starts after "\r\n\r\n"
+  std::string payload = response.substr(headerEnd + 3);
+
+  // Convert payload to an integer
+  try
+  {
+    uint8_t value = std::stoi(payload);
+    return value;
+  }
+  catch (const std::invalid_argument& e)
+  {
+    // std::cerr << "Invalid integer payload: " << e.what() << std::endl;
+    return 0;  // Or another error code
+  }
+  catch (const std::out_of_range& e)
+  {
+    // std::cerr << "Integer out of range: " << e.what() << std::endl;
+    return 0;  // Or another error code
+  }
 }
 
 bool ZeDMDWiFi::IsConnected() { return m_connected; }
