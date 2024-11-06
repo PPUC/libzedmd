@@ -111,7 +111,7 @@ bool ZeDMDWiFi::openTcpConnection()
   if (m_tcpSocket < 0) return false;
 
 #if defined(_WIN32) || defined(_WIN64)
-  DWORD timeout = timeoutMs;
+  DWORD timeout = 3000;  // 3 seconds
   setsockopt(m_tcpSocket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout));
   setsockopt(m_tcpSocket, SOL_SOCKET, SO_SNDTIMEO, (const char*)&timeout, sizeof(timeout));
 #else
