@@ -7,6 +7,7 @@
 #include <unistd.h>
 #endif
 #include <fcntl.h>
+#include <poll.h>
 
 #include "komihash/komihash.h"
 #include "miniz/miniz.h"
@@ -146,6 +147,25 @@ std::string ZeDMDWiFi::ReceiveResponse()
 {
   char buffer[1024];
   std::string response;
+
+  // m_tcpSocket is configured to be non blocking. The ESP32 might be too slow and recv() might be called before the
+  // first byte of the response is available. So we need to add manual timeout implementation for the first byte here.
+  struct pollfd fds;
+  fds.fd = m_tcpSocket;
+  fds.events = POLLIN;  // Wait for data to be available to read
+
+  // Initial wait for the first byte
+  int pollResult = poll(&fds, 1, 5000);  // 5000 ms (5-second) timeout
+
+  if (pollResult == 0)
+  {
+    return "";  // Empty response on timeout
+  }
+  else if (pollResult < 0)
+  {
+    return "";  // Empty response on poll failure
+  }
+
   int bytesReceived;
 
   while (true)
