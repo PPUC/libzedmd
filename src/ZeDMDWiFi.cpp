@@ -110,10 +110,16 @@ bool ZeDMDWiFi::openTcpConnection()
   m_tcpSocket = socket(AF_INET, SOCK_STREAM, 0);  // TCP
   if (m_tcpSocket < 0) return false;
 
+#if defined(_WIN32) || defined(_WIN64)
+  DWORD timeout = timeoutMs;
+  setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout));
+  setsockopt(socket, SOL_SOCKET, SO_SNDTIMEO, (const char*)&timeout, sizeof(timeout));
+#else
   struct timeval timeout;
   timeout.tv_sec = 3;   // 3 seconds
   timeout.tv_usec = 0;  // 0 microseconds
   setsockopt(m_tcpSocket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+#endif
 
   if (m_tcpServer.sin_addr.s_addr == INADDR_NONE ||
       connect(m_tcpSocket, (struct sockaddr*)&m_tcpServer, sizeof(m_tcpServer)) < 0)
