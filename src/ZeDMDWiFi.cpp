@@ -63,37 +63,22 @@ bool ZeDMDWiFi::DoConnect(const char* ip, int port)
     return false;
   }
 
-  m_tcpSocket = socket(AF_INET, SOCK_STREAM, 0);  // TCP
-  if (m_tcpSocket < 0) return false;
-
-struct timeval timeout;
-timeout.tv_sec = 3;  // 3 seconds
-timeout.tv_usec = 0; // 0 microseconds
-setsockopt(m_tcpSocket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+  m_connected = true;
 
   m_tcpServer.sin_family = AF_INET;
   m_tcpServer.sin_port = htons(80);
   m_tcpServer.sin_addr.s_addr = inet_addr(ip);
 
-  if (m_tcpServer.sin_addr.s_addr == INADDR_NONE)
-  {
-#if defined(_WIN32) || defined(_WIN64)
-    if (m_tcpSocket >= 0) closesocket(m_tcpSocket);
-    if (m_udpSocket >= 0) closesocket(m_udpSocket);
-#else
-    if (m_tcpSocket >= 0) close(m_tcpSocket);
-    if (m_udpSocket >= 0) close(m_udpSocket);
-#endif
-    m_tcpSocket = -1;
-    m_udpSocket = -1;
+  // For whatever reason, the response of the first request could not be read. So we ask for the version string before
+  // anything else.
+  SendGetRequest("/get_version");
 
-    return false;
-  }
+  if (SendGetRequest("/get_width")) m_width = (uint16_t)ReceiveIntegerPayload();
+  if (SendGetRequest("/get_height")) m_height = (uint16_t)ReceiveIntegerPayload();
+  if (SendGetRequest("/get_s3")) m_s3 = (ReceiveIntegerPayload() == 1);
 
-  m_connected = true;
-  if (SendGetRequest("/get_width")) m_width = ReceiveBytePayload();
-  if (SendGetRequest("/get_height")) m_height = ReceiveBytePayload();
-  if (SendGetRequest("/get_s3")) m_s3 = (ReceiveBytePayload() == 1);
+  m_zoneWidth = m_width / 16;
+  m_zoneHeight = m_height / 8;
 
   return true;
 }
@@ -114,22 +99,53 @@ void ZeDMDWiFi::Disconnect()
   m_connected = false;
 }
 
+bool ZeDMDWiFi::openTcpConnection()
+{
+#if defined(_WIN32) || defined(_WIN64)
+  if (m_tcpSocket >= 0) closesocket(m_tcpSocket);
+#else
+  if (m_tcpSocket >= 0) close(m_tcpSocket);
+#endif
+
+  m_tcpSocket = socket(AF_INET, SOCK_STREAM, 0);  // TCP
+  if (m_tcpSocket < 0) return false;
+
+  struct timeval timeout;
+  timeout.tv_sec = 3;   // 3 seconds
+  timeout.tv_usec = 0;  // 0 microseconds
+  setsockopt(m_tcpSocket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+
+  if (m_tcpServer.sin_addr.s_addr == INADDR_NONE ||
+      connect(m_tcpSocket, (struct sockaddr*)&m_tcpServer, sizeof(m_tcpServer)) < 0)
+  {
+#if defined(_WIN32) || defined(_WIN64)
+    if (m_tcpSocket >= 0) closesocket(m_tcpSocket);
+#else
+    if (m_tcpSocket >= 0) close(m_tcpSocket);
+#endif
+    m_tcpSocket = -1;
+
+    return false;
+  }
+
+  return true;
+}
+
 bool ZeDMDWiFi::SendGetRequest(const std::string& path)
 {
-  if (!m_connected || connect(m_tcpSocket, (struct sockaddr*)&m_tcpServer, sizeof(m_tcpServer)) < 0) return false;
+  if (!m_connected || !openTcpConnection()) return false;
 
   std::string request = "GET " + path + " HTTP/1.1\r\n";
   request += "Host: " + std::string(inet_ntoa(m_tcpServer.sin_addr)) + "\r\n";
   request += "Connection: close\r\n\r\n";
 
   int sentBytes = send(m_tcpSocket, request.c_str(), request.length(), 0);
-
   return sentBytes == request.length();
 }
 
 bool ZeDMDWiFi::SendPostRequest(const std::string& path, const std::string& data)
 {
-  if (!m_connected || connect(m_tcpSocket, (struct sockaddr*)&m_tcpServer, sizeof(m_tcpServer)) < 0) return false;
+  if (!m_connected || !openTcpConnection()) return false;
 
   std::string request = "POST " + path + " HTTP/1.1\r\n";
   request += "Host: " + std::string(inet_ntoa(m_tcpServer.sin_addr)) + "\r\n";
@@ -177,7 +193,7 @@ std::string ZeDMDWiFi::ReceiveResponse()
   return response;
 }
 
-uint8_t ZeDMDWiFi::ReceiveBytePayload()
+int ZeDMDWiFi::ReceiveIntegerPayload()
 {
   std::string response = ReceiveResponse();
 
@@ -189,12 +205,12 @@ uint8_t ZeDMDWiFi::ReceiveBytePayload()
   }
 
   // The payload starts after "\r\n\r\n"
-  std::string payload = response.substr(headerEnd + 3);
+  std::string payload = response.substr(headerEnd + 4);
 
   // Convert payload to an integer
   try
   {
-    uint8_t value = std::stoi(payload);
+    int value = std::stoi(payload);
     return value;
   }
   catch (const std::invalid_argument& e)

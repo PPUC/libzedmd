@@ -25,10 +25,11 @@ class ZeDMDWiFi : public ZeDMDComm
   bool DoConnect(const char* ip, int port);
   virtual bool StreamBytes(ZeDMDFrame* pFrame);
   virtual void Reset();
+  bool openTcpConnection();
   bool SendGetRequest(const std::string& path);
   bool SendPostRequest(const std::string& path, const std::string& data);
   std::string ReceiveResponse();
-  uint8_t ReceiveBytePayload();
+  int ReceiveIntegerPayload();
 
  private:
   int m_udpSocket = -1;

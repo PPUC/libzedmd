@@ -92,8 +92,8 @@ void ZeDMD::SetFrameSize(uint16_t width, uint16_t height)
   m_romWidth = width;
   m_romHeight = height;
 
-  uint16_t frameWidth = m_pZeDMDComm->GetWidth();
-  uint16_t frameHeight = m_pZeDMDComm->GetHeight();
+  uint16_t frameWidth = GetWidth();
+  uint16_t frameHeight = GetHeight();
   uint8_t size[4];
 
   if ((m_downscaling && (width > frameWidth || height > frameHeight)) ||
@@ -212,15 +212,7 @@ void ZeDMD::DisablePreDownscaling() { m_downscaling = false; }
 void ZeDMD::EnablePreUpscaling()
 {
   m_upscaling = true;
-  m_hd = false;
-  if (m_usb)
-  {
-    m_hd = (m_pZeDMDComm->GetWidth() == 256);
-  }
-  else if (m_wifi)
-  {
-    m_hd = (m_pZeDMDWiFi->GetWidth() == 256);
-  }
+  m_hd = (GetWidth() == 256);
 }
 
 void ZeDMD::DisablePreUpscaling() { m_upscaling = false; }
@@ -286,6 +278,8 @@ bool ZeDMD::OpenWiFi(const char* ip, int port)
     m_pScaledFrameBuffer = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
     m_pPlanes = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
     m_pRgb565Buffer = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 2);
+
+    m_hd = (m_pZeDMDWiFi->GetWidth() == 256);
 
     m_pZeDMDWiFi->Run();
   }
@@ -702,8 +696,8 @@ int ZeDMD::Scale(uint8_t* pScaledFrame, uint8_t* pFrame, uint8_t bytes, uint16_t
   uint8_t bits = bytes * 8;
   uint8_t xoffset = 0;
   uint8_t yoffset = 0;
-  uint16_t frameWidth = m_pZeDMDComm->GetWidth();
-  uint16_t frameHeight = m_pZeDMDComm->GetHeight();
+  uint16_t frameWidth = GetWidth();
+  uint16_t frameHeight = GetHeight();
   int bufferSize = m_romWidth * m_romHeight * bytes;
   uint8_t scale = GetScaleMode(frameWidth, frameHeight, width, height, &xoffset, &yoffset);
 
