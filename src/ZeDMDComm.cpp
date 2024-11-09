@@ -257,9 +257,10 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
       }
 
       uint64_t hash = komihash(zone, m_zoneWidth * m_zoneHeight * bytes, 0);
-      if (hash != m_zoneHashes[idx])
+      if (hash != m_zoneHashes[idx] || ++m_zoneRepeatCounters[idx] >= ZEDMD_ZONES_REPEAT_THRESHOLD)
       {
         m_zoneHashes[idx] = hash;
+        m_zoneRepeatCounters[idx] = 0;
 
         buffer[bufferSize++] = idx;
         memcpy(&buffer[bufferSize], zone, m_zoneWidth * m_zoneHeight * bytes);
