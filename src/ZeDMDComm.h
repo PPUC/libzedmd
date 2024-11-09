@@ -25,7 +25,7 @@
 #define ZEDMDCALLBACK
 #endif
 
-#define ZEDMD_ZONES_REPEAT_THRESHOLD 10
+#define ZEDMD_ZONES_REPEAT_THRESHOLD 20
 
 typedef enum
 {
@@ -182,6 +182,8 @@ class ZeDMDComm
   const void* m_logUserData = nullptr;
   uint64_t m_zoneHashes[128] = {0};
   uint8_t m_zoneRepeatCounters[128] = {0};
+  uint8_t m_zoneAllBlack[384] = {0};
+
   int8_t m_streamId = -1;
   int8_t m_lastStreamId = -1;
   uint8_t m_flowControlCounter = 0;

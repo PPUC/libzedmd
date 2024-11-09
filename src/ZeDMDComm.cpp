@@ -245,6 +245,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
     m_delayedFrameMutex.unlock();
     // A delayed frame needs to be complete.
     memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
+    memset(m_zoneRepeatCounters, 0, sizeof(m_zoneRepeatCounters));
   }
 
   for (uint16_t y = 0; y < height; y += m_zoneHeight)
@@ -256,8 +257,10 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
         memcpy(&zone[z * m_zoneWidth * bytes], &data[((y + z) * width + x) * bytes], m_zoneWidth * bytes);
       }
 
-      uint64_t hash = komihash(zone, m_zoneWidth * m_zoneHeight * bytes, 0);
-      if (hash != m_zoneHashes[idx] || ++m_zoneRepeatCounters[idx] >= ZEDMD_ZONES_REPEAT_THRESHOLD)
+      bool black = (memcmp(zone, m_zoneAllBlack, m_zoneWidth * m_zoneHeight * bytes) == 0);
+
+      uint64_t hash = black ? 0 : komihash(zone, m_zoneWidth * m_zoneHeight * bytes, 0);
+      if (black || hash != m_zoneHashes[idx] || ++m_zoneRepeatCounters[idx] >= ZEDMD_ZONES_REPEAT_THRESHOLD)
       {
         m_zoneHashes[idx] = hash;
         m_zoneRepeatCounters[idx] = 0;
