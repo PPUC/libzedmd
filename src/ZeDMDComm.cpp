@@ -260,19 +260,27 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
       bool black = (memcmp(zone, m_zoneAllBlack, m_zoneWidth * m_zoneHeight * bytes) == 0);
 
       uint64_t hash = black ? 0 : komihash(zone, m_zoneWidth * m_zoneHeight * bytes, 0);
-      if (black || hash != m_zoneHashes[idx] || ++m_zoneRepeatCounters[idx] >= ZEDMD_ZONES_REPEAT_THRESHOLD)
+      if (hash != m_zoneHashes[idx] || ++m_zoneRepeatCounters[idx] >= ZEDMD_ZONES_REPEAT_THRESHOLD)
       {
         m_zoneHashes[idx] = hash;
         m_zoneRepeatCounters[idx] = 0;
 
-        buffer[bufferSize++] = idx;
-        memcpy(&buffer[bufferSize], zone, m_zoneWidth * m_zoneHeight * bytes);
-        bufferSize += m_zoneWidth * m_zoneHeight * bytes;
-
-        if (bufferSize >= zonesBytesLimit)
+        if (black)
         {
-          QueueCommand(command, buffer, bufferSize, m_streamId, delayed);
-          bufferSize = 0;
+          // In case of a full black zone, just send the zone index ID and add 128.
+          buffer[bufferSize++] = idx + 128;
+        }
+        else
+        {
+          buffer[bufferSize++] = idx;
+          memcpy(&buffer[bufferSize], zone, m_zoneWidth * m_zoneHeight * bytes);
+          bufferSize += m_zoneWidth * m_zoneHeight * bytes;
+
+          if (bufferSize >= zonesBytesLimit)
+          {
+            QueueCommand(command, buffer, bufferSize, m_streamId, delayed);
+            bufferSize = 0;
+          }
         }
       }
       idx++;

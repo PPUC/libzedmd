@@ -271,10 +271,12 @@ bool ZeDMDWiFi::StreamBytes(ZeDMDFrame* pFrame)
     // If RGB565 streaming is active; the frame only needs 2 bytes per color
     uint8_t bytesPerPixel = (pFrame->command == 5) ? 2 : 3;
 
+    int numColoredZones = pFrame->size / (m_zoneWidth * m_zoneHeight * bytesPerPixel + 1);
+    int numBlackZones = pFrame->size - (numColoredZones * (m_zoneWidth * m_zoneHeight * bytesPerPixel + 1));
+
     uint8_t data[ZEDMD_WIFI_ZONES_BYTES_LIMIT] = {0};
     data[0] = pFrame->command;  // command
-    data[1] =
-        (uint8_t)(128 | (pFrame->size / (m_zoneWidth * m_zoneHeight * bytesPerPixel + 1)));  // compressed + num zones
+    data[1] = (uint8_t)(128 | (numColoredZones + numBlackZones));  // compressed + num zones
 
     mz_ulong compressedSize = mz_compressBound(pFrame->size);
     int status = mz_compress(&data[4], &compressedSize, pFrame->data, pFrame->size);
