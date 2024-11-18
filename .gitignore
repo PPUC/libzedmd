@@ -2,7 +2,7 @@
 /build/
 /out/
 /.vs/
-/.vscode/
+/Debug
 CMakeSettings.json
 external
 third-party/runtime-libs
