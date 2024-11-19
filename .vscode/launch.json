@@ -2,17 +2,29 @@
     "version": "0.2.0",
     "configurations": [
       {
+        "name": "(lldb) Launch",
+        "type": "cppdbg",
+        "request": "launch",
+        "program": "${workspaceFolder}/build/zedmd_test",
+        "args": [],
+        "stopAtEntry": false,
+        "cwd": "${workspaceFolder}",
+        "environment": [],
+        "externalConsole": false,
+        "MIMode": "lldb"
+      },
+      {
         "name": "(gdb) Launch",
         "type": "cppdbg",
         "request": "launch",
-        "program": "${workspaceFolder}/build/zedmd_test", // Change to your compiled program path
+        "program": "${workspaceFolder}/build/zedmd_test",
         "args": [],
         "stopAtEntry": false,
         "cwd": "${workspaceFolder}",
         "environment": [],
         "externalConsole": false,
         "MIMode": "gdb",
-        "miDebuggerPath": "/usr/local/bin/gdb", // Update path if necessary
+        "miDebuggerPath": "/usr/local/bin/gdb",
         "setupCommands": [
           {
             "description": "Enable pretty-printing for gdb",
