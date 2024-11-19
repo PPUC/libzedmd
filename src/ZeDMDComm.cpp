@@ -219,13 +219,14 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
 
   if (m_zonesBytesLimit)
   {
-    // Find the limit as integer that is closest to m_zonesBytesLimit.
+    // For WiFi find the limit as integer that is closest to m_zonesBytesLimit.
     // For example 1540 for RGB888 HD.
     uint8_t zones = m_zonesBytesLimit / zoneBytesTotal;
     zonesBytesLimit = zones * zoneBytesTotal;
   }
   else
   {
+    // For USB send one row (16 zones).
     zonesBytesLimit = width * m_zoneHeight * bytes + 16;
   }
 
@@ -461,10 +462,13 @@ bool ZeDMDComm::Connect(char* pDevice)
       // QinHeng Electronics USB Single Serial, hopefully an ESP32 S3.
       m_s3 = true;
     }
-    sp_free_port(m_pSerialPort);
-    m_pSerialPort = nullptr;
+    else
+    {
+      sp_free_port(m_pSerialPort);
+      m_pSerialPort = nullptr;
 
-    return false;
+      return false;
+    }
   }
   else if (SP_TRANSPORT_NATIVE != transport)
   {
@@ -646,7 +650,7 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
     data = (uint8_t*)malloc(CTRL_CHARS_HEADER_SIZE + 3 + compressedSize);
     memcpy(data, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
     data[CTRL_CHARS_HEADER_SIZE] = pFrame->command;
-    mz_compress(data + CTRL_CHARS_HEADER_SIZE + 3, &compressedSize, pFrame->data, pFrame->size);
+    tinfl_decompress_mem_to_mem() mz_compress(data + CTRL_CHARS_HEADER_SIZE + 3, &compressedSize, pFrame->data, pFrame->size);
     size = CTRL_CHARS_HEADER_SIZE + 3 + compressedSize;
     data[CTRL_CHARS_HEADER_SIZE + 1] = (uint8_t)(compressedSize >> 8 & 0xFF);
     data[CTRL_CHARS_HEADER_SIZE + 2] = (uint8_t)(compressedSize & 0xFF);
@@ -675,7 +679,7 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
 
     while (position < size && success)
     {
-      sp_nonblocking_write(m_pSerialPort, data + position,
+      sp_nonblocking_write(m_pSerialPort, &data[position],
                            ((size - position) < ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE)
                                ? (size - position)
                                : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);

@@ -537,13 +537,9 @@ void ZeDMD::RenderRgb24(uint8_t* pFrame)
   {
     m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::RGB24ZonesStream, m_pPlanes, bufferSize, width, height);
   }
-  else if (m_hd || m_rgb24Streaming || m_streaming)
-  {
-    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB24ZonesStream, m_pPlanes, bufferSize, width, height);
-  }
   else if (m_usb)
   {
-    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB24, m_pPlanes, bufferSize);
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB24ZonesStream, m_pPlanes, bufferSize, width, height);
   }
 }
 
