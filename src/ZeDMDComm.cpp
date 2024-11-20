@@ -464,12 +464,13 @@ bool ZeDMDComm::Connect(char* pDevice)
     }
     else if (0x1a86 == usb_vid && 0x55d3 == usb_pid)
     {
-      // QinHeng Electronics USB Single Serial, too slow for ZeDMD.
-      Log("ZeDMD candidate found: %sdevice=%s, but the wrong USB port is used", pDevice);
-      sp_free_port(m_pSerialPort);
-      m_pSerialPort = nullptr;
-
-      return false;
+      // QinHeng Electronics USB Single Serial, hopefully an ESP32 S3.
+      m_s3 = true;
+    }
+    else if (0x10c4 == usb_vid && 0xea60 == usb_pid)
+    {
+      // CP210x, could be an ESP32.
+      // On Wndows, libserialport reports SP_TRANSPORT_USB, on Linux and macOS SP_TRANSPORT_NATIVE is reported and handled below.
     }
     else
     {
@@ -481,6 +482,7 @@ bool ZeDMDComm::Connect(char* pDevice)
   }
   else if (SP_TRANSPORT_NATIVE != transport)
   {
+    // Bluetooth could not be a ZeDMD.
     sp_free_port(m_pSerialPort);
     m_pSerialPort = nullptr;
 
