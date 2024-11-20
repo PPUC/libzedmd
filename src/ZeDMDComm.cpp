@@ -457,10 +457,19 @@ bool ZeDMDComm::Connect(char* pDevice)
       return false;
     }
 
-    if (0x1a86 == usb_vid && 0x55d3 == usb_pid)
+    if (0x303a == usb_vid && 0x1001 == usb_pid)
     {
-      // QinHeng Electronics USB Single Serial, hopefully an ESP32 S3.
+      // USB JTAG/serial debug unit, hopefully an ESP32 S3.
       m_s3 = true;
+    }
+    else if (0x1a86 == usb_vid && 0x55d3 == usb_pid)
+    {
+      // QinHeng Electronics USB Single Serial, too slow for ZeDMD.
+      Log("ZeDMD candidate found: %sdevice=%s, but the wrong USB port is used", pDevice);
+      sp_free_port(m_pSerialPort);
+      m_pSerialPort = nullptr;
+
+      return false;
     }
     else
     {
@@ -650,7 +659,7 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
     data = (uint8_t*)malloc(CTRL_CHARS_HEADER_SIZE + 3 + compressedSize);
     memcpy(data, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
     data[CTRL_CHARS_HEADER_SIZE] = pFrame->command;
-    tinfl_decompress_mem_to_mem() mz_compress(data + CTRL_CHARS_HEADER_SIZE + 3, &compressedSize, pFrame->data, pFrame->size);
+    mz_compress(data + CTRL_CHARS_HEADER_SIZE + 3, &compressedSize, pFrame->data, pFrame->size);
     size = CTRL_CHARS_HEADER_SIZE + 3 + compressedSize;
     data[CTRL_CHARS_HEADER_SIZE + 1] = (uint8_t)(compressedSize >> 8 & 0xFF);
     data[CTRL_CHARS_HEADER_SIZE + 2] = (uint8_t)(compressedSize & 0xFF);
