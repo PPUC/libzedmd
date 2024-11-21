@@ -687,7 +687,7 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
     int position = 0;
     success = true;
     m_noReadySignalCounter = 0;
-    const uint8_t writeAtOnce = m_s3 ? ZEDMD_S3_COMM_MAX_SERIAL_WRITE_AT_ONCE : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE;
+    const uint16_t writeAtOnce = m_s3 ? ZEDMD_S3_COMM_MAX_SERIAL_WRITE_AT_ONCE : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE;
 
     while (position < size && success)
     {
