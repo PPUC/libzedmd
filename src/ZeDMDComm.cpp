@@ -268,7 +268,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
 
       // Use "1" as hash for black.
       uint64_t hash = black ? 1 : komihash(zone, zoneBytes, 0);
-      if (hash != m_zoneHashes[idx] || ++m_zoneRepeatCounters[idx] >= ZEDMD_ZONES_REPEAT_THRESHOLD)
+      if (hash != m_zoneHashes[idx] || (m_resendZones && ++m_zoneRepeatCounters[idx] >= ZEDMD_ZONES_REPEAT_THRESHOLD))
       {
         m_zoneHashes[idx] = hash;
         m_zoneRepeatCounters[idx] = 0;
@@ -546,7 +546,7 @@ bool ZeDMDComm::Connect(char* pDevice)
             sp_blocking_read(m_pSerialPort, data, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT) && data[0] == 'R')
         {
           data[0] = ZEDMD_COMM_COMMAND::Chunk;
-          data[1] = ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE / 32;
+          data[1] = (m_s3 ? ZEDMD_S3_COMM_MAX_SERIAL_WRITE_AT_ONCE : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE) / 32;
           sp_nonblocking_write(m_pSerialPort, (void*)CTRL_CHARS_HEADER, 6);
           sp_blocking_write(m_pSerialPort, (void*)data, 2, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
           std::this_thread::sleep_for(std::chrono::milliseconds(4));
@@ -687,13 +687,14 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
     int position = 0;
     success = true;
     m_noReadySignalCounter = 0;
+    const uint8_t writeAtOnce = m_s3 ? ZEDMD_S3_COMM_MAX_SERIAL_WRITE_AT_ONCE : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE;
 
     while (position < size && success)
     {
       sp_nonblocking_write(m_pSerialPort, &data[position],
-                           ((size - position) < ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE)
+                           ((size - position) < writeAtOnce)
                                ? (size - position)
-                               : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
+                               : writeAtOnce);
 
       uint8_t response = 255;
       do
@@ -705,7 +706,7 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
 
       if (response == 'A')
       {
-        position += ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE;
+        position += writeAtOnce;
       }
       else
       {

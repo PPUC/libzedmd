@@ -110,9 +110,10 @@ struct ZeDMDFrame
 };
 
 #define ZEDMD_COMM_BAUD_RATE 921600
-#define ZEDMD_S3_COMM_BAUD_RATE 2000000
-
 #define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 992
+
+#define ZEDMD_S3_COMM_BAUD_RATE 2000000
+#define ZEDMD_S3_COMM_MAX_SERIAL_WRITE_AT_ONCE 992
 
 #define ZEDMD_COMM_SERIAL_READ_TIMEOUT 16
 #define ZEDMD_COMM_SERIAL_WRITE_TIMEOUT 8
@@ -166,6 +167,7 @@ class ZeDMDComm
   uint16_t m_zonesBytesLimit = 0;
   uint8_t m_zoneWidth = 8;
   uint8_t m_zoneHeight = 4;
+  bool m_resendZones = false;
 
  private:
   void Log(const char* format, ...);

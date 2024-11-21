@@ -15,7 +15,11 @@
 class ZeDMDWiFi : public ZeDMDComm
 {
  public:
-  ZeDMDWiFi() : ZeDMDComm() { m_zonesBytesLimit = ZEDMD_WIFI_ZONES_BYTES_LIMIT; }
+  ZeDMDWiFi() : ZeDMDComm()
+  {
+    m_zonesBytesLimit = ZEDMD_WIFI_ZONES_BYTES_LIMIT;
+    m_resendZones = true;
+  }
 
   virtual bool Connect(const char* name_or_ip, int port);
   virtual void Disconnect();
