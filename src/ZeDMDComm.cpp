@@ -356,7 +356,8 @@ bool ZeDMDComm::Connect()
             break;
           }
         }
-        if (!ignored)
+        // Ignore Bluetooth and debug on macOS.
+        if (!ignored && !strstr(pDevice, "tooth") && !strstr(pDevice, "debug"))
         {
           success = Connect(pDevice);
         }
@@ -422,12 +423,50 @@ bool ZeDMDComm::Connect(char* pDevice)
 
   sp_new_config(&m_pSerialPortConfig);
   sp_get_config(m_pSerialPort, m_pSerialPortConfig);
+  enum sp_transport transport = sp_get_port_transport(m_pSerialPort);
 
-  const char* manufacturer = sp_get_port_usb_manufacturer(m_pSerialPort);
-  if (manufacturer && strcmp(manufacturer, "Espressif") == 0)
+  if (SP_TRANSPORT_USB == transport)
   {
-    // Native USB connection, hopefully an ESP32 S3.
-    m_s3 = true;
+    int usb_vid, usb_pid;
+    result = sp_get_port_usb_vid_pid(m_pSerialPort, &usb_vid, &usb_pid);
+    if (result != SP_OK)
+    {
+      sp_free_port(m_pSerialPort);
+      m_pSerialPort = nullptr;
+
+      return false;
+    }
+
+    if (0x303a == usb_vid && 0x1001 == usb_pid)
+    {
+      // USB JTAG/serial debug unit, hopefully an ESP32 S3.
+      m_s3 = true;
+    }
+    else if (0x1a86 == usb_vid && 0x55d3 == usb_pid)
+    {
+      // QinHeng Electronics USB Single Serial, hopefully an ESP32 S3.
+      m_s3 = true;
+    }
+    else if (0x10c4 == usb_vid && 0xea60 == usb_pid)
+    {
+      // CP210x, could be an ESP32.
+      // On Wndows, libserialport reports SP_TRANSPORT_USB, on Linux and macOS SP_TRANSPORT_NATIVE is reported and handled below.
+    }
+    else
+    {
+      sp_free_port(m_pSerialPort);
+      m_pSerialPort = nullptr;
+
+      return false;
+    }
+  }
+  else if (SP_TRANSPORT_NATIVE != transport)
+  {
+    // Bluetooth could not be a ZeDMD.
+    sp_free_port(m_pSerialPort);
+    m_pSerialPort = nullptr;
+
+    return false;
   }
 
   sp_set_baudrate(m_pSerialPort, m_s3 ? ZEDMD_S3_COMM_BAUD_RATE : ZEDMD_COMM_BAUD_RATE);
@@ -440,20 +479,34 @@ bool ZeDMDComm::Connect(char* pDevice)
 
   uint8_t data[8] = {0};
 
-  while (sp_input_waiting(m_pSerialPort) > 0)
-  {
-    sp_nonblocking_read(m_pSerialPort, data, 8);
-  }
-
-  std::this_thread::sleep_for(std::chrono::milliseconds(200));
-
   data[0] = ZEDMD_COMM_COMMAND::Handshake;
   sp_nonblocking_write(m_pSerialPort, (void*)CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
   sp_blocking_write(m_pSerialPort, (void*)data, 1, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
 
   std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
-  if (sp_blocking_read(m_pSerialPort, data, 8, ZEDMD_COMM_SERIAL_READ_TIMEOUT))
+  auto handshake_start_time = std::chrono::steady_clock::now();
+  std::chrono::milliseconds duration(ZEDMD_COMM_SERIAL_READ_TIMEOUT);
+
+  // Sometimes, the driver seems to initilize the buffer with "garbage".
+  // So we read until the first expected char occures or a timeout is reached.
+  while (sp_input_waiting(m_pSerialPort) > 0)
+  {
+    sp_nonblocking_read(m_pSerialPort, data, 1);
+    if (CTRL_CHARS_HEADER[0] == data[0])
+    {
+      break;
+    }
+
+    auto current_time = std::chrono::steady_clock::now();
+    if (current_time - handshake_start_time >= duration)
+    {
+      Disconnect();
+      return false;
+    }
+  }
+
+  if (sp_blocking_read(m_pSerialPort, &data[1], 7, ZEDMD_COMM_SERIAL_READ_TIMEOUT))
   {
     if (!memcmp(data, CTRL_CHARS_HEADER, 4))
     {
