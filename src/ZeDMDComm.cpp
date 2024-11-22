@@ -268,7 +268,8 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
 
       // Use "1" as hash for black.
       uint64_t hash = black ? 1 : komihash(zone, zoneBytes, 0);
-      if (hash != m_zoneHashes[idx] || (m_resendZones && ++m_zoneRepeatCounters[idx] >= ZEDMD_ZONES_REPEAT_THRESHOLD))
+      if (hash != m_zoneHashes[idx] ||
+          ((black || m_resendZones) && ++m_zoneRepeatCounters[idx] >= ZEDMD_ZONES_REPEAT_THRESHOLD))
       {
         m_zoneHashes[idx] = hash;
         m_zoneRepeatCounters[idx] = 0;
@@ -283,12 +284,12 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
           buffer[bufferPosition++] = idx;
           memcpy(&buffer[bufferPosition], zone, zoneBytes);
           bufferPosition += zoneBytes;
+        }
 
-          if (bufferPosition > bufferSizeThreshold)
-          {
-            QueueCommand(command, buffer, bufferPosition, m_streamId, delayed);
-            bufferPosition = 0;
-          }
+        if (bufferPosition > bufferSizeThreshold)
+        {
+          QueueCommand(command, buffer, bufferPosition, m_streamId, delayed);
+          bufferPosition = 0;
         }
       }
       idx++;
@@ -470,7 +471,8 @@ bool ZeDMDComm::Connect(char* pDevice)
     else if (0x10c4 == usb_vid && 0xea60 == usb_pid)
     {
       // CP210x, could be an ESP32.
-      // On Wndows, libserialport reports SP_TRANSPORT_USB, on Linux and macOS SP_TRANSPORT_NATIVE is reported and handled below.
+      // On Wndows, libserialport reports SP_TRANSPORT_USB, on Linux and macOS SP_TRANSPORT_NATIVE is reported and
+      // handled below.
     }
     else
     {
@@ -692,9 +694,7 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
     while (position < size && success)
     {
       sp_nonblocking_write(m_pSerialPort, &data[position],
-                           ((size - position) < writeAtOnce)
-                               ? (size - position)
-                               : writeAtOnce);
+                           ((size - position) < writeAtOnce) ? (size - position) : writeAtOnce);
 
       uint8_t response = 255;
       do
