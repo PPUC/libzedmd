@@ -25,7 +25,7 @@
 #define ZEDMDCALLBACK
 #endif
 
-#define ZEDMD_ZONES_REPEAT_THRESHOLD 20
+#define ZEDMD_ZONES_REPEAT_THRESHOLD 30
 
 typedef enum
 {
@@ -51,7 +51,6 @@ typedef enum
   GetVersionBytes = 0x20,
   GetResolution = 0x21,
 
-  RGB24 = 0x03,
   RGB24ZonesStream = 0x04,
   RGB565ZonesStream = 0x05,
   Gray2 = 0x08,
@@ -111,17 +110,17 @@ struct ZeDMDFrame
 };
 
 #define ZEDMD_COMM_BAUD_RATE 921600
-#define ZEDMD_S3_COMM_BAUD_RATE 8000000
-
 #if defined(_WIN32) || defined(_WIN64)
 #define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 1888
-#define ZEDMD_COMM_SERIAL_READ_TIMEOUT 16
-#define ZEDMD_COMM_SERIAL_WRITE_TIMEOUT 8
 #else
-#define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 1888
+#define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 992
+#endif
+
+#define ZEDMD_S3_COMM_BAUD_RATE 2000000
+#define ZEDMD_S3_COMM_MAX_SERIAL_WRITE_AT_ONCE 992
+
 #define ZEDMD_COMM_SERIAL_READ_TIMEOUT 16
 #define ZEDMD_COMM_SERIAL_WRITE_TIMEOUT 8
-#endif
 
 #define ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT 10
 #define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX 8
@@ -172,6 +171,7 @@ class ZeDMDComm
   uint16_t m_zonesBytesLimit = 0;
   uint8_t m_zoneWidth = 8;
   uint8_t m_zoneHeight = 4;
+  bool m_resendZones = false;
 
  private:
   void Log(const char* format, ...);

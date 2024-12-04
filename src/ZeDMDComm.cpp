@@ -210,18 +210,23 @@ void ZeDMDComm::QueueCommand(char command) { QueueCommand(command, nullptr, 0); 
 void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t width, uint16_t height, uint8_t bytes)
 {
   uint8_t* buffer = (uint8_t*)malloc(256 * 16 * bytes + 16);
-  uint16_t bufferSize = 0;
+  uint16_t bufferPosition = 0;
   uint8_t idx = 0;
   uint8_t* zone = (uint8_t*)malloc(16 * 8 * bytes);
   uint16_t zonesBytesLimit = 0;
+  const uint16_t zoneBytes = m_zoneWidth * m_zoneHeight * bytes;
+  const uint16_t zoneBytesTotal = zoneBytes + 1;
 
   if (m_zonesBytesLimit)
   {
-    uint8_t zones = m_zonesBytesLimit / (m_zoneWidth * m_zoneHeight * bytes + 1);
-    zonesBytesLimit = zones * (m_zoneWidth * m_zoneHeight * bytes + 1);
+    // For WiFi find the limit as integer that is closest to m_zonesBytesLimit.
+    // For example 1540 for RGB888 HD.
+    uint8_t zones = m_zonesBytesLimit / zoneBytesTotal;
+    zonesBytesLimit = zones * zoneBytesTotal;
   }
   else
   {
+    // For USB send one row (16 zones).
     zonesBytesLimit = width * m_zoneHeight * bytes + 16;
   }
 
@@ -248,6 +253,8 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
     memset(m_zoneRepeatCounters, 0, sizeof(m_zoneRepeatCounters));
   }
 
+  const uint16_t bufferSizeThreshold = zonesBytesLimit - zoneBytesTotal;
+
   for (uint16_t y = 0; y < height; y += m_zoneHeight)
   {
     for (uint16_t x = 0; x < width; x += m_zoneWidth)
@@ -257,10 +264,12 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
         memcpy(&zone[z * m_zoneWidth * bytes], &data[((y + z) * width + x) * bytes], m_zoneWidth * bytes);
       }
 
-      bool black = (memcmp(zone, m_zoneAllBlack, m_zoneWidth * m_zoneHeight * bytes) == 0);
+      bool black = (memcmp(zone, m_zoneAllBlack, zoneBytes) == 0);
 
-      uint64_t hash = black ? 0 : komihash(zone, m_zoneWidth * m_zoneHeight * bytes, 0);
-      if (hash != m_zoneHashes[idx] || ++m_zoneRepeatCounters[idx] >= ZEDMD_ZONES_REPEAT_THRESHOLD)
+      // Use "1" as hash for black.
+      uint64_t hash = black ? 1 : komihash(zone, zoneBytes, 0);
+      if (hash != m_zoneHashes[idx] ||
+          ((black || m_resendZones) && ++m_zoneRepeatCounters[idx] >= ZEDMD_ZONES_REPEAT_THRESHOLD))
       {
         m_zoneHashes[idx] = hash;
         m_zoneRepeatCounters[idx] = 0;
@@ -268,28 +277,28 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
         if (black)
         {
           // In case of a full black zone, just send the zone index ID and add 128.
-          buffer[bufferSize++] = idx + 128;
+          buffer[bufferPosition++] = idx + 128;
         }
         else
         {
-          buffer[bufferSize++] = idx;
-          memcpy(&buffer[bufferSize], zone, m_zoneWidth * m_zoneHeight * bytes);
-          bufferSize += m_zoneWidth * m_zoneHeight * bytes;
+          buffer[bufferPosition++] = idx;
+          memcpy(&buffer[bufferPosition], zone, zoneBytes);
+          bufferPosition += zoneBytes;
+        }
 
-          if (bufferSize >= zonesBytesLimit)
-          {
-            QueueCommand(command, buffer, bufferSize, m_streamId, delayed);
-            bufferSize = 0;
-          }
+        if (bufferPosition > bufferSizeThreshold)
+        {
+          QueueCommand(command, buffer, bufferPosition, m_streamId, delayed);
+          bufferPosition = 0;
         }
       }
       idx++;
     }
   }
 
-  if (bufferSize > 0)
+  if (bufferPosition > 0)
   {
-    QueueCommand(command, buffer, bufferSize, m_streamId, delayed);
+    QueueCommand(command, buffer, bufferPosition, m_streamId, delayed);
   }
 
   if (delayed)
@@ -368,7 +377,8 @@ bool ZeDMDComm::Connect()
             break;
           }
         }
-        if (!ignored)
+        // Ignore Bluetooth and debug on macOS.
+        if (!ignored && !strstr(pDevice, "tooth") && !strstr(pDevice, "debug"))
         {
           success = Connect(pDevice);
         }
@@ -434,12 +444,51 @@ bool ZeDMDComm::Connect(char* pDevice)
 
   sp_new_config(&m_pSerialPortConfig);
   sp_get_config(m_pSerialPort, m_pSerialPortConfig);
+  enum sp_transport transport = sp_get_port_transport(m_pSerialPort);
 
-  const char* manufacturer = sp_get_port_usb_manufacturer(m_pSerialPort);
-  if (manufacturer && strcmp(manufacturer, "Espressif") == 0)
+  if (SP_TRANSPORT_USB == transport)
   {
-    // Native USB connection, hopefully an ESP32 S3.
-    m_s3 = true;
+    int usb_vid, usb_pid;
+    result = sp_get_port_usb_vid_pid(m_pSerialPort, &usb_vid, &usb_pid);
+    if (result != SP_OK)
+    {
+      sp_free_port(m_pSerialPort);
+      m_pSerialPort = nullptr;
+
+      return false;
+    }
+
+    if (0x303a == usb_vid && 0x1001 == usb_pid)
+    {
+      // USB JTAG/serial debug unit, hopefully an ESP32 S3.
+      m_s3 = true;
+    }
+    else if (0x1a86 == usb_vid && 0x55d3 == usb_pid)
+    {
+      // QinHeng Electronics USB Single Serial, hopefully an ESP32 S3.
+      m_s3 = true;
+    }
+    else if (0x10c4 == usb_vid && 0xea60 == usb_pid)
+    {
+      // CP210x, could be an ESP32.
+      // On Wndows, libserialport reports SP_TRANSPORT_USB, on Linux and macOS SP_TRANSPORT_NATIVE is reported and
+      // handled below.
+    }
+    else
+    {
+      sp_free_port(m_pSerialPort);
+      m_pSerialPort = nullptr;
+
+      return false;
+    }
+  }
+  else if (SP_TRANSPORT_NATIVE != transport)
+  {
+    // Bluetooth could not be a ZeDMD.
+    sp_free_port(m_pSerialPort);
+    m_pSerialPort = nullptr;
+
+    return false;
   }
 
   sp_set_baudrate(m_pSerialPort, m_s3 ? ZEDMD_S3_COMM_BAUD_RATE : ZEDMD_COMM_BAUD_RATE);
@@ -452,20 +501,34 @@ bool ZeDMDComm::Connect(char* pDevice)
 
   uint8_t data[8] = {0};
 
-  while (sp_input_waiting(m_pSerialPort) > 0)
-  {
-    sp_nonblocking_read(m_pSerialPort, data, 8);
-  }
-
-  std::this_thread::sleep_for(std::chrono::milliseconds(200));
-
   data[0] = ZEDMD_COMM_COMMAND::Handshake;
   sp_nonblocking_write(m_pSerialPort, (void*)CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
   sp_blocking_write(m_pSerialPort, (void*)data, 1, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
 
   std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
-  if (sp_blocking_read(m_pSerialPort, data, 8, ZEDMD_COMM_SERIAL_READ_TIMEOUT))
+  auto handshake_start_time = std::chrono::steady_clock::now();
+  std::chrono::milliseconds duration(ZEDMD_COMM_SERIAL_READ_TIMEOUT);
+
+  // Sometimes, the driver seems to initilize the buffer with "garbage".
+  // So we read until the first expected char occures or a timeout is reached.
+  while (sp_input_waiting(m_pSerialPort) > 0)
+  {
+    sp_nonblocking_read(m_pSerialPort, data, 1);
+    if (CTRL_CHARS_HEADER[0] == data[0])
+    {
+      break;
+    }
+
+    auto current_time = std::chrono::steady_clock::now();
+    if (current_time - handshake_start_time >= duration)
+    {
+      Disconnect();
+      return false;
+    }
+  }
+
+  if (sp_blocking_read(m_pSerialPort, &data[1], 7, ZEDMD_COMM_SERIAL_READ_TIMEOUT))
   {
     if (!memcmp(data, CTRL_CHARS_HEADER, 4))
     {
@@ -485,7 +548,7 @@ bool ZeDMDComm::Connect(char* pDevice)
             sp_blocking_read(m_pSerialPort, data, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT) && data[0] == 'R')
         {
           data[0] = ZEDMD_COMM_COMMAND::Chunk;
-          data[1] = ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE / 32;
+          data[1] = (m_s3 ? ZEDMD_S3_COMM_MAX_SERIAL_WRITE_AT_ONCE : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE) / 32;
           sp_nonblocking_write(m_pSerialPort, (void*)CTRL_CHARS_HEADER, 6);
           sp_blocking_write(m_pSerialPort, (void*)data, 2, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
           std::this_thread::sleep_for(std::chrono::milliseconds(4));
@@ -626,13 +689,12 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
     int position = 0;
     success = true;
     m_noReadySignalCounter = 0;
+    const uint16_t writeAtOnce = m_s3 ? ZEDMD_S3_COMM_MAX_SERIAL_WRITE_AT_ONCE : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE;
 
     while (position < size && success)
     {
-      sp_nonblocking_write(m_pSerialPort, data + position,
-                           ((size - position) < ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE)
-                               ? (size - position)
-                               : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
+      sp_nonblocking_write(m_pSerialPort, &data[position],
+                           ((size - position) < writeAtOnce) ? (size - position) : writeAtOnce);
 
       uint8_t response = 255;
       do
@@ -644,7 +706,7 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
 
       if (response == 'A')
       {
-        position += ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE;
+        position += writeAtOnce;
       }
       else
       {
