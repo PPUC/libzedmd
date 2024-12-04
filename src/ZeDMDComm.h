@@ -172,6 +172,7 @@ class ZeDMDComm
   uint8_t m_zoneWidth = 8;
   uint8_t m_zoneHeight = 4;
   bool m_resendZones = false;
+  std::atomic<bool> m_stopFlag;
 
  private:
   void Log(const char* format, ...);
