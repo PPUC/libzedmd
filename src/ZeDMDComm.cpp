@@ -416,7 +416,6 @@ void ZeDMDComm::Disconnect()
 #if !(                                                                                                                \
     (defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \
     defined(__ANDROID__))
-  sp_set_config(m_pSerialPort, m_pSerialPortConfig);
   sp_free_config(m_pSerialPortConfig);
   m_pSerialPortConfig = nullptr;
 
@@ -432,7 +431,9 @@ bool ZeDMDComm::Connect(char* pDevice)
     (defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \
     defined(__ANDROID__))
   enum sp_return result = sp_get_port_by_name(pDevice, &m_pSerialPort);
-  if (result != SP_OK)
+  enum sp_transport transport = sp_get_port_transport(m_pSerialPort);
+  // Ignore SP_TRANSPORT_BLUETOOTH.
+  if (result != SP_OK || SP_TRANSPORT_BLUETOOTH == transport)
   {
     return false;
   }
@@ -448,7 +449,6 @@ bool ZeDMDComm::Connect(char* pDevice)
 
   sp_new_config(&m_pSerialPortConfig);
   sp_get_config(m_pSerialPort, m_pSerialPortConfig);
-  enum sp_transport transport = sp_get_port_transport(m_pSerialPort);
 
   if (SP_TRANSPORT_USB == transport)
   {
