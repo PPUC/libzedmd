@@ -367,6 +367,10 @@ bool ZeDMDComm::Connect()
     {
       for (int i = 0; ppPorts[i]; i++)
       {
+        enum sp_transport transport = sp_get_port_transport(ppPorts[i]);
+        // Ignore SP_TRANSPORT_BLUETOOTH.
+        if (SP_TRANSPORT_USB != transport && SP_TRANSPORT_NATIVE != transport) continue;
+
         char* pDevice = sp_get_port_name(ppPorts[i]);
         bool ignored = false;
         for (int j = 0; j < m_ignoredDevicesCounter; j++)
