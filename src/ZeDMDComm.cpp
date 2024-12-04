@@ -623,9 +623,9 @@ void ZeDMDComm::Reset()
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
     sp_set_rts(m_pSerialPort, SP_RTS_OFF);
     sp_set_dtr(m_pSerialPort, SP_DTR_OFF);
-    // At least under Linux we need to wait very long until the USB JTAG port
-    // re-appears.
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    // At least under Linux and macOs we need to wait very long until the
+    // USB JTAG port re-appears.
+    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
   }
   else
   {
