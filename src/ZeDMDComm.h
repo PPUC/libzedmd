@@ -183,7 +183,7 @@ class ZeDMDComm
   const void* m_logUserData = nullptr;
   uint64_t m_zoneHashes[128] = {0};
   uint8_t m_zoneRepeatCounters[128] = {0};
-  uint8_t m_zoneAllBlack[384] = {0};
+  const uint8_t m_allBlack[49152] = {0};
 
   int8_t m_streamId = -1;
   int8_t m_lastStreamId = -1;

@@ -276,6 +276,7 @@ bool ZeDMDWiFi::StreamBytes(ZeDMDFrame* pFrame)
 
     uint8_t data[ZEDMD_WIFI_ZONES_BYTES_LIMIT] = {0};
     data[0] = pFrame->command;  // command
+    // In case of a mostly black screen we can get 128 zones. That is handled in ZeDMD firmware.
     data[1] = (uint8_t)(128 | (numColoredZones + numBlackZones));  // compressed + num zones
 
     mz_ulong compressedSize = mz_compressBound(pFrame->size);

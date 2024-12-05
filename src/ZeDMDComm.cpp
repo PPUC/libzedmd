@@ -214,6 +214,14 @@ void ZeDMDComm::QueueCommand(char command) { QueueCommand(command, nullptr, 0); 
 
 void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t width, uint16_t height, uint8_t bytes)
 {
+  if (memcmp(data, m_allBlack, size) == 0) {
+    this->QueueCommand(ZEDMD_COMM_COMMAND::ClearScreen);
+    // Use "1" as hash for black.
+    memset(m_zoneHashes, 1, sizeof(m_zoneHashes));
+    memset(m_zoneRepeatCounters, 0, sizeof(m_zoneRepeatCounters));
+    return;
+  }
+
   uint8_t* buffer = (uint8_t*)malloc(256 * 16 * bytes + 16);
   uint16_t bufferPosition = 0;
   uint8_t idx = 0;
@@ -269,7 +277,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
         memcpy(&zone[z * m_zoneWidth * bytes], &data[((y + z) * width + x) * bytes], m_zoneWidth * bytes);
       }
 
-      bool black = (memcmp(zone, m_zoneAllBlack, zoneBytes) == 0);
+      bool black = (memcmp(zone, m_allBlack, zoneBytes) == 0);
 
       // Use "1" as hash for black.
       uint64_t hash = black ? 1 : komihash(zone, zoneBytes, 0);
