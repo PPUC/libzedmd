@@ -257,7 +257,7 @@ bool ZeDMDWiFi::StreamBytes(ZeDMDFrame* pFrame)
       }
 
 #if defined(_WIN32) || defined(_WIN64)
-      sendto(m_udpSocket, (const char*)data, pFrame->size + 4, 0, (struct sockaddr*)&m_udpServer, sizeof(m_udpServer));
+      sendto(m_udpSocket, (const char*)data, frameData.size + 4, 0, (struct sockaddr*)&m_udpServer, sizeof(m_udpServer));
 #else
       sendto(m_udpSocket, data, frameData.size + 4, 0, (struct sockaddr*)&m_udpServer, sizeof(m_udpServer));
 #endif
