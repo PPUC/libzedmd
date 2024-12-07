@@ -55,90 +55,45 @@ void ZeDMDComm::Run()
       [this]()
       {
         Log("ZeDMDComm run thread starting");
-        int8_t lastStreamId = -1;
         m_stopFlag.load(std::memory_order_acquire);
 
         while (IsConnected() && !m_stopFlag.load(std::memory_order_relaxed))
         {
-          bool frame_completed = false;
-
           m_frameQueueMutex.lock();
 
           if (m_frames.empty())
           {
             m_delayedFrameMutex.lock();
+            // All frames are sent, move delayed frame into the frames queue.
             if (m_delayedFrameReady)
             {
-              while (!m_delayedFrames.empty())
-              {
-                lastStreamId = m_delayedFrames.front().streamId;
-                m_frames.push(std::move(m_delayedFrames.front()));
-                m_delayedFrames.pop();
-              }
+              m_frames.push(std::move(m_delayedFrame));
               m_delayedFrameReady = false;
-              m_frameCounter = 1;
               m_delayedFrameMutex.unlock();
               m_frameQueueMutex.unlock();
+
               continue;
             }
             m_delayedFrameMutex.unlock();
             m_frameQueueMutex.unlock();
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
             continue;
           }
-          else
-          {
-            bool delay = false;
-            m_delayedFrameMutex.lock();
-            delay = m_delayedFrameReady;
-            m_delayedFrameMutex.unlock();
 
-            if (delay && m_frameCounter > ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX_DELAYED)
-            {
-              while (!m_frames.empty())
-              {
-                m_frames.pop();
-              }
-              m_frameCounter = 0;
-              m_frameQueueMutex.unlock();
-              continue;
-            }
+          if (m_frames.front().data.empty()) {
+            // In case of a simple command, add metadata to indicate that the payload data size is 0.
+            m_frames.front().data.emplace_back(nullptr, 0);
           }
-
-          if (m_frames.front().streamId != -1)
-          {
-            if (m_frames.front().streamId != lastStreamId)
-            {
-              if (lastStreamId != -1)
-              {
-                m_frameCounter--;
-                frame_completed = true;
-              }
-
-              lastStreamId = m_frames.front().streamId;
-            }
-          }
-          else
-          {
-            m_frameCounter--;
-            frame_completed = true;
-          }
+          bool success = StreamBytes(&(m_frames.front()));
+          m_frames.pop();
 
           m_frameQueueMutex.unlock();
 
-          bool success = StreamBytes(&(m_frames.front()));
-          if (!success && m_frames.front().size < ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT)
-          {
-            std::this_thread::sleep_for(std::chrono::milliseconds(8));
-            // Try to send the command again, in case the wait for the (R)eady
-            // signal ran into a timeout.
-            success = StreamBytes(&(m_frames.front()));
-          }
-
-          m_frames.pop();
-
           if (!success)
           {
+            Log("ZeDMD StreamBytes failed");
+
             // Allow ZeDMD to empty its buffers.
             std::this_thread::sleep_for(std::chrono::milliseconds(2));
           }
@@ -148,64 +103,32 @@ void ZeDMDComm::Run()
       });
 }
 
-void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, int8_t streamId, bool delayed)
+void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size)
 {
   if (!IsConnected())
   {
     return;
   }
 
-  ZeDMDFrame frame = {0};
-  frame.command = command;
-  frame.size = size;
-  frame.streamId = streamId;
+  ZeDMDFrame frame(command, data, size);
 
-  if (data && size > 0)
-  {
-    frame.data = (uint8_t*)malloc(size * sizeof(uint8_t));
-    memcpy(frame.data, data, size);
-  }
-
-  // delayed standard frame
-  if (streamId == -1 && FillDelayed())
+  if (FillDelayed())
   {
     m_delayedFrameMutex.lock();
-    while (!m_delayedFrames.empty())
-    {
-      m_delayedFrames.pop();
-    }
-
-    m_delayedFrames.push(std::move(frame));
+    m_delayedFrame = std::move(frame);
     m_delayedFrameReady = true;
     m_delayedFrameMutex.unlock();
-    m_lastStreamId = -1;
-    // Next streaming needs to be complete.
-    memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
-  }
-  // delayed streamed zones
-  else if (streamId != -1 && delayed)
-  {
-    m_delayedFrameMutex.lock();
-    m_delayedFrames.push(std::move(frame));
-    m_delayedFrameMutex.unlock();
-    m_lastStreamId = streamId;
   }
   else
   {
     m_frameQueueMutex.lock();
-    if (streamId == -1 || m_lastStreamId != streamId)
-    {
-      m_frameCounter++;
-      m_lastStreamId = streamId;
-    }
     m_frames.push(std::move(frame));
     m_frameQueueMutex.unlock();
-    if (streamId == -1)
-    {
-      // Next streaming needs to be complete.
-      memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
-    }
   }
+
+  // Next streaming needs to be complete.
+  memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
+  memset(m_zoneRepeatCounters, 0, sizeof(m_zoneRepeatCounters));
 }
 
 void ZeDMDComm::QueueCommand(char command, uint8_t value) { QueueCommand(command, &value, 1); }
@@ -214,14 +137,40 @@ void ZeDMDComm::QueueCommand(char command) { QueueCommand(command, nullptr, 0); 
 
 void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t width, uint16_t height, uint8_t bytes)
 {
-  if (memcmp(data, m_allBlack, size) == 0) {
-    this->QueueCommand(ZEDMD_COMM_COMMAND::ClearScreen);
+  if (memcmp(data, m_allBlack, size) == 0)
+  {
+    // Queue a clear screen command. Don't call QueueCommand(ZEDMD_COMM_COMMAND::ClearScreen) because we need to set
+    // black hashes.
+    ZeDMDFrame frame(ZEDMD_COMM_COMMAND::ClearScreen);
+
+    // If ZeDMD is already behind, clear the screen immediately.
+    if (FillDelayed())
+    {
+      m_frameQueueMutex.lock();
+      while (!m_frames.empty())
+      {
+        m_frames.pop();
+      }
+      m_frameQueueMutex.unlock();
+
+      // "Delete" delayed frame.
+      m_delayedFrameMutex.lock();
+      m_delayedFrameReady = false;
+      m_delayedFrameMutex.unlock();
+    }
+
+    m_frameQueueMutex.lock();
+    m_frames.push(std::move(frame));
+    m_frameQueueMutex.unlock();
+
     // Use "1" as hash for black.
     memset(m_zoneHashes, 1, sizeof(m_zoneHashes));
     memset(m_zoneRepeatCounters, 0, sizeof(m_zoneRepeatCounters));
+
     return;
   }
 
+  // Allocate enough memory for one row of a HD panel.
   uint8_t* buffer = (uint8_t*)malloc(256 * 16 * bytes + 16);
   uint16_t bufferPosition = 0;
   uint8_t idx = 0;
@@ -243,31 +192,18 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
     zonesBytesLimit = width * m_zoneHeight * bytes + 16;
   }
 
-  if (++m_streamId > 64)
-  {
-    m_streamId = 0;
-  }
+  ZeDMDFrame frame(command);
+  const uint16_t bufferSizeThreshold = zonesBytesLimit - zoneBytesTotal;
 
-  bool delayed = false;
-  if (FillDelayed())
+  bool delayed = FillDelayed();
+  if (delayed)
   {
-    // printf("DELAYED\n");
-    delayed = true;
-    m_delayedFrameMutex.lock();
-    m_delayedFrameReady = false;
-    while (!m_delayedFrames.empty())
-    {
-      m_delayedFrames.pop();
-    }
-
-    m_delayedFrameMutex.unlock();
     // A delayed frame needs to be complete.
     memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
     memset(m_zoneRepeatCounters, 0, sizeof(m_zoneRepeatCounters));
   }
 
-  const uint16_t bufferSizeThreshold = zonesBytesLimit - zoneBytesTotal;
-
+  memset(buffer, 0, 256 * 16 * bytes + 16);
   for (uint16_t y = 0; y < height; y += m_zoneHeight)
   {
     for (uint16_t x = 0; x < width; x += m_zoneWidth)
@@ -281,8 +217,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
 
       // Use "1" as hash for black.
       uint64_t hash = black ? 1 : komihash(zone, zoneBytes, 0);
-      if (hash != m_zoneHashes[idx] ||
-          ((black || m_resendZones) && ++m_zoneRepeatCounters[idx] >= ZEDMD_ZONES_REPEAT_THRESHOLD))
+      if (hash != m_zoneHashes[idx] || (m_resendZones && ++m_zoneRepeatCounters[idx] >= ZEDMD_ZONES_REPEAT_THRESHOLD))
       {
         m_zoneHashes[idx] = hash;
         m_zoneRepeatCounters[idx] = 0;
@@ -301,7 +236,8 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
 
         if (bufferPosition > bufferSizeThreshold)
         {
-          QueueCommand(command, buffer, bufferPosition, m_streamId, delayed);
+          frame.data.emplace_back(buffer, bufferPosition);
+          memset(buffer, 0, 256 * 16 * bytes + 16);
           bufferPosition = 0;
         }
       }
@@ -311,29 +247,37 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
 
   if (bufferPosition > 0)
   {
-    QueueCommand(command, buffer, bufferPosition, m_streamId, delayed);
-  }
-
-  if (delayed)
-  {
-    m_delayedFrameMutex.lock();
-    m_delayedFrameReady = true;
-    m_delayedFrameMutex.unlock();
+    frame.data.emplace_back(buffer, bufferPosition);
   }
 
   free(buffer);
   free(zone);
+
+  if (delayed)
+  {
+    m_delayedFrameMutex.lock();
+    m_delayedFrame = std::move(frame);
+    m_delayedFrameReady = true;
+    m_delayedFrameMutex.unlock();
+  }
+  else
+  {
+    m_frameQueueMutex.lock();
+    m_frames.push(std::move(frame));
+    m_frameQueueMutex.unlock();
+  }
 }
 
 bool ZeDMDComm::FillDelayed()
 {
-  uint8_t count = 0;
+  uint8_t size = 0;
   bool delayed = false;
   m_frameQueueMutex.lock();
-  count = m_frameCounter;
-  delayed = m_delayedFrameReady;
+  size = m_frames.size();
+  delayed = m_delayedFrameReady || (size >= ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX);
   m_frameQueueMutex.unlock();
-  return (count > ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX) || delayed;
+  //if (delayed) Log("ZeDMD, next frame will be delayed");
+  return delayed;
 }
 
 void ZeDMDComm::IgnoreDevice(const char* ignore_device)
@@ -664,102 +608,109 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
 #if !(                                                                                                                \
     (defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \
     defined(__ANDROID__))
-  uint8_t* data;
-  int size;
 
-  if (pFrame->size == 0)
+  for (auto it = pFrame->data.rbegin(); it != pFrame->data.rend(); ++it)
   {
-    size = CTRL_CHARS_HEADER_SIZE + 1;
-    data = (uint8_t*)malloc(size);
-    memcpy(data, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
-    data[CTRL_CHARS_HEADER_SIZE] = pFrame->command;
-  }
-  else
-  {
-    mz_ulong compressedSize = mz_compressBound(pFrame->size);
-    data = (uint8_t*)malloc(CTRL_CHARS_HEADER_SIZE + 3 + compressedSize);
-    memcpy(data, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
-    data[CTRL_CHARS_HEADER_SIZE] = pFrame->command;
-    mz_compress(data + CTRL_CHARS_HEADER_SIZE + 3, &compressedSize, pFrame->data, pFrame->size);
-    size = CTRL_CHARS_HEADER_SIZE + 3 + compressedSize;
-    data[CTRL_CHARS_HEADER_SIZE + 1] = (uint8_t)(compressedSize >> 8 & 0xFF);
-    data[CTRL_CHARS_HEADER_SIZE + 2] = (uint8_t)(compressedSize & 0xFF);
-  }
+    ZeDMDFrameData frameData = *it;
 
-  bool success = false;
+    uint8_t* pData;
+    int size;
 
-  uint8_t flowControlCounter = 255;
-  int8_t status;
-  int32_t bytes_waiting;
-
-  do
-  {
-    status = sp_blocking_read(m_pSerialPort, &flowControlCounter, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
-    bytes_waiting = sp_input_waiting(m_pSerialPort);
-    // Log("%d %d %d", status, bytes_waiting, flowControlCounter);
-  } while ((bytes_waiting > 0 || (bytes_waiting == 0 && status != 1) ||
-            (flowControlCounter == 'A' || flowControlCounter == 'E')) &&
-           !m_stopFlag.load(std::memory_order_relaxed));
-  // Log("next stream");
-
-  if (!m_stopFlag)
-  {
-    if (flowControlCounter == m_flowControlCounter)
+    if (frameData.size == 0)
     {
-      int position = 0;
-      success = true;
-      m_noReadySignalCounter = 0;
-      const uint16_t writeAtOnce = m_s3 ? ZEDMD_S3_COMM_MAX_SERIAL_WRITE_AT_ONCE : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE;
-
-      while (position < size && success)
-      {
-        sp_nonblocking_write(m_pSerialPort, &data[position],
-                             ((size - position) < writeAtOnce) ? (size - position) : writeAtOnce);
-
-        uint8_t response = 255;
-        do
-        {
-          status = sp_blocking_read(m_pSerialPort, &response, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
-          // It could be that we got one more flowcontrol counter on the line (race condition).
-        } while ((status != 1 ||
-                  (status == 1 && ((response != 'A' && response != 'E') || response == m_flowControlCounter))) &&
-                 !m_stopFlag.load(std::memory_order_relaxed));
-
-        if (m_stopFlag)
-        {
-          success = false;
-        }
-        else if (response == 'A')
-        {
-          position += writeAtOnce;
-        }
-        else
-        {
-          success = false;
-          Log("Write bytes failure: response=%d", response);
-        }
-      }
-
-      if (++m_flowControlCounter > 32)
-      {
-        m_flowControlCounter = 1;
-      }
+      size = CTRL_CHARS_HEADER_SIZE + 1;
+      pData = (uint8_t*)malloc(size);
+      memcpy(pData, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
+      pData[CTRL_CHARS_HEADER_SIZE] = pFrame->command;
     }
     else
     {
-      Log("No Ready Signal, counter is %d", ++m_noReadySignalCounter);
-      if (m_noReadySignalCounter > ZEDMD_COMM_NO_READY_SIGNAL_MAX)
+      mz_ulong compressedSize = mz_compressBound(frameData.size);
+      pData = (uint8_t*)malloc(CTRL_CHARS_HEADER_SIZE + 3 + compressedSize);
+      memcpy(pData, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
+      pData[CTRL_CHARS_HEADER_SIZE] = pFrame->command;
+      mz_compress(pData + CTRL_CHARS_HEADER_SIZE + 3, &compressedSize, frameData.data, frameData.size);
+      size = CTRL_CHARS_HEADER_SIZE + 3 + compressedSize;
+      pData[CTRL_CHARS_HEADER_SIZE + 1] = (uint8_t)(compressedSize >> 8 & 0xFF);
+      pData[CTRL_CHARS_HEADER_SIZE + 2] = (uint8_t)(compressedSize & 0xFF);
+    }
+
+    uint8_t flowControlCounter = 255;
+    int8_t status;
+    int32_t bytes_waiting;
+
+    do
+    {
+      status = sp_blocking_read(m_pSerialPort, &flowControlCounter, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
+      bytes_waiting = sp_input_waiting(m_pSerialPort);
+      // Log("%d %d %d", status, bytes_waiting, flowControlCounter);
+    } while ((bytes_waiting > 0 || (bytes_waiting == 0 && status != 1) ||
+              (flowControlCounter == 'A' || flowControlCounter == 'E')) &&
+             !m_stopFlag.load(std::memory_order_relaxed));
+    // Log("next stream");
+
+    bool success = false;
+
+    if (!m_stopFlag)
+    {
+      if (flowControlCounter == m_flowControlCounter)
       {
-        Log("Too many missing Ready Signals, try to reconnect ...");
-        Disconnect();
-        Connect();
+        int position = 0;
+        success = true;
+        m_noReadySignalCounter = 0;
+        const uint16_t writeAtOnce =
+            m_s3 ? ZEDMD_S3_COMM_MAX_SERIAL_WRITE_AT_ONCE : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE;
+
+        while (position < size && success)
+        {
+          sp_nonblocking_write(m_pSerialPort, &pData[position],
+                               ((size - position) < writeAtOnce) ? (size - position) : writeAtOnce);
+
+          uint8_t response = 255;
+          do
+          {
+            status = sp_blocking_read(m_pSerialPort, &response, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
+            // It could be that we got one more flowcontrol counter on the line (race condition).
+          } while ((status != 1 ||
+                    (status == 1 && ((response != 'A' && response != 'E') || response == m_flowControlCounter))) &&
+                   !m_stopFlag.load(std::memory_order_relaxed));
+
+          if (m_stopFlag)
+          {
+            success = false;
+          }
+          else if (response == 'A')
+          {
+            position += writeAtOnce;
+          }
+          else
+          {
+            success = false;
+            Log("Write bytes failure: response=%d", response);
+          }
+        }
+
+        if (++m_flowControlCounter > 32)
+        {
+          m_flowControlCounter = 1;
+        }
+      }
+      else
+      {
+        Log("No Ready Signal, counter is %d", ++m_noReadySignalCounter);
+        if (m_noReadySignalCounter > ZEDMD_COMM_NO_READY_SIGNAL_MAX)
+        {
+          Log("Too many missing Ready Signals, try to reconnect ...");
+          Disconnect();
+          Connect();
+        }
       }
     }
+
+    if (!success) return false;
   }
 
-  free(data);
-
-  return success;
+  return true;
 #else
   return false;
 #endif

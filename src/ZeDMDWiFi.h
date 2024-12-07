@@ -10,7 +10,12 @@
 #include <sys/socket.h>
 #endif
 
-#define ZEDMD_WIFI_ZONES_BYTES_LIMIT 1600
+// Typically, the MTU is 1480 (1500 - 20 byte header).
+// We use our own command header of 4 bytes and compressed zones.
+// Even if the compression works bad on a specific frame, it should
+// be safe to fit the compressed zones within the MTU.
+#define ZEDMD_WIFI_ZONES_BYTES_LIMIT 1700
+#define ZEDMD_WIFI_MTU 1460
 
 class ZeDMDWiFi : public ZeDMDComm
 {
@@ -18,7 +23,7 @@ class ZeDMDWiFi : public ZeDMDComm
   ZeDMDWiFi() : ZeDMDComm()
   {
     m_zonesBytesLimit = ZEDMD_WIFI_ZONES_BYTES_LIMIT;
-    m_resendZones = true;
+    m_resendZones = false;
   }
 
   virtual bool Connect(const char* name_or_ip, int port);
