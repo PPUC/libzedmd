@@ -64,7 +64,7 @@ void ZeDMDComm::Run()
           if (m_frames.empty())
           {
             m_delayedFrameMutex.lock();
-            // All frames are sent, move delayed frames into the frames queue.
+            // All frames are sent, move delayed frame into the frames queue.
             if (m_delayedFrameReady)
             {
               m_frames.push(std::move(m_delayedFrame));
