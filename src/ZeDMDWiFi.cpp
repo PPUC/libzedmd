@@ -239,7 +239,6 @@ bool ZeDMDWiFi::StreamBytes(ZeDMDFrame* pFrame)
 {
   // An UDP package should not exceed the MTU (WiFi rx_buffer in ESP32 is 1460
   // bytes).
-
   for (auto it = pFrame->data.rbegin(); it != pFrame->data.rend(); ++it)
   {
     ZeDMDFrameData frameData = *it;
