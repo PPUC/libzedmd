@@ -276,7 +276,7 @@ bool ZeDMDComm::FillDelayed()
   size = m_frames.size();
   delayed = m_delayedFrameReady || (size >= ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX);
   m_frameQueueMutex.unlock();
-  if (delayed) Log("ZeDMD, next frame will be delayed");
+  //if (delayed) Log("ZeDMD, next frame will be delayed");
   return delayed;
 }
 
