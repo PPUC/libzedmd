@@ -18,12 +18,31 @@
 #include <queue>
 #include <string>
 #include <thread>
+#include <vector>
 
 #ifdef _MSC_VER
 #define ZEDMDCALLBACK __stdcall
 #else
 #define ZEDMDCALLBACK
 #endif
+
+#define ZEDMD_COMM_BAUD_RATE 921600
+#if defined(_WIN32) || defined(_WIN64)
+#define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 1888
+#else
+#define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 992
+#endif
+
+#define ZEDMD_S3_COMM_BAUD_RATE 2000000
+#define ZEDMD_S3_COMM_MAX_SERIAL_WRITE_AT_ONCE 992
+
+#define ZEDMD_COMM_SERIAL_READ_TIMEOUT 16
+#define ZEDMD_COMM_SERIAL_WRITE_TIMEOUT 8
+
+#define ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT 10
+#define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX 8
+
+#define ZEDMD_COMM_NO_READY_SIGNAL_MAX 24
 
 #define ZEDMD_ZONES_REPEAT_THRESHOLD 30
 
@@ -62,71 +81,100 @@ typedef enum
   EnableDebug = 0x63,
 } ZEDMD_COMM_COMMAND;
 
+struct ZeDMDFrameData
+{
+  uint8_t* data;
+  int size;
+
+  // Default constructor
+  ZeDMDFrameData(int sz = 0) : size(sz), data((sz > 0) ? new uint8_t[sz] : nullptr) {}
+
+  // Constructor to copy data
+  ZeDMDFrameData(uint8_t* d, int sz = 0) : size(sz), data((sz > 0) ? new uint8_t[sz] : nullptr)
+  {
+    if (sz > 0) memcpy(data, d, sz);
+  }
+
+  // Destructor
+  ~ZeDMDFrameData() { delete[] data; }
+
+  // Copy constructor (deep copy)
+  ZeDMDFrameData(const ZeDMDFrameData& other)
+      : size(other.size), data((other.size > 0) ? new uint8_t[other.size] : nullptr)
+  {
+    if (other.size > 0) memcpy(data, other.data, other.size);
+  }
+
+  // Copy assignment operator (deep copy)
+  ZeDMDFrameData& operator=(const ZeDMDFrameData& other)
+  {
+    if (this != &other)
+    {
+      delete[] data;  // Clean up existing resource
+      size = other.size;
+      data = (other.size > 0) ? new uint8_t[other.size] : nullptr;
+      if (other.size > 0) memcpy(data, other.data, other.size);
+    }
+    return *this;
+  }
+
+  // Move constructor
+  ZeDMDFrameData(ZeDMDFrameData&& other) noexcept : size(other.size), data(other.data)
+  {
+    other.data = nullptr;
+    other.size = 0;
+  }
+
+  // Move assignment operator
+  ZeDMDFrameData& operator=(ZeDMDFrameData&& other) noexcept
+  {
+    if (this != &other)
+    {
+      delete[] data;  // Clean up existing resource
+      data = other.data;
+      size = other.size;
+      other.data = nullptr;
+      other.size = 0;
+    }
+    return *this;
+  }
+};
+
 struct ZeDMDFrame
 {
   uint8_t command;
-  uint8_t* data;
-  int size;
-  int8_t streamId;
+  std::vector<ZeDMDFrameData> data;
 
-  ZeDMDFrame(uint8_t cmd = 0, int sz = 0, int8_t sid = 0) : command(cmd), size(sz), streamId(sid)
+  // Constructor with just the command
+  ZeDMDFrame(uint8_t cmd) : command(cmd) {}
+
+  // Constructor to add initial data
+  ZeDMDFrame(uint8_t cmd, uint8_t* d, int s) : command(cmd)
   {
-    data = (sz > 0) ? new uint8_t[sz] : nullptr;
+    data.emplace_back(d, s);  // Create and move a new ZeDMDFrameData object
   }
 
-  // Destructor to clean up the data
-  ~ZeDMDFrame() { delete[] data; }
+  // Destructor (no need to manually clear the vector)
+  ~ZeDMDFrame() = default;
 
-  // Copy constructor (deleted to avoid accidental copying)
+  // Copy constructor and assignment deleted
   ZeDMDFrame(const ZeDMDFrame&) = delete;
   ZeDMDFrame& operator=(const ZeDMDFrame&) = delete;
 
   // Move constructor
-  ZeDMDFrame(ZeDMDFrame&& other) noexcept
-      : command(other.command), data(other.data), size(other.size), streamId(other.streamId)
-  {
-    other.data = nullptr;  // Nullify the other's data pointer to avoid double deletion
-  }
+  ZeDMDFrame(ZeDMDFrame&& other) noexcept : command(other.command), data(std::move(other.data)) {}
 
   // Move assignment operator
   ZeDMDFrame& operator=(ZeDMDFrame&& other) noexcept
   {
     if (this != &other)
     {
-      // Free existing resource
-      delete[] data;
-
-      // Transfer ownership
       command = other.command;
-      data = other.data;
-      size = other.size;
-      streamId = other.streamId;
-
-      // Nullify the other's data pointer to avoid double deletion
-      other.data = nullptr;
+      data = std::move(other.data);
     }
     return *this;
   }
 };
-
-#define ZEDMD_COMM_BAUD_RATE 921600
-#if defined(_WIN32) || defined(_WIN64)
-#define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 1888
-#else
-#define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 992
-#endif
-
-#define ZEDMD_S3_COMM_BAUD_RATE 2000000
-#define ZEDMD_S3_COMM_MAX_SERIAL_WRITE_AT_ONCE 992
-
-#define ZEDMD_COMM_SERIAL_READ_TIMEOUT 16
-#define ZEDMD_COMM_SERIAL_WRITE_TIMEOUT 8
-
-#define ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT 10
-#define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX 8
-#define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX_DELAYED 2
-
-#define ZEDMD_COMM_NO_READY_SIGNAL_MAX 24
 
 typedef void(ZEDMDCALLBACK* ZeDMD_LogCallback)(const char* format, va_list args, const void* userData);
 
@@ -151,7 +199,7 @@ class ZeDMDComm
 
   void Run();
   void QueueCommand(char command, uint8_t* buffer, int size, uint16_t width, uint16_t height, uint8_t bytes = 3);
-  void QueueCommand(char command, uint8_t* buffer, int size, int8_t streamId = -1, bool delayed = false);
+  void QueueCommand(char command, uint8_t* buffer, int size);
   void QueueCommand(char command);
   void QueueCommand(char command, uint8_t value);
   bool FillDelayed();
@@ -164,6 +212,7 @@ class ZeDMDComm
  protected:
   virtual bool StreamBytes(ZeDMDFrame* pFrame);
   virtual void Reset();
+  void Log(const char* format, ...);
 
   uint16_t m_width = 128;
   uint16_t m_height = 32;
@@ -175,8 +224,6 @@ class ZeDMDComm
   std::atomic<bool> m_stopFlag;
 
  private:
-  void Log(const char* format, ...);
-
   bool Connect(char* pName);
 
   ZeDMD_LogCallback m_logCallback = nullptr;
@@ -185,8 +232,6 @@ class ZeDMDComm
   uint8_t m_zoneRepeatCounters[128] = {0};
   const uint8_t m_allBlack[49152] = {0};
 
-  int8_t m_streamId = -1;
-  int8_t m_lastStreamId = -1;
   uint8_t m_flowControlCounter = 0;
   uint8_t m_noReadySignalCounter = 0;
   char m_ignoredDevices[10][32] = {0};
@@ -201,8 +246,7 @@ class ZeDMDComm
   std::queue<ZeDMDFrame> m_frames;
   std::thread* m_pThread;
   std::mutex m_frameQueueMutex;
-  uint8_t m_frameCounter = 0;
-  std::queue<ZeDMDFrame> m_delayedFrames;
+  ZeDMDFrame m_delayedFrame = {0};
   std::mutex m_delayedFrameMutex;
   bool m_delayedFrameReady = false;
 };
