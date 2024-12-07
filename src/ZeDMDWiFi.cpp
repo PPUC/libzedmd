@@ -244,7 +244,7 @@ bool ZeDMDWiFi::StreamBytes(ZeDMDFrame* pFrame)
   {
     ZeDMDFrameData frameData = *it;
 
-    if (frameData.size < ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT)
+    if (frameData.size < ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT && pFrame->command != 4 && pFrame->command != 5)
     {
       uint8_t data[ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT + 4] = {0};
       data[0] = pFrame->command;  // command
