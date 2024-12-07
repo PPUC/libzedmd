@@ -14,6 +14,7 @@
 #include <stdarg.h>
 
 #include <cstdio>
+#include <cstring>
 #include <mutex>
 #include <queue>
 #include <string>
