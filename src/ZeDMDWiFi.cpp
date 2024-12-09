@@ -256,7 +256,8 @@ bool ZeDMDWiFi::StreamBytes(ZeDMDFrame* pFrame)
       }
 
 #if defined(_WIN32) || defined(_WIN64)
-      sendto(m_udpSocket, (const char*)data, frameData.size + 4, 0, (struct sockaddr*)&m_udpServer, sizeof(m_udpServer));
+      sendto(m_udpSocket, (const char*)data, frameData.size + 4, 0, (struct sockaddr*)&m_udpServer,
+             sizeof(m_udpServer));
 #else
       sendto(m_udpSocket, data, frameData.size + 4, 0, (struct sockaddr*)&m_udpServer, sizeof(m_udpServer));
 #endif
@@ -267,13 +268,10 @@ bool ZeDMDWiFi::StreamBytes(ZeDMDFrame* pFrame)
       // If RGB565 streaming is active; the frame only needs 2 bytes per color
       uint8_t bytesPerPixel = (pFrame->command == 5) ? 2 : 3;
 
-      int numColoredZones = frameData.size / (m_zoneWidth * m_zoneHeight * bytesPerPixel + 1);
-      int numBlackZones = frameData.size - (numColoredZones * (m_zoneWidth * m_zoneHeight * bytesPerPixel + 1));
-
       uint8_t data[ZEDMD_WIFI_ZONES_BYTES_LIMIT] = {0};
       data[0] = pFrame->command;  // command
       // In case of a mostly black screen we can get 128 zones. That is handled in ZeDMD firmware.
-      data[1] = (uint8_t)(128 | (numColoredZones + numBlackZones));  // compressed + num zones
+      data[1] = (uint8_t)(128 | frameData.numZones);  // compressed + num zones
 
       mz_ulong compressedSize = mz_compressBound(frameData.size);
       int status = mz_compress(&data[4], &compressedSize, frameData.data, frameData.size);

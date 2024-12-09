@@ -86,12 +86,14 @@ struct ZeDMDFrameData
 {
   uint8_t* data;
   int size;
+  uint8_t numZones;
 
   // Default constructor
-  ZeDMDFrameData(int sz = 0) : size(sz), data((sz > 0) ? new uint8_t[sz] : nullptr) {}
+  ZeDMDFrameData(int sz = 0) : size(sz), data((sz > 0) ? new uint8_t[sz] : nullptr), numZones(0) {}
 
   // Constructor to copy data
-  ZeDMDFrameData(uint8_t* d, int sz = 0) : size(sz), data((sz > 0) ? new uint8_t[sz] : nullptr)
+  ZeDMDFrameData(uint8_t* d, int sz = 0, uint8_t nz = 0)
+      : size(sz), data((sz > 0) ? new uint8_t[sz] : nullptr), numZones(nz)
   {
     if (sz > 0) memcpy(data, d, sz);
   }
@@ -101,7 +103,7 @@ struct ZeDMDFrameData
 
   // Copy constructor (deep copy)
   ZeDMDFrameData(const ZeDMDFrameData& other)
-      : size(other.size), data((other.size > 0) ? new uint8_t[other.size] : nullptr)
+      : size(other.size), data((other.size > 0) ? new uint8_t[other.size] : nullptr), numZones(other.numZones)
   {
     if (other.size > 0) memcpy(data, other.data, other.size);
   }
@@ -115,15 +117,17 @@ struct ZeDMDFrameData
       size = other.size;
       data = (other.size > 0) ? new uint8_t[other.size] : nullptr;
       if (other.size > 0) memcpy(data, other.data, other.size);
+      numZones = other.numZones;
     }
     return *this;
   }
 
   // Move constructor
-  ZeDMDFrameData(ZeDMDFrameData&& other) noexcept : size(other.size), data(other.data)
+  ZeDMDFrameData(ZeDMDFrameData&& other) noexcept : size(other.size), data(other.data), numZones(other.numZones)
   {
-    other.data = nullptr;
     other.size = 0;
+    other.data = nullptr;
+    other.numZones = 0;
   }
 
   // Move assignment operator
@@ -132,11 +136,16 @@ struct ZeDMDFrameData
     if (this != &other)
     {
       delete[] data;  // Clean up existing resource
-      data = other.data;
+
       size = other.size;
-      other.data = nullptr;
+      data = other.data;
+      numZones = other.numZones;
+
       other.size = 0;
+      other.data = nullptr;
+      other.numZones = 0;
     }
+
     return *this;
   }
 };
@@ -150,9 +159,9 @@ struct ZeDMDFrame
   ZeDMDFrame(uint8_t cmd) : command(cmd) {}
 
   // Constructor to add initial data
-  ZeDMDFrame(uint8_t cmd, uint8_t* d, int s) : command(cmd)
+  ZeDMDFrame(uint8_t cmd, uint8_t* d, int s, u_int8_t nz = 0) : command(cmd)
   {
-    data.emplace_back(d, s);  // Create and move a new ZeDMDFrameData object
+    data.emplace_back(d, s, nz);  // Create and move a new ZeDMDFrameData object
   }
 
   // Destructor (no need to manually clear the vector)

@@ -81,9 +81,10 @@ void ZeDMDComm::Run()
             continue;
           }
 
-          if (m_frames.front().data.empty()) {
+          if (m_frames.front().data.empty())
+          {
             // In case of a simple command, add metadata to indicate that the payload data size is 0.
-            m_frames.front().data.emplace_back(nullptr, 0);
+            m_frames.front().data.emplace_back(nullptr, 0, 0);
           }
           bool success = StreamBytes(&(m_frames.front()));
           m_frames.pop();
@@ -174,6 +175,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
   uint8_t* buffer = (uint8_t*)malloc(256 * 16 * bytes + 16);
   uint16_t bufferPosition = 0;
   uint8_t idx = 0;
+  uint8_t numZones = 0;
   uint8_t* zone = (uint8_t*)malloc(16 * 8 * bytes);
   uint16_t zonesBytesLimit = 0;
   const uint16_t zoneBytes = m_zoneWidth * m_zoneHeight * bytes;
@@ -221,6 +223,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
       {
         m_zoneHashes[idx] = hash;
         m_zoneRepeatCounters[idx] = 0;
+        numZones++;
 
         if (black)
         {
@@ -236,9 +239,10 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
 
         if (bufferPosition > bufferSizeThreshold)
         {
-          frame.data.emplace_back(buffer, bufferPosition);
+          frame.data.emplace_back(buffer, bufferPosition, numZones);
           memset(buffer, 0, 256 * 16 * bytes + 16);
           bufferPosition = 0;
+          numZones = 0;
         }
       }
       idx++;
@@ -247,7 +251,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
 
   if (bufferPosition > 0)
   {
-    frame.data.emplace_back(buffer, bufferPosition);
+    frame.data.emplace_back(buffer, bufferPosition, numZones);
   }
 
   free(buffer);
@@ -276,7 +280,7 @@ bool ZeDMDComm::FillDelayed()
   size = m_frames.size();
   delayed = m_delayedFrameReady || (size >= ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX);
   m_frameQueueMutex.unlock();
-  //if (delayed) Log("ZeDMD, next frame will be delayed");
+  // if (delayed) Log("ZeDMD, next frame will be delayed");
   return delayed;
 }
 
