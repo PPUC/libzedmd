@@ -159,7 +159,7 @@ struct ZeDMDFrame
   ZeDMDFrame(uint8_t cmd) : command(cmd) {}
 
   // Constructor to add initial data
-  ZeDMDFrame(uint8_t cmd, uint8_t* d, int s, u_int8_t nz = 0) : command(cmd)
+  ZeDMDFrame(uint8_t cmd, uint8_t* d, int s, uint8_t nz = 0) : command(cmd)
   {
     data.emplace_back(d, s, nz);  // Create and move a new ZeDMDFrameData object
   }
