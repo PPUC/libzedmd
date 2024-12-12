@@ -504,41 +504,23 @@ bool ZeDMDComm::Connect(char* pDevice)
 
       if (sp_blocking_read(m_pSerialPort, data, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT) && data[0] == 'R')
       {
-        data[0] = ZEDMD_COMM_COMMAND::Compression;
+        data[0] = ZEDMD_COMM_COMMAND::Chunk;
+        data[1] = (m_s3 ? ZEDMD_S3_COMM_MAX_SERIAL_WRITE_AT_ONCE : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE) / 32;
         sp_nonblocking_write(m_pSerialPort, (void*)CTRL_CHARS_HEADER, 6);
-        sp_blocking_write(m_pSerialPort, (void*)data, 1, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
+        sp_blocking_write(m_pSerialPort, (void*)data, 2, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
         std::this_thread::sleep_for(std::chrono::milliseconds(4));
 
-        if (sp_blocking_read(m_pSerialPort, data, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT) && data[0] == 'A' &&
-            sp_blocking_read(m_pSerialPort, data, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT) && data[0] == 'R')
+        if (sp_blocking_read(m_pSerialPort, data, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT) && data[0] == 'A')
         {
-          data[0] = ZEDMD_COMM_COMMAND::Chunk;
-          data[1] = (m_s3 ? ZEDMD_S3_COMM_MAX_SERIAL_WRITE_AT_ONCE : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE) / 32;
-          sp_nonblocking_write(m_pSerialPort, (void*)CTRL_CHARS_HEADER, 6);
-          sp_blocking_write(m_pSerialPort, (void*)data, 2, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
-          std::this_thread::sleep_for(std::chrono::milliseconds(4));
+          // Store the device name for reconnects.
+          SetDevice(pDevice);
+          m_noReadySignalCounter = 0;
+          m_flowControlCounter = 1;
+          if (m_cdc) m_zonesBytesLimit = m_width * m_height * 3 + 128;
 
-          if (sp_blocking_read(m_pSerialPort, data, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT) && data[0] == 'A' &&
-              sp_blocking_read(m_pSerialPort, data, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT) && data[0] == 'R')
-          {
-            data[0] = ZEDMD_COMM_COMMAND::EnableFlowControlV2;
-            sp_nonblocking_write(m_pSerialPort, (void*)CTRL_CHARS_HEADER, 6);
-            sp_blocking_write(m_pSerialPort, (void*)data, 1, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
-            std::this_thread::sleep_for(std::chrono::milliseconds(4));
+          Log("ZeDMD found: %sdevice=%s, width=%d, height=%d", m_s3 ? "S3 " : "", pDevice, m_width, m_height);
 
-            if (sp_blocking_read(m_pSerialPort, data, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT) && data[0] == 'A')
-            {
-              // Store the device name for reconnects.
-              SetDevice(pDevice);
-              m_noReadySignalCounter = 0;
-              m_flowControlCounter = 1;
-              if (m_cdc) m_zonesBytesLimit = m_width * m_height * 3 + 128;
-
-              Log("ZeDMD found: %sdevice=%s, width=%d, height=%d", m_s3 ? "S3 " : "", pDevice, m_width, m_height);
-
-              return true;
-            }
-          }
+          return true;
         }
       }
     }
@@ -711,6 +693,8 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
         }
       }
     }
+
+    free(pData);
 
     if (!success) return false;
   }
