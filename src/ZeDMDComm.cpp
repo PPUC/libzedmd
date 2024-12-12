@@ -113,7 +113,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size)
 
   ZeDMDFrame frame(command, data, size);
 
-  if (FillDelayed())
+  if (size > ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT && FillDelayed())
   {
     m_delayedFrameMutex.lock();
     m_delayedFrame = std::move(frame);
@@ -171,31 +171,29 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
     return;
   }
 
-  // Allocate enough memory for one row of a HD panel.
-  uint8_t* buffer = (uint8_t*)malloc(256 * 16 * bytes + 16);
-  uint16_t bufferPosition = 0;
   uint8_t idx = 0;
   uint8_t numZones = 0;
-  uint8_t* zone = (uint8_t*)malloc(16 * 8 * bytes);
   uint16_t zonesBytesLimit = 0;
   const uint16_t zoneBytes = m_zoneWidth * m_zoneHeight * bytes;
   const uint16_t zoneBytesTotal = zoneBytes + 1;
+  uint8_t* zone = (uint8_t*)malloc(zoneBytes);
 
   if (m_zonesBytesLimit)
   {
-    // For WiFi find the limit as integer that is closest to m_zonesBytesLimit.
-    // For example 1540 for RGB888 HD.
+    // Find the limit as integer that is closest to m_zonesBytesLimit for example 1540 for RGB888 HD.
     uint8_t zones = m_zonesBytesLimit / zoneBytesTotal;
     zonesBytesLimit = zones * zoneBytesTotal;
   }
   else
   {
-    // For USB send one row (16 zones).
+    // For USB UART send one row (16 zones).
     zonesBytesLimit = width * m_zoneHeight * bytes + 16;
   }
+  uint8_t* buffer = (uint8_t*)malloc(zonesBytesLimit);
+  uint16_t bufferPosition = 0;
+  const uint16_t bufferSizeThreshold = zonesBytesLimit - zoneBytesTotal;
 
   ZeDMDFrame frame(command);
-  const uint16_t bufferSizeThreshold = zonesBytesLimit - zoneBytesTotal;
 
   bool delayed = FillDelayed();
   if (delayed)
@@ -205,7 +203,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
     memset(m_zoneRepeatCounters, 0, sizeof(m_zoneRepeatCounters));
   }
 
-  memset(buffer, 0, 256 * 16 * bytes + 16);
+  memset(buffer, 0, zonesBytesLimit);
   for (uint16_t y = 0; y < height; y += m_zoneHeight)
   {
     for (uint16_t x = 0; x < width; x += m_zoneWidth)
@@ -240,7 +238,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
         if (bufferPosition > bufferSizeThreshold)
         {
           frame.data.emplace_back(buffer, bufferPosition, numZones);
-          memset(buffer, 0, 256 * 16 * bytes + 16);
+          memset(buffer, 0, zonesBytesLimit);
           bufferPosition = 0;
           numZones = 0;
         }
@@ -427,6 +425,7 @@ bool ZeDMDComm::Connect(char* pDevice)
     {
       // USB JTAG/serial debug unit, hopefully an ESP32 S3.
       m_s3 = true;
+      m_cdc = true;
     }
     else if (0x1a86 == usb_vid && 0x55d3 == usb_pid)
     {
@@ -456,11 +455,12 @@ bool ZeDMDComm::Connect(char* pDevice)
     return false;
   }
 
-  sp_set_baudrate(m_pSerialPort, m_s3 ? ZEDMD_S3_COMM_BAUD_RATE : ZEDMD_COMM_BAUD_RATE);
+  sp_set_baudrate(m_pSerialPort, m_cdc ? 115200 : (m_s3 ? ZEDMD_S3_COMM_BAUD_RATE : ZEDMD_COMM_BAUD_RATE));
   sp_set_bits(m_pSerialPort, 8);
   sp_set_parity(m_pSerialPort, SP_PARITY_NONE);
   sp_set_stopbits(m_pSerialPort, 1);
   sp_set_xon_xoff(m_pSerialPort, SP_XONXOFF_DISABLED);
+  sp_set_flowcontrol(m_pSerialPort, SP_FLOWCONTROL_NONE);
 
   Reset();
 
@@ -532,6 +532,7 @@ bool ZeDMDComm::Connect(char* pDevice)
               SetDevice(pDevice);
               m_noReadySignalCounter = 0;
               m_flowControlCounter = 1;
+              if (m_cdc) m_zonesBytesLimit = m_width * m_height * 3 + 128;
 
               Log("ZeDMD found: %sdevice=%s, width=%d, height=%d", m_s3 ? "S3 " : "", pDevice, m_width, m_height);
 

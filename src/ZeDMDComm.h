@@ -227,6 +227,7 @@ class ZeDMDComm
   uint16_t m_width = 128;
   uint16_t m_height = 32;
   bool m_s3 = false;
+  bool m_cdc = false;
   uint16_t m_zonesBytesLimit = 0;
   uint8_t m_zoneWidth = 8;
   uint8_t m_zoneHeight = 4;
