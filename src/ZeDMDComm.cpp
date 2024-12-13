@@ -6,6 +6,7 @@
 ZeDMDComm::ZeDMDComm()
 {
   m_stopFlag.store(false, std::memory_order_release);
+  m_delayedFrameReady.store(false, std::memory_order_release);
 
   m_pThread = nullptr;
 #if !(                                                                                                                \
@@ -19,6 +20,7 @@ ZeDMDComm::ZeDMDComm()
 ZeDMDComm::~ZeDMDComm()
 {
   m_stopFlag.store(true, std::memory_order_release);
+  m_delayedFrameReady.store(false, std::memory_order_release);
 
   Disconnect();
 
@@ -56,25 +58,27 @@ void ZeDMDComm::Run()
       {
         Log("ZeDMDComm run thread starting");
         m_stopFlag.load(std::memory_order_acquire);
+        m_delayedFrameReady.load(std::memory_order_acquire);
 
         while (IsConnected() && !m_stopFlag.load(std::memory_order_relaxed))
         {
           m_frameQueueMutex.lock();
 
+          if (m_frames.size() < ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX)
+          {
+            // All frames are sent, move delayed frame into the frames queue.
+            if (m_delayedFrameReady.load(std::memory_order_relaxed))
+            {
+              m_delayedFrameMutex.lock();
+              m_frames.push(std::move(m_delayedFrame));
+              m_delayedFrameMutex.unlock();
+              m_delayedFrameReady.store(false, std::memory_order_release);
+              //Log("render delayed");
+            }
+          }
+
           if (m_frames.empty())
           {
-            m_delayedFrameMutex.lock();
-            // All frames are sent, move delayed frame into the frames queue.
-            if (m_delayedFrameReady)
-            {
-              m_frames.push(std::move(m_delayedFrame));
-              m_delayedFrameReady = false;
-              m_delayedFrameMutex.unlock();
-              m_frameQueueMutex.unlock();
-
-              continue;
-            }
-            m_delayedFrameMutex.unlock();
             m_frameQueueMutex.unlock();
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
@@ -117,8 +121,8 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size)
   {
     m_delayedFrameMutex.lock();
     m_delayedFrame = std::move(frame);
-    m_delayedFrameReady = true;
     m_delayedFrameMutex.unlock();
+    m_delayedFrameReady.store(true, std::memory_order_release);
   }
   else
   {
@@ -155,9 +159,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
       m_frameQueueMutex.unlock();
 
       // "Delete" delayed frame.
-      m_delayedFrameMutex.lock();
-      m_delayedFrameReady = false;
-      m_delayedFrameMutex.unlock();
+      m_delayedFrameReady.store(false, std::memory_order_release);
     }
 
     m_frameQueueMutex.lock();
@@ -259,8 +261,8 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
   {
     m_delayedFrameMutex.lock();
     m_delayedFrame = std::move(frame);
-    m_delayedFrameReady = true;
     m_delayedFrameMutex.unlock();
+    m_delayedFrameReady.store(true, std::memory_order_release);
   }
   else
   {
@@ -272,14 +274,20 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
 
 bool ZeDMDComm::FillDelayed()
 {
-  uint8_t size = 0;
-  bool delayed = false;
+  if (m_delayedFrameReady.load(std::memory_order_relaxed))
+  {
+    return true;
+  }
+
   m_frameQueueMutex.lock();
-  size = m_frames.size();
-  delayed = m_delayedFrameReady || (size >= ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX);
+  if (m_frames.size() >= ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX)
+  {
+    m_frameQueueMutex.unlock();
+    //Log("fill delayed");
+    return true;
+  }
   m_frameQueueMutex.unlock();
-  // if (delayed) Log("ZeDMD, next frame will be delayed");
-  return delayed;
+  return false;
 }
 
 void ZeDMDComm::IgnoreDevice(const char* ignore_device)
@@ -505,7 +513,7 @@ bool ZeDMDComm::Connect(char* pDevice)
       if (sp_blocking_read(m_pSerialPort, data, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT) && data[0] == 'R')
       {
         data[0] = ZEDMD_COMM_COMMAND::Chunk;
-        data[1] = (m_s3 ? ZEDMD_S3_COMM_MAX_SERIAL_WRITE_AT_ONCE : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE) / 32;
+        data[1] = (m_cdc ? 512 : (m_s3 ? ZEDMD_S3_COMM_MAX_SERIAL_WRITE_AT_ONCE : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE)) / 32;
         sp_nonblocking_write(m_pSerialPort, (void*)CTRL_CHARS_HEADER, 6);
         sp_blocking_write(m_pSerialPort, (void*)data, 2, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
         std::this_thread::sleep_for(std::chrono::milliseconds(4));
@@ -645,8 +653,7 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
         int position = 0;
         success = true;
         m_noReadySignalCounter = 0;
-        const uint16_t writeAtOnce =
-            m_s3 ? ZEDMD_S3_COMM_MAX_SERIAL_WRITE_AT_ONCE : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE;
+        const uint16_t writeAtOnce = m_cdc ? 512 : (m_s3 ? ZEDMD_S3_COMM_MAX_SERIAL_WRITE_AT_ONCE : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
 
         while (position < size && success)
         {

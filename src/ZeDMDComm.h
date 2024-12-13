@@ -41,7 +41,7 @@
 #define ZEDMD_COMM_SERIAL_WRITE_TIMEOUT 8
 
 #define ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT 10
-#define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX 8
+#define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX 4
 
 #define ZEDMD_COMM_NO_READY_SIGNAL_MAX 24
 
@@ -259,5 +259,5 @@ class ZeDMDComm
   std::mutex m_frameQueueMutex;
   ZeDMDFrame m_delayedFrame = {0};
   std::mutex m_delayedFrameMutex;
-  bool m_delayedFrameReady = false;
+  std::atomic<bool> m_delayedFrameReady;
 };
