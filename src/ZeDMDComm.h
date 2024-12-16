@@ -73,9 +73,6 @@ typedef enum
 
   RGB24ZonesStream = 0x04,
   RGB565ZonesStream = 0x05,
-  Gray2 = 0x08,
-  ColGray4 = 0x09,
-  ColGray6 = 0x0b,
   ClearScreen = 0x0a,
 
   DisableDebug = 0x62,
@@ -208,7 +205,7 @@ class ZeDMDComm
   virtual bool IsConnected();
 
   void Run();
-  void QueueCommand(char command, uint8_t* buffer, int size, uint16_t width, uint16_t height, uint8_t bytes = 3);
+  void QueueCommand(char command, uint8_t* buffer, int size, uint16_t width, uint16_t height);
   void QueueCommand(char command, uint8_t* buffer, int size);
   void QueueCommand(char command);
   void QueueCommand(char command, uint8_t value);

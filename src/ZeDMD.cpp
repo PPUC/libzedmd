@@ -14,14 +14,9 @@ ZeDMD::ZeDMD()
   m_romWidth = 0;
   m_romHeight = 0;
 
-  memset(m_palette4, 0, sizeof(m_palette4));
-  memset(m_palette16, 0, sizeof(m_palette16));
-  memset(m_palette64, 0, sizeof(m_palette64));
-
   m_pFrameBuffer = nullptr;
   m_pScaledFrameBuffer = nullptr;
   m_pCommandBuffer = nullptr;
-  m_pPlanes = nullptr;
   m_pRgb565Buffer = nullptr;
 
   m_pZeDMDComm = new ZeDMDComm();
@@ -46,11 +41,6 @@ ZeDMD::~ZeDMD()
   if (m_pCommandBuffer)
   {
     delete m_pCommandBuffer;
-  }
-
-  if (m_pPlanes)
-  {
-    delete m_pPlanes;
   }
 
   if (m_pRgb565Buffer)
@@ -276,8 +266,7 @@ bool ZeDMD::OpenWiFi(const char* ip, int port)
   {
     m_pFrameBuffer = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
     m_pScaledFrameBuffer = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
-    m_pPlanes = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
-    m_pRgb565Buffer = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 2);
+    m_pRgb565Buffer = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT);
 
     m_hd = (m_pZeDMDWiFi->GetWidth() == 256);
 
@@ -298,8 +287,7 @@ bool ZeDMD::Open()
     m_pFrameBuffer = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
     m_pScaledFrameBuffer = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
     m_pCommandBuffer = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3 + 192);
-    m_pPlanes = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
-    m_pRgb565Buffer = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 2);
+    m_pRgb565Buffer = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT);
 
     m_hd = (m_pZeDMDComm->GetWidth() == 256);
 
@@ -319,65 +307,6 @@ bool ZeDMD::Open(uint16_t width, uint16_t height)
   return m_usb;
 }
 
-void ZeDMD::SetPalette(uint8_t* pPalette) { SetPalette(pPalette, 64); }
-
-void ZeDMD::SetPalette(uint8_t* pPalette, uint8_t numColors)
-{
-  m_paletteChanged = false;
-
-  uint8_t* pPaletteNumber;
-  switch (numColors)
-  {
-    case 4:
-      pPaletteNumber = m_palette4;
-      break;
-    case 16:
-      pPaletteNumber = m_palette16;
-      break;
-    case 64:
-      pPaletteNumber = m_palette64;
-      break;
-    default:
-      return;
-  }
-
-  if (memcmp(pPaletteNumber, pPalette, numColors * 3))
-  {
-    memcpy(pPaletteNumber, pPalette, numColors * 3);
-    m_paletteChanged = true;
-  }
-}
-
-void ZeDMD::SetDefaultPalette(uint8_t bitDepth)
-{
-  switch (bitDepth)
-  {
-    case 2:
-      SetPalette(m_DmdDefaultPalette2Bit, 4);
-      break;
-
-    default:
-      SetPalette(m_DmdDefaultPalette4Bit, 16);
-  }
-}
-
-uint8_t* ZeDMD::GetDefaultPalette(uint8_t bitDepth)
-{
-  switch (bitDepth)
-  {
-    case 2:
-      return m_DmdDefaultPalette2Bit;
-      break;
-
-    default:
-      return m_DmdDefaultPalette4Bit;
-  }
-}
-
-void ZeDMD::EnforceStreaming() { m_streaming = true; }
-
-void ZeDMD::DisableRGB24Streaming() { m_rgb24Streaming = false; }
-
 void ZeDMD::ClearScreen()
 {
   if (m_usb)
@@ -392,9 +321,9 @@ void ZeDMD::ClearScreen()
   memset(m_pFrameBuffer, 0, ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
 }
 
-void ZeDMD::RenderGray2(uint8_t* pFrame)
+void ZeDMD::RenderRgb888(uint8_t* pFrame)
 {
-  if (!(m_usb || m_wifi) || !(UpdateFrameBuffer8(pFrame) || m_paletteChanged))
+  if (!(m_usb || m_wifi) || !UpdateFrameBuffer888(pFrame))
   {
     return;
   }
@@ -402,176 +331,23 @@ void ZeDMD::RenderGray2(uint8_t* pFrame)
   uint16_t width;
   uint16_t height;
 
-  int bufferSize = Scale(m_pScaledFrameBuffer, m_pFrameBuffer, 1, &width, &height);
-
-  if (m_hd || m_wifi || m_streaming)
-  {
-    FrameUtil::Helper::ConvertToRgb24(m_pPlanes, m_pScaledFrameBuffer, bufferSize, m_palette4);
-
-    if (m_wifi)
-    {
-      m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::RGB24ZonesStream, m_pPlanes, bufferSize * 3, width, height);
-    }
-    else
-    {
-      m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB24ZonesStream, m_pPlanes, bufferSize * 3, width, height);
-    }
-  }
-  else if (m_usb)
-  {
-    FrameUtil::Helper::Split(m_pPlanes, width, height, 2, m_pScaledFrameBuffer);
-
-    bufferSize = bufferSize / 8 * 2;
-
-    memcpy(m_pCommandBuffer, m_palette4, 12);
-    memcpy(m_pCommandBuffer + 12, m_pPlanes, bufferSize);
-
-    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::Gray2, m_pCommandBuffer, 12 + bufferSize);
-  }
-}
-
-void ZeDMD::RenderGray4(uint8_t* pFrame)
-{
-  if (!(m_usb || m_wifi) || !(UpdateFrameBuffer8(pFrame) || m_paletteChanged))
-  {
-    return;
-  }
-
-  uint16_t width;
-  uint16_t height;
-
-  int bufferSize = Scale(m_pScaledFrameBuffer, m_pFrameBuffer, 1, &width, &height);
-
-  if (m_hd || m_wifi || m_streaming)
-  {
-    FrameUtil::Helper::ConvertToRgb24(m_pPlanes, m_pScaledFrameBuffer, bufferSize, m_palette16);
-
-    if (m_wifi)
-    {
-      m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::RGB24ZonesStream, m_pPlanes, bufferSize * 3, width, height);
-    }
-    else
-    {
-      m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB24ZonesStream, m_pPlanes, bufferSize * 3, width, height);
-    }
-  }
-  else if (m_usb)
-  {
-    // Review: why?
-    bufferSize /= 2;
-    FrameUtil::Helper::Split(m_pPlanes, width, height, 4, m_pScaledFrameBuffer);
-
-    memcpy(m_pCommandBuffer, m_palette16, 48);
-    memcpy(m_pCommandBuffer + 48, m_pPlanes, bufferSize);
-
-    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::ColGray4, m_pCommandBuffer, 48 + bufferSize);
-  }
-}
-
-void ZeDMD::RenderColoredGray6(uint8_t* pFrame, uint8_t* pPalette, uint8_t* pRotations)
-{
-  SetPalette(pPalette);
-  RenderColoredGray6(pFrame, pRotations);
-}
-
-void ZeDMD::RenderColoredGray6(uint8_t* pFrame, uint8_t* pRotations)
-{
-  if (!(m_usb || m_wifi) || !(UpdateFrameBuffer8(pFrame) || m_paletteChanged))
-  {
-    return;
-  }
-
-  uint16_t width;
-  uint16_t height;
-
-  int bufferSize = Scale(m_pScaledFrameBuffer, m_pFrameBuffer, 1, &width, &height);
-
-  if (m_hd || m_wifi || m_streaming)
-  {
-    FrameUtil::Helper::ConvertToRgb24(m_pPlanes, m_pScaledFrameBuffer, bufferSize, m_palette64);
-
-    if (m_wifi)
-    {
-      m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::RGB24ZonesStream, m_pPlanes, bufferSize * 3, width, height);
-    }
-    else
-    {
-      m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB24ZonesStream, m_pPlanes, bufferSize * 3, width, height);
-    }
-  }
-  else if (m_usb)
-  {
-    FrameUtil::Helper::Split(m_pPlanes, width, height, 6, m_pScaledFrameBuffer);
-
-    bufferSize = bufferSize / 8 * 6;
-
-    memcpy(m_pCommandBuffer, m_palette64, 192);
-    memcpy(m_pCommandBuffer + 192, m_pPlanes, bufferSize);
-
-    if (pRotations)
-    {
-      memcpy(m_pCommandBuffer + 192 + bufferSize, pRotations, 24);
-    }
-    else
-    {
-      memset(m_pCommandBuffer + 192 + bufferSize, 255, 24);
-    }
-
-    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::ColGray6, m_pCommandBuffer, 192 + bufferSize + 24);
-  }
-}
-
-void ZeDMD::RenderRgb24(uint8_t* pFrame)
-{
-  if (!(m_usb || m_wifi) || !UpdateFrameBuffer24(pFrame))
-  {
-    return;
-  }
-
-  uint16_t width;
-  uint16_t height;
-
-  int bufferSize = Scale(m_pPlanes, m_pFrameBuffer, 3, &width, &height);
-
-  if (m_wifi)
-  {
-    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::RGB24ZonesStream, m_pPlanes, bufferSize, width, height);
-  }
-  else if (m_usb)
-  {
-    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB24ZonesStream, m_pPlanes, bufferSize, width, height);
-  }
-}
-
-void ZeDMD::RenderRgb24EncodedAs565(uint8_t* pFrame)
-{
-  if (!(m_usb || m_wifi) || !UpdateFrameBuffer24(pFrame))
-  {
-    return;
-  }
-
-  uint16_t width;
-  uint16_t height;
-
-  int bufferSize = Scale(m_pPlanes, m_pFrameBuffer, 3, &width, &height);
+  int bufferSize = Scale888(m_pScaledFrameBuffer, m_pFrameBuffer, 3, &width, &height);
   int rgb565Size = bufferSize / 3;
   for (uint16_t i = 0; i < rgb565Size; i++)
   {
-    uint16_t tmp = (((uint16_t)(m_pPlanes[i * 3] & 0xF8)) << 8) | (((uint16_t)(m_pPlanes[i * 3 + 1] & 0xFC)) << 3) |
-                   (m_pPlanes[i * 3 + 2] >> 3);
+    uint16_t tmp = (((uint16_t)(m_pScaledFrameBuffer[i * 3] & 0xF8)) << 8) |
+                   (((uint16_t)(m_pScaledFrameBuffer[i * 3 + 1] & 0xFC)) << 3) | (m_pScaledFrameBuffer[i * 3 + 2] >> 3);
     m_pRgb565Buffer[i * 2 + 1] = tmp >> 8;
     m_pRgb565Buffer[i * 2] = tmp & 0xFF;
   }
 
   if (m_wifi)
   {
-    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::RGB565ZonesStream, m_pRgb565Buffer, rgb565Size * 2, width, height,
-                               2);
+    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::RGB565ZonesStream, m_pRgb565Buffer, rgb565Size * 2, width, height);
   }
   else if (m_usb)
   {
-    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB565ZonesStream, m_pRgb565Buffer, rgb565Size * 2, width, height,
-                               2);
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB565ZonesStream, m_pRgb565Buffer, rgb565Size * 2, width, height);
   }
 }
 
@@ -585,30 +361,18 @@ void ZeDMD::RenderRgb565(uint16_t* pFrame)
   uint16_t width;
   uint16_t height;
 
-  int rgb565Size = Scale16(m_pPlanes, pFrame, &width, &height, is_bigendian());
+  int rgb565Size = Scale565(m_pScaledFrameBuffer, pFrame, &width, &height, is_bigendian());
 
   if (m_wifi)
   {
-    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::RGB565ZonesStream, m_pPlanes, rgb565Size, width, height, 2);
+    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::RGB565ZonesStream, m_pScaledFrameBuffer, rgb565Size, width, height);
   }
   else if (m_usb)
   {
-    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB565ZonesStream, m_pPlanes, rgb565Size, width, height, 2);
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB565ZonesStream, m_pScaledFrameBuffer, rgb565Size, width, height);
   }
 }
-
-bool ZeDMD::UpdateFrameBuffer8(uint8_t* pFrame)
-{
-  if (!memcmp(m_pFrameBuffer, pFrame, m_romWidth * m_romHeight))
-  {
-    return false;
-  }
-
-  memcpy(m_pFrameBuffer, pFrame, m_romWidth * m_romHeight);
-  return true;
-}
-
-bool ZeDMD::UpdateFrameBuffer24(uint8_t* pFrame)
+bool ZeDMD::UpdateFrameBuffer888(uint8_t* pFrame)
 {
   if (!memcmp(m_pFrameBuffer, pFrame, m_romWidth * m_romHeight * 3))
   {
@@ -687,7 +451,7 @@ uint8_t ZeDMD::GetScaleMode(uint16_t frameWidth, uint16_t frameHeight, uint16_t*
   return 255;
 }
 
-int ZeDMD::Scale(uint8_t* pScaledFrame, uint8_t* pFrame, uint8_t bytes, uint16_t* width, uint16_t* height)
+int ZeDMD::Scale888(uint8_t* pScaledFrame, uint8_t* pFrame, uint8_t bytes, uint16_t* width, uint16_t* height)
 {
   uint8_t bits = bytes * 8;
   uint8_t xoffset = 0;
@@ -729,7 +493,7 @@ int ZeDMD::Scale(uint8_t* pScaledFrame, uint8_t* pFrame, uint8_t bytes, uint16_t
   return bufferSize;
 }
 
-int ZeDMD::Scale16(uint8_t* pScaledFrame, uint16_t* pFrame, uint16_t* width, uint16_t* height, bool bigEndian)
+int ZeDMD::Scale565(uint8_t* pScaledFrame, uint16_t* pFrame, uint16_t* width, uint16_t* height, bool bigEndian)
 {
   int bufferSize = m_romWidth * m_romHeight;
   uint8_t* pConvertedFrame = (uint8_t*)malloc(bufferSize * 2);
@@ -739,7 +503,7 @@ int ZeDMD::Scale16(uint8_t* pScaledFrame, uint16_t* pFrame, uint16_t* width, uin
     pConvertedFrame[i * 2 + bigEndian] = pFrame[i] & 0xFF;
   }
 
-  bufferSize = Scale(pScaledFrame, pConvertedFrame, 2, width, height);
+  bufferSize = Scale888(pScaledFrame, pConvertedFrame, 2, width, height);
   free(pConvertedFrame);
 
   return bufferSize;
@@ -767,18 +531,6 @@ ZEDMDAPI void ZeDMD_Close(ZeDMD* pZeDMD) { return pZeDMD->Close(); }
 ZEDMDAPI void ZeDMD_SetFrameSize(ZeDMD* pZeDMD, uint16_t width, uint16_t height)
 {
   return pZeDMD->SetFrameSize(width, height);
-}
-
-ZEDMDAPI void ZeDMD_SetPalette(ZeDMD* pZeDMD, uint8_t* pPalette, uint8_t numColors)
-{
-  return pZeDMD->SetPalette(pPalette, numColors);
-}
-
-ZEDMDAPI void ZeDMD_SetDefaultPalette(ZeDMD* pZeDMD, uint8_t bitDepth) { return pZeDMD->SetDefaultPalette(bitDepth); }
-
-ZEDMDAPI uint8_t* ZeDMD_GetDefaultPalette(ZeDMD* pZeDMD, uint8_t bitDepth)
-{
-  return pZeDMD->GetDefaultPalette(bitDepth);
 }
 
 ZEDMDAPI void ZeDMD_LedTest(ZeDMD* pZeDMD) { return pZeDMD->LedTest(); }
@@ -814,26 +566,8 @@ ZEDMDAPI void ZeDMD_SetWiFiPassword(ZeDMD* pZeDMD, const char* const password)
 
 ZEDMDAPI void ZeDMD_SetWiFiPort(ZeDMD* pZeDMD, int port) { return pZeDMD->SetWiFiPort(port); }
 
-ZEDMDAPI void ZeDMD_EnforceStreaming(ZeDMD* pZeDMD) { return pZeDMD->EnforceStreaming(); }
-
 ZEDMDAPI void ZeDMD_ClearScreen(ZeDMD* pZeDMD) { return pZeDMD->ClearScreen(); }
 
-ZEDMDAPI void ZeDMD_RenderGray2(ZeDMD* pZeDMD, uint8_t* frame) { return pZeDMD->RenderGray2(frame); }
-
-ZEDMDAPI void ZeDMD_RenderGray4(ZeDMD* pZeDMD, uint8_t* frame) { return pZeDMD->RenderGray4(frame); }
-
-ZEDMDAPI void ZeDMD_RenderColoredGray6(ZeDMD* pZeDMD, uint8_t* frame, uint8_t* rotations)
-{
-  return pZeDMD->RenderColoredGray6(frame, rotations);
-}
-
-ZEDMDAPI void ZeDMD_RenderRgb24(ZeDMD* pZeDMD, uint8_t* frame) { return pZeDMD->RenderRgb24(frame); }
-
-ZEDMDAPI void ZeDMD_RenderRgb24EncodedAs565(ZeDMD* pZeDMD, uint8_t* frame)
-{
-  return pZeDMD->RenderRgb24EncodedAs565(frame);
-}
+ZEDMDAPI void ZeDMD_RenderRgb888(ZeDMD* pZeDMD, uint8_t* frame) { return pZeDMD->RenderRgb888(frame); }
 
 ZEDMDAPI void ZeDMD_RenderRgb565(ZeDMD* pZeDMD, uint16_t* frame) { return pZeDMD->RenderRgb565(frame); }
-
-ZEDMDAPI void ZeDMD_RenderRgb16(ZeDMD* pZeDMD, uint16_t* frame) { return pZeDMD->RenderRgb16(frame); }

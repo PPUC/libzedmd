@@ -52,7 +52,7 @@ int main(int argc, const char* argv[])
 
   if (pZeDMD->Open())
   {
-    // pZeDMD->EnableDebug();
+    pZeDMD->EnableDebug();
 
     uint16_t width = pZeDMD->GetWidth();
     uint16_t height = pZeDMD->GetHeight();
@@ -60,105 +60,51 @@ int main(int argc, const char* argv[])
     pZeDMD->SetFrameSize(128, 32);
     pZeDMD->EnableUpscaling();
 
-    uint8_t* pImage2 = CreateImage(2);
-    uint8_t* pImage4 = CreateImage(4);
     uint8_t* pImage24 = CreateImageRGB24();
     uint16_t sleep = 200;
 
-    for (int i = 0; i < 3; i++)
-    {
-      printf("Render loop: %d\n", i);
-
-      printf("Grey2\n");
-      pZeDMD->SetDefaultPalette(2);
-      pZeDMD->RenderGray2(pImage2);
-      std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
-      pZeDMD->ClearScreen();
-
-      printf("Grey4\n");
-      pZeDMD->SetDefaultPalette(4);
-      pZeDMD->RenderGray4(pImage4);
-      std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
-      pZeDMD->ClearScreen();
-
-      pZeDMD->EnablePreUpscaling();
-      printf("RGB24 Streaming\n");
-      pZeDMD->RenderRgb24(pImage24);
-      std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
-
-      printf("RGB24 Streaming\n");
-      pZeDMD->RenderRgb24(pImage24);
-      std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
-      pZeDMD->ClearScreen();
-
-      printf("RGB24 Streaming\n");
-      pZeDMD->RenderRgb24(pImage24);
-      std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
-      pZeDMD->ClearScreen();
-      pZeDMD->DisablePreUpscaling();
-    }
-
-    pZeDMD->DisableRGB24Streaming();
-
-    for (int i = 0; i < 3; i++)
-    {
-      printf("Render loop: %d\n", i);
-
-      printf("Grey2\n");
-      pZeDMD->SetDefaultPalette(2);
-      pZeDMD->RenderGray2(pImage2);
-      std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
-      pZeDMD->ClearScreen();
-
-      printf("Grey4\n");
-      pZeDMD->SetDefaultPalette(4);
-      pZeDMD->RenderGray4(pImage4);
-      std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
-      pZeDMD->ClearScreen();
-
-      printf("RGB24\n");
-      pZeDMD->RenderRgb24(pImage24);
-      std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
-      pZeDMD->ClearScreen();
-
-      printf("RGB24 Streaming\n");
-      pZeDMD->RenderRgb24(pImage24);
-      std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
-      pZeDMD->ClearScreen();
-    }
-
-    pZeDMD->EnforceStreaming();
     pZeDMD->EnablePreUpscaling();
 
     for (int i = 0; i < 3; i++)
     {
-      printf("Streaming render loop: %d\n", i);
+      printf("Render loop: %d\n", i);
 
-      printf("Grey2\n");
-      pZeDMD->SetDefaultPalette(2);
-      pZeDMD->RenderGray2(pImage2);
+      printf("RGB24 Streaming\n");
+      pZeDMD->RenderRgb888(pImage24);
+      std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
+
+      printf("RGB24 Streaming\n");
+      pZeDMD->RenderRgb888(pImage24);
       std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
       pZeDMD->ClearScreen();
 
-      printf("Grey4\n");
-      pZeDMD->SetDefaultPalette(4);
-      pZeDMD->RenderGray4(pImage4);
-      std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
-      pZeDMD->ClearScreen();
-
-      printf("RGB24\n");
-      pZeDMD->RenderRgb24(pImage24);
-      std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
-      pZeDMD->ClearScreen();
-
-      printf("RGB24 as RGB565\n");
-      pZeDMD->RenderRgb24EncodedAs565(pImage24);
+      printf("RGB24 Streaming\n");
+      pZeDMD->RenderRgb888(pImage24);
       std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
       pZeDMD->ClearScreen();
     }
 
-    free(pImage2);
-    free(pImage4);
+    pZeDMD->DisablePreUpscaling();
+
+    for (int i = 0; i < 3; i++)
+    {
+      printf("Render loop: %d\n", i);
+
+      printf("RGB24 Streaming\n");
+      pZeDMD->RenderRgb888(pImage24);
+      std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
+
+      printf("RGB24 Streaming\n");
+      pZeDMD->RenderRgb888(pImage24);
+      std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
+      pZeDMD->ClearScreen();
+
+      printf("RGB24 Streaming\n");
+      pZeDMD->RenderRgb888(pImage24);
+      std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
+      pZeDMD->ClearScreen();
+    }
+
     free(pImage24);
 
     pZeDMD->SetFrameSize(width, height);
@@ -168,17 +114,16 @@ int main(int argc, const char* argv[])
     uint16_t* rgb565 = (uint16_t*)malloc(size / 2 * sizeof(uint16_t));
     char filename[34];
 
-    
-
     for (int i = 1; i <= 100; i++)
     {
       snprintf(filename, 33, "test/rgb565_%dx%d/%04d.raw", width, height, i);
       printf("Render raw: %s\n", filename);
       fileptr = fopen(filename, "rb");
 
-      if (fileptr == NULL) {
-          printf("Failed to open file, make sure to copy the test folder with the RAW files!");
-          break;
+      if (fileptr == NULL)
+      {
+        printf("Failed to open file, make sure to copy the test folder with the RAW files!");
+        break;
       }
 
       fread(buffer, size, 1, fileptr);
@@ -241,7 +186,7 @@ int main(int argc, const char* argv[])
       fread(rgb888, size, 1, fileptr);
       fclose(fileptr);
 
-      pZeDMD->RenderRgb24(rgb888);
+      pZeDMD->RenderRgb888(rgb888);
       std::this_thread::sleep_for(std::chrono::milliseconds(pZeDMD->IsS3() ? 50 : (width == 256 ? 420 : 140)));
     }
 

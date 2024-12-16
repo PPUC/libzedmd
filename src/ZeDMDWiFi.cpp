@@ -243,7 +243,7 @@ bool ZeDMDWiFi::StreamBytes(ZeDMDFrame* pFrame)
   {
     ZeDMDFrameData frameData = *it;
 
-    if (frameData.size < ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT && pFrame->command != 4 && pFrame->command != 5)
+    if (frameData.size < ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT && pFrame->command != 5)
     {
       uint8_t data[ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT + 4] = {0};
       data[0] = pFrame->command;  // command
@@ -265,9 +265,6 @@ bool ZeDMDWiFi::StreamBytes(ZeDMDFrame* pFrame)
     }
     else
     {
-      // If RGB565 streaming is active; the frame only needs 2 bytes per color
-      uint8_t bytesPerPixel = (pFrame->command == 5) ? 2 : 3;
-
       uint8_t data[ZEDMD_WIFI_ZONES_BYTES_LIMIT] = {0};
       data[0] = pFrame->command;  // command
       // In case of a mostly black screen we can get 128 zones. That is handled in ZeDMD firmware.

@@ -136,7 +136,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t value) { QueueCommand(command
 
 void ZeDMDComm::QueueCommand(char command) { QueueCommand(command, nullptr, 0); }
 
-void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t width, uint16_t height, uint8_t bytes)
+void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t width, uint16_t height)
 {
   if (memcmp(data, m_allBlack, size) == 0)
   {
@@ -174,7 +174,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
   uint8_t idx = 0;
   uint8_t numZones = 0;
   uint16_t zonesBytesLimit = 0;
-  const uint16_t zoneBytes = m_zoneWidth * m_zoneHeight * bytes;
+  const uint16_t zoneBytes = m_zoneWidth * m_zoneHeight * 2;
   const uint16_t zoneBytesTotal = zoneBytes + 1;
   uint8_t* zone = (uint8_t*)malloc(zoneBytes);
 
@@ -187,7 +187,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
   else
   {
     // For USB UART send one row (16 zones).
-    zonesBytesLimit = width * m_zoneHeight * bytes + 16;
+    zonesBytesLimit = width * m_zoneHeight * 2 + 16;
   }
   uint8_t* buffer = (uint8_t*)malloc(zonesBytesLimit);
   uint16_t bufferPosition = 0;
@@ -210,7 +210,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
     {
       for (uint8_t z = 0; z < m_zoneHeight; z++)
       {
-        memcpy(&zone[z * m_zoneWidth * bytes], &data[((y + z) * width + x) * bytes], m_zoneWidth * bytes);
+        memcpy(&zone[z * m_zoneWidth * 2], &data[((y + z) * width + x) * 2], m_zoneWidth * 2);
       }
 
       bool black = (memcmp(zone, m_allBlack, zoneBytes) == 0);
