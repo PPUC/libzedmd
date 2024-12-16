@@ -15,20 +15,6 @@ void ZEDMDCALLBACK LogCallback(const char* format, va_list args, const void* pUs
   printf("%s\n", buffer);
 }
 
-uint8_t* CreateImage(int depth)
-{
-  uint8_t* pImage = (uint8_t*)malloc(128 * 32);
-  int pos = 0;
-  for (int y = 0; y < 32; ++y)
-  {
-    for (int x = 0; x < 128; ++x)
-    {
-      pImage[pos++] = x % ((depth == 2) ? 4 : 16);
-    }
-  }
-  return pImage;
-}
-
 uint8_t* CreateImageRGB24()
 {
   uint8_t* pImage = (uint8_t*)malloc(128 * 32 * 3);

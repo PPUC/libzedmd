@@ -620,6 +620,15 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
       size = CTRL_CHARS_HEADER_SIZE + 3 + compressedSize;
       pData[CTRL_CHARS_HEADER_SIZE + 1] = (uint8_t)(compressedSize >> 8 & 0xFF);
       pData[CTRL_CHARS_HEADER_SIZE + 2] = (uint8_t)(compressedSize & 0xFF);
+      if ((0 == pData[CTRL_CHARS_HEADER_SIZE + 1] && 0 == pData[CTRL_CHARS_HEADER_SIZE + 2]) ||
+          // The not compressed RGB565 frame is m_width * m_height * 2, but if every pixel is different, we might be
+          // bigger.
+          compressedSize > (m_width * m_height * 3))
+      {
+        Log("Compression error");
+        free(pData);
+        return false;
+      }
     }
 
     uint8_t flowControlCounter = 255;
