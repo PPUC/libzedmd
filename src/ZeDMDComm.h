@@ -31,7 +31,7 @@
 #if defined(_WIN32) || defined(_WIN64)
 #define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 1888
 #else
-#define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 992
+#define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 4096
 #endif
 
 #define ZEDMD_S3_COMM_BAUD_RATE 2000000
@@ -51,10 +51,6 @@ typedef enum
 {
   FrameSize = 0x02,
   Handshake = 0x0c,
-  Chunk = 0x0d,
-  Compression = 0x0e,
-  EnableCompression = 0x0e,
-  DisableCompression = 0x0f,
   LEDTest = 0x10,
   EnableUpscaling = 0x15,
   DisableUpscaling = 0x14,
@@ -62,7 +58,6 @@ typedef enum
   RGBOrder = 0x17,
   GetBrightness = 0x18,
   GetRGBOrder = 0x19,
-  EnableFlowControlV2 = 0x1a,
   SetWiFiSSID = 0x1b,
   SetWiFiPassword = 0x1c,
   SetWiFiPort = 0x1d,
@@ -71,7 +66,6 @@ typedef enum
   GetVersionBytes = 0x20,
   GetResolution = 0x21,
 
-  RGB24ZonesStream = 0x04,
   RGB565ZonesStream = 0x05,
   ClearScreen = 0x0a,
 
@@ -188,8 +182,8 @@ typedef void(ZEDMDCALLBACK* ZeDMD_LogCallback)(const char* format, va_list args,
 class ZeDMDComm
 {
  public:
-  static const int CTRL_CHARS_HEADER_SIZE = 6;
-  static constexpr uint8_t CTRL_CHARS_HEADER[] = {0x5a, 0x65, 0x64, 0x72, 0x75, 0x6d};
+  static const int CTRL_CHARS_HEADER_SIZE = 5;
+  static constexpr uint8_t CTRL_CHARS_HEADER[] = {'Z', 'e', 'D', 'M', 'D'};
 
  public:
   ZeDMDComm();

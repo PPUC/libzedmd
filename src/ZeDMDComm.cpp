@@ -278,7 +278,7 @@ bool ZeDMDComm::FillDelayed()
   size = m_frames.size();
   delayed = m_delayedFrameReady || (size >= ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX);
   m_frameQueueMutex.unlock();
-  // if (delayed) Log("ZeDMD, next frame will be delayed");
+  if (delayed) Log("ZeDMD, next frame will be delayed");
   return delayed;
 }
 
@@ -504,24 +504,15 @@ bool ZeDMDComm::Connect(char* pDevice)
 
       if (sp_blocking_read(m_pSerialPort, data, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT) && data[0] == 'R')
       {
-        data[0] = ZEDMD_COMM_COMMAND::Chunk;
-        data[1] = (m_s3 ? ZEDMD_S3_COMM_MAX_SERIAL_WRITE_AT_ONCE : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE) / 32;
-        sp_nonblocking_write(m_pSerialPort, (void*)CTRL_CHARS_HEADER, 6);
-        sp_blocking_write(m_pSerialPort, (void*)data, 2, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
-        std::this_thread::sleep_for(std::chrono::milliseconds(4));
+        // Store the device name for reconnects.
+        SetDevice(pDevice);
+        m_noReadySignalCounter = 0;
+        m_flowControlCounter = 1;
+        if (m_cdc) m_zonesBytesLimit = m_width * m_height * 3 + 128;
 
-        if (sp_blocking_read(m_pSerialPort, data, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT) && data[0] == 'A')
-        {
-          // Store the device name for reconnects.
-          SetDevice(pDevice);
-          m_noReadySignalCounter = 0;
-          m_flowControlCounter = 1;
-          if (m_cdc) m_zonesBytesLimit = m_width * m_height * 3 + 128;
+        Log("ZeDMD found: %sdevice=%s, width=%d, height=%d", m_s3 ? "S3 " : "", pDevice, m_width, m_height);
 
-          Log("ZeDMD found: %sdevice=%s, width=%d, height=%d", m_s3 ? "S3 " : "", pDevice, m_width, m_height);
-
-          return true;
-        }
+        return true;
       }
     }
   }
@@ -635,77 +626,38 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
     int8_t status;
     int32_t bytes_waiting;
 
-    do
-    {
-      status = sp_blocking_read(m_pSerialPort, &flowControlCounter, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
-      bytes_waiting = sp_input_waiting(m_pSerialPort);
-      // Log("%d %d %d", status, bytes_waiting, flowControlCounter);
-    } while ((bytes_waiting > 0 || (bytes_waiting == 0 && status != 1) ||
-              (flowControlCounter == 'A' || flowControlCounter == 'E')) &&
-             !m_stopFlag.load(std::memory_order_relaxed));
-    // Log("next stream");
-
     bool success = false;
 
     if (!m_stopFlag)
     {
-      if (flowControlCounter == m_flowControlCounter)
+      int position = 0;
+      success = true;
+      m_noReadySignalCounter = 0;
+      const uint16_t writeAtOnce = m_s3 ? ZEDMD_S3_COMM_MAX_SERIAL_WRITE_AT_ONCE : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE;
+
+      while (position < size && success)
       {
-        int position = 0;
-        success = true;
-        m_noReadySignalCounter = 0;
-        const uint16_t writeAtOnce =
-            m_s3 ? ZEDMD_S3_COMM_MAX_SERIAL_WRITE_AT_ONCE : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE;
+        sp_nonblocking_write(m_pSerialPort, &pData[position],
+                             ((size - position) < writeAtOnce) ? (size - position) : writeAtOnce);
 
-        while (position < size && success)
-        {
-          sp_nonblocking_write(m_pSerialPort, &pData[position],
-                               ((size - position) < writeAtOnce) ? (size - position) : writeAtOnce);
-
-          uint8_t response = 255;
-          do
-          {
-            status = sp_blocking_read(m_pSerialPort, &response, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
-            // It could be that we got one more flowcontrol counter on the line (race condition).
-          } while ((status != 1 ||
-                    (status == 1 && ((response != 'A' && response != 'E') || response == m_flowControlCounter))) &&
-                   !m_stopFlag.load(std::memory_order_relaxed));
-
-          if (m_stopFlag)
-          {
-            success = false;
-          }
-          else if (response == 'A')
-          {
-            position += writeAtOnce;
-          }
-          else
-          {
-            success = false;
-            Log("Write bytes failure: response=%d", response);
-          }
-        }
-
-        if (++m_flowControlCounter > 32)
-        {
-          m_flowControlCounter = 1;
-        }
+        position += writeAtOnce;
       }
-      else
+
+      free(pData);
+
+      uint8_t response = 255;
+      do
       {
-        Log("No Ready Signal, counter is %d", ++m_noReadySignalCounter);
-        if (m_noReadySignalCounter > ZEDMD_COMM_NO_READY_SIGNAL_MAX)
-        {
-          Log("Too many missing Ready Signals, try to reconnect ...");
-          Disconnect();
-          Connect();
-        }
+        status = sp_blocking_read(m_pSerialPort, &response, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
+      } while ((status != 1 || (status == 1 && response != 'A' && response != 'E')) &&
+               !m_stopFlag.load(std::memory_order_relaxed));
+
+      if (response != 'A')
+      {
+        Log("Write bytes failure: response=%d", response);
+        return false;
       }
     }
-
-    free(pData);
-
-    if (!success) return false;
   }
 
   return true;

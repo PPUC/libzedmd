@@ -245,21 +245,18 @@ bool ZeDMDWiFi::StreamBytes(ZeDMDFrame* pFrame)
 
     if (frameData.size < ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT && pFrame->command != 5)
     {
-      uint8_t data[ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT + 4] = {0};
+      uint8_t data[ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT + 1] = {0};
       data[0] = pFrame->command;  // command
-      data[1] = 0;                // not compressed
-      data[2] = (uint8_t)(frameData.size >> 8 & 0xFF);
-      data[3] = (uint8_t)(frameData.size & 0xFF);
       if (frameData.size > 0)
       {
-        memcpy(&data[4], frameData.data, frameData.size);
+        memcpy(&data[1], frameData.data, frameData.size);
       }
 
 #if defined(_WIN32) || defined(_WIN64)
       sendto(m_udpSocket, (const char*)data, frameData.size + 4, 0, (struct sockaddr*)&m_udpServer,
              sizeof(m_udpServer));
 #else
-      sendto(m_udpSocket, data, frameData.size + 4, 0, (struct sockaddr*)&m_udpServer, sizeof(m_udpServer));
+      sendto(m_udpSocket, data, frameData.size + 1, 0, (struct sockaddr*)&m_udpServer, sizeof(m_udpServer));
 #endif
       continue;
     }
@@ -267,18 +264,15 @@ bool ZeDMDWiFi::StreamBytes(ZeDMDFrame* pFrame)
     {
       uint8_t data[ZEDMD_WIFI_ZONES_BYTES_LIMIT] = {0};
       data[0] = pFrame->command;  // command
-      // In case of a mostly black screen we can get 128 zones. That is handled in ZeDMD firmware.
-      data[1] = (uint8_t)(128 | frameData.numZones);  // compressed + num zones
 
-      mz_ulong compressedSize = mz_compressBound(frameData.size);
-      int status = mz_compress(&data[4], &compressedSize, frameData.data, frameData.size);
+      mz_ulong compressedSize = mz_compressBound(ZEDMD_WIFI_MTU - 1);
+      int status = mz_compress(&data[1], &compressedSize, frameData.data, frameData.size);
 
-      if (compressedSize > ZEDMD_WIFI_MTU)
+      if (compressedSize > (ZEDMD_WIFI_MTU - 1))
       {
         Log("ZeDMD Wifi error, compressed size of %d exceeds the MTU payload of %d", compressedSize, ZEDMD_WIFI_MTU);
+        return false;
       }
-      data[2] = (uint8_t)(compressedSize >> 8 & 0xFF);
-      data[3] = (uint8_t)(compressedSize & 0xFF);
 
       if (status == MZ_OK)
       {
@@ -286,14 +280,15 @@ bool ZeDMDWiFi::StreamBytes(ZeDMDFrame* pFrame)
         sendto(m_udpSocket, (const char*)data, compressedSize + 4, 0, (struct sockaddr*)&m_udpServer,
                sizeof(m_udpServer));
 #else
-        sendto(m_udpSocket, data, compressedSize + 4, 0, (struct sockaddr*)&m_udpServer, sizeof(m_udpServer));
+        sendto(m_udpSocket, data, compressedSize + 1, 0, (struct sockaddr*)&m_udpServer, sizeof(m_udpServer));
 #endif
         continue;
       }
-
-      Log("ZeDMD Wifi compression error");
-
-      return false;
+      else
+      {
+        Log("ZeDMD Wifi compression error");
+        return false;
+      }
     }
   }
 

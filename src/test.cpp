@@ -38,32 +38,22 @@ int main(int argc, const char* argv[])
 
   if (pZeDMD->Open())
   {
-    pZeDMD->EnableDebug();
+    //pZeDMD->EnableDebug();
 
     uint16_t width = pZeDMD->GetWidth();
     uint16_t height = pZeDMD->GetHeight();
 
     pZeDMD->SetFrameSize(128, 32);
-    pZeDMD->EnableUpscaling();
+    //pZeDMD->EnableUpscaling();
 
     uint8_t* pImage24 = CreateImageRGB24();
-    uint16_t sleep = 200;
+    uint16_t sleep = 10;
 
     pZeDMD->EnablePreUpscaling();
 
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 10; i++)
     {
       printf("Render loop: %d\n", i);
-
-      printf("RGB24 Streaming\n");
-      pZeDMD->RenderRgb888(pImage24);
-      std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
-
-      printf("RGB24 Streaming\n");
-      pZeDMD->RenderRgb888(pImage24);
-      std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
-      pZeDMD->ClearScreen();
-
       printf("RGB24 Streaming\n");
       pZeDMD->RenderRgb888(pImage24);
       std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
@@ -72,19 +62,9 @@ int main(int argc, const char* argv[])
 
     pZeDMD->DisablePreUpscaling();
 
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 10; i++)
     {
       printf("Render loop: %d\n", i);
-
-      printf("RGB24 Streaming\n");
-      pZeDMD->RenderRgb888(pImage24);
-      std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
-
-      printf("RGB24 Streaming\n");
-      pZeDMD->RenderRgb888(pImage24);
-      std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
-      pZeDMD->ClearScreen();
-
       printf("RGB24 Streaming\n");
       pZeDMD->RenderRgb888(pImage24);
       std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
@@ -117,7 +97,6 @@ int main(int argc, const char* argv[])
 
       memcpy(rgb565, buffer, size);
       pZeDMD->RenderRgb565(rgb565);
-      std::this_thread::sleep_for(std::chrono::milliseconds(pZeDMD->IsS3() ? 50 : (width == 256 ? 240 : 80)));
     }
 
     if (width == 256)
@@ -136,7 +115,7 @@ int main(int argc, const char* argv[])
 
         memcpy(rgb565, buffer, size);
         pZeDMD->RenderRgb565(rgb565);
-        std::this_thread::sleep_for(std::chrono::milliseconds(pZeDMD->IsS3() ? 50 : 120));
+        std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
       }
 
       // test RGB565 centering
@@ -152,7 +131,7 @@ int main(int argc, const char* argv[])
 
         memcpy(rgb565, buffer, size);
         pZeDMD->RenderRgb565(rgb565);
-        std::this_thread::sleep_for(std::chrono::milliseconds(pZeDMD->IsS3() ? 50 : 80));
+        std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
       }
 
       pZeDMD->SetFrameSize(width, height);
@@ -173,14 +152,14 @@ int main(int argc, const char* argv[])
       fclose(fileptr);
 
       pZeDMD->RenderRgb888(rgb888);
-      std::this_thread::sleep_for(std::chrono::milliseconds(pZeDMD->IsS3() ? 50 : (width == 256 ? 420 : 140)));
+      std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
     }
 
     free(rgb888);
 
-    pZeDMD->LedTest();
-    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+  //  pZeDMD->LedTest();
+  //  std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 
-    pZeDMD->Close();
+  //  pZeDMD->Close();
   }
 }
