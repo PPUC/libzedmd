@@ -16,7 +16,6 @@ ZeDMD::ZeDMD()
 
   m_pFrameBuffer = nullptr;
   m_pScaledFrameBuffer = nullptr;
-  m_pCommandBuffer = nullptr;
   m_pRgb565Buffer = nullptr;
 
   m_pZeDMDComm = new ZeDMDComm();
@@ -36,11 +35,6 @@ ZeDMD::~ZeDMD()
   if (m_pScaledFrameBuffer)
   {
     delete m_pScaledFrameBuffer;
-  }
-
-  if (m_pCommandBuffer)
-  {
-    delete m_pCommandBuffer;
   }
 
   if (m_pRgb565Buffer)
@@ -264,11 +258,13 @@ bool ZeDMD::OpenWiFi(const char* ip, int port)
 
   if (m_wifi && !m_usb)
   {
+    uint16_t width = m_pZeDMDWiFi->GetWidth();
+    uint16_t height = m_pZeDMDWiFi->GetHeight();
+    m_hd = (width == 256);
+
     m_pFrameBuffer = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
     m_pScaledFrameBuffer = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
-    m_pRgb565Buffer = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT);
-
-    m_hd = (m_pZeDMDWiFi->GetWidth() == 256);
+    m_pRgb565Buffer = (uint8_t*)malloc(width * height * 2);
 
     m_pZeDMDWiFi->Run();
   }
@@ -284,12 +280,13 @@ bool ZeDMD::Open()
 
   if (m_usb && !m_wifi)
   {
+    uint16_t width = m_pZeDMDComm->GetWidth();
+    uint16_t height = m_pZeDMDComm->GetHeight();
+    m_hd = (width == 256);
+
     m_pFrameBuffer = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
     m_pScaledFrameBuffer = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
-    m_pCommandBuffer = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3 + 192);
-    m_pRgb565Buffer = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT);
-
-    m_hd = (m_pZeDMDComm->GetWidth() == 256);
+    m_pRgb565Buffer = (uint8_t*)malloc(width * height * 2);
 
     m_pZeDMDComm->Run();
   }
@@ -328,10 +325,7 @@ void ZeDMD::RenderRgb888(uint8_t* pFrame)
     return;
   }
 
-  uint16_t width;
-  uint16_t height;
-
-  int bufferSize = Scale888(m_pScaledFrameBuffer, m_pFrameBuffer, 3, &width, &height);
+  int bufferSize = Scale888(m_pScaledFrameBuffer, m_pFrameBuffer, 3);
   int rgb565Size = bufferSize / 3;
   for (uint16_t i = 0; i < rgb565Size; i++)
   {
@@ -343,11 +337,11 @@ void ZeDMD::RenderRgb888(uint8_t* pFrame)
 
   if (m_wifi)
   {
-    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::RGB565ZonesStream, m_pRgb565Buffer, rgb565Size * 2, width, height);
+    m_pZeDMDWiFi->QueueFrame(m_pRgb565Buffer, rgb565Size * 2);
   }
   else if (m_usb)
   {
-    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB565ZonesStream, m_pRgb565Buffer, rgb565Size * 2, width, height);
+    m_pZeDMDComm->QueueFrame(m_pRgb565Buffer, rgb565Size * 2);
   }
 }
 
@@ -358,18 +352,15 @@ void ZeDMD::RenderRgb565(uint16_t* pFrame)
     return;
   }
 
-  uint16_t width;
-  uint16_t height;
-
-  int rgb565Size = Scale565(m_pScaledFrameBuffer, pFrame, &width, &height, is_bigendian());
+  int size = Scale565(m_pScaledFrameBuffer, pFrame, is_bigendian());
 
   if (m_wifi)
   {
-    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::RGB565ZonesStream, m_pScaledFrameBuffer, rgb565Size, width, height);
+    m_pZeDMDWiFi->QueueFrame(m_pScaledFrameBuffer, size);
   }
   else if (m_usb)
   {
-    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGB565ZonesStream, m_pScaledFrameBuffer, rgb565Size, width, height);
+    m_pZeDMDComm->QueueFrame(m_pScaledFrameBuffer, size);
   }
 }
 bool ZeDMD::UpdateFrameBuffer888(uint8_t* pFrame)
@@ -394,64 +385,48 @@ bool ZeDMD::UpdateFrameBuffer565(uint16_t* pFrame)
   return true;
 }
 
-uint8_t ZeDMD::GetScaleMode(uint16_t frameWidth, uint16_t frameHeight, uint16_t* pWidth, uint16_t* pHeight,
+uint8_t ZeDMD::GetScaleMode(uint16_t frameWidth, uint16_t frameHeight,
                             uint8_t* pXOffset, uint8_t* pYOffset)
 {
   if (m_upscaling && m_romWidth == 192 && frameWidth == 256)
   {
-    (*pWidth) = frameWidth;
-    (*pHeight) = frameHeight;
     (*pXOffset) = 32;
     return 0;
   }
   else if (m_downscaling && m_romWidth == 192 && frameWidth == 128)
   {
-    (*pWidth) = frameWidth;
-    (*pHeight) = frameHeight;
     (*pXOffset) = 16;
     return 1;
   }
   else if (m_upscaling && m_romHeight == 16 && frameHeight == 32)
   {
-    (*pWidth) = frameWidth;
-    (*pHeight) = frameHeight;
     (*pYOffset) = 8;
     return 0;
   }
   else if (m_upscaling && m_romHeight == 16 && frameHeight == 64)
   {
-    (*pWidth) = frameWidth;
-    (*pHeight) = frameHeight;
     (*pYOffset) = 16;
     return 2;
   }
   else if (m_downscaling && m_romWidth == 256 && frameWidth == 128)
   {
-    (*pWidth) = frameWidth;
-    (*pHeight) = frameHeight;
     return 1;
   }
   else if (m_upscaling && m_romWidth == 128 && frameWidth == 256)
   {
-    (*pWidth) = frameWidth;
-    (*pHeight) = frameHeight;
     return 2;
   }
   else if (!m_upscaling && m_romWidth == 128 && frameWidth == 256)
   {
-    (*pWidth) = frameWidth;
-    (*pHeight) = frameHeight;
     (*pXOffset) = 64;
     (*pYOffset) = 16;
     return 0;
   }
 
-  (*pWidth) = m_romWidth;
-  (*pHeight) = m_romHeight;
   return 255;
 }
 
-int ZeDMD::Scale888(uint8_t* pScaledFrame, uint8_t* pFrame, uint8_t bytes, uint16_t* width, uint16_t* height)
+int ZeDMD::Scale888(uint8_t* pScaledFrame, uint8_t* pFrame, uint8_t bytes)
 {
   uint8_t bits = bytes * 8;
   uint8_t xoffset = 0;
@@ -459,7 +434,7 @@ int ZeDMD::Scale888(uint8_t* pScaledFrame, uint8_t* pFrame, uint8_t bytes, uint1
   uint16_t frameWidth = GetWidth();
   uint16_t frameHeight = GetHeight();
   int bufferSize = m_romWidth * m_romHeight * bytes;
-  uint8_t scale = GetScaleMode(frameWidth, frameHeight, width, height, &xoffset, &yoffset);
+  uint8_t scale = GetScaleMode(frameWidth, frameHeight, &xoffset, &yoffset);
 
   if (scale == 255)
   {
@@ -472,28 +447,28 @@ int ZeDMD::Scale888(uint8_t* pScaledFrame, uint8_t* pFrame, uint8_t bytes, uint1
 
   if (scale == 1)
   {
-    FrameUtil::Helper::ScaleDown(pScaledFrame, *width, *height, pFrame, m_romWidth, m_romHeight, bits);
+    FrameUtil::Helper::ScaleDown(pScaledFrame, frameWidth, frameHeight, pFrame, m_romWidth, m_romHeight, bits);
   }
   else if (scale == 2)
   {
     FrameUtil::Helper::ScaleUp(pScaledFrame, pFrame, m_romWidth, m_romHeight, bits);
-    if (*width > (m_romWidth * 2) || *height > (m_romHeight * 2))
+    if (frameWidth > (m_romWidth * 2) || frameHeight > (m_romHeight * 2))
     {
       uint8_t* pUncenteredFrame = (uint8_t*)malloc(bufferSize);
       memcpy(pUncenteredFrame, pScaledFrame, bufferSize);
-      FrameUtil::Helper::Center(pScaledFrame, *width, *height, pUncenteredFrame, m_romWidth * 2, m_romHeight * 2, bits);
+      FrameUtil::Helper::Center(pScaledFrame, frameWidth, frameHeight, pUncenteredFrame, m_romWidth * 2, m_romHeight * 2, bits);
       free(pUncenteredFrame);
     }
   }
   else
   {
-    FrameUtil::Helper::Center(pScaledFrame, *width, *height, pFrame, m_romWidth, m_romHeight, bits);
+    FrameUtil::Helper::Center(pScaledFrame, frameWidth, frameHeight, pFrame, m_romWidth, m_romHeight, bits);
   }
 
   return bufferSize;
 }
 
-int ZeDMD::Scale565(uint8_t* pScaledFrame, uint16_t* pFrame, uint16_t* width, uint16_t* height, bool bigEndian)
+int ZeDMD::Scale565(uint8_t* pScaledFrame, uint16_t* pFrame, bool bigEndian)
 {
   int bufferSize = m_romWidth * m_romHeight;
   uint8_t* pConvertedFrame = (uint8_t*)malloc(bufferSize * 2);
@@ -503,7 +478,7 @@ int ZeDMD::Scale565(uint8_t* pScaledFrame, uint16_t* pFrame, uint16_t* width, ui
     pConvertedFrame[i * 2 + bigEndian] = pFrame[i] & 0xFF;
   }
 
-  bufferSize = Scale888(pScaledFrame, pConvertedFrame, 2, width, height);
+  bufferSize = Scale888(pScaledFrame, pConvertedFrame, 2);
   free(pConvertedFrame);
 
   return bufferSize;

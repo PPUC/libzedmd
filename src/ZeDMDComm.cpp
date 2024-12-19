@@ -84,7 +84,8 @@ void ZeDMDComm::Run()
           if (m_frames.front().data.empty())
           {
             // In case of a simple command, add metadata to indicate that the payload data size is 0.
-            m_frames.front().data.emplace_back(nullptr, 0, 0);
+            m_frames.front().data.emplace_back(nullptr, 0);
+
           }
           bool success = StreamBytes(&(m_frames.front()));
           m_frames.pop();
@@ -136,7 +137,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t value) { QueueCommand(command
 
 void ZeDMDComm::QueueCommand(char command) { QueueCommand(command, nullptr, 0); }
 
-void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t width, uint16_t height)
+void ZeDMDComm::QueueFrame(uint8_t* data, int size)
 {
   if (memcmp(data, m_allBlack, size) == 0)
   {
@@ -172,28 +173,15 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
   }
 
   uint8_t idx = 0;
-  uint8_t numZones = 0;
-  uint16_t zonesBytesLimit = 0;
+  uint16_t zonesBytesLimit = ZEDMD_ZONES_BYTE_LIMIT;
   const uint16_t zoneBytes = m_zoneWidth * m_zoneHeight * 2;
   const uint16_t zoneBytesTotal = zoneBytes + 1;
   uint8_t* zone = (uint8_t*)malloc(zoneBytes);
-
-  if (m_zonesBytesLimit)
-  {
-    // Find the limit as integer that is closest to m_zonesBytesLimit for example 1540 for RGB888 HD.
-    uint8_t zones = m_zonesBytesLimit / zoneBytesTotal;
-    zonesBytesLimit = zones * zoneBytesTotal;
-  }
-  else
-  {
-    // For USB UART send one row (16 zones).
-    zonesBytesLimit = width * m_zoneHeight * 2 + 16;
-  }
   uint8_t* buffer = (uint8_t*)malloc(zonesBytesLimit);
   uint16_t bufferPosition = 0;
   const uint16_t bufferSizeThreshold = zonesBytesLimit - zoneBytesTotal;
 
-  ZeDMDFrame frame(command);
+  ZeDMDFrame frame(ZEDMD_COMM_COMMAND::RGB565ZonesStream);
 
   bool delayed = FillDelayed();
   if (delayed)
@@ -204,13 +192,13 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
   }
 
   memset(buffer, 0, zonesBytesLimit);
-  for (uint16_t y = 0; y < height; y += m_zoneHeight)
+  for (uint16_t y = 0; y < m_height; y += m_zoneHeight)
   {
-    for (uint16_t x = 0; x < width; x += m_zoneWidth)
+    for (uint16_t x = 0; x < m_width; x += m_zoneWidth)
     {
       for (uint8_t z = 0; z < m_zoneHeight; z++)
       {
-        memcpy(&zone[z * m_zoneWidth * 2], &data[((y + z) * width + x) * 2], m_zoneWidth * 2);
+        memcpy(&zone[z * m_zoneWidth * 2], &data[((y + z) * m_width + x) * 2], m_zoneWidth * 2);
       }
 
       bool black = (memcmp(zone, m_allBlack, zoneBytes) == 0);
@@ -221,7 +209,6 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
       {
         m_zoneHashes[idx] = hash;
         m_zoneRepeatCounters[idx] = 0;
-        numZones++;
 
         if (black)
         {
@@ -237,10 +224,9 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
 
         if (bufferPosition > bufferSizeThreshold)
         {
-          frame.data.emplace_back(buffer, bufferPosition, numZones);
+          frame.data.emplace_back(buffer, bufferPosition);
           memset(buffer, 0, zonesBytesLimit);
           bufferPosition = 0;
-          numZones = 0;
         }
       }
       idx++;
@@ -249,7 +235,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size, uint16_t wid
 
   if (bufferPosition > 0)
   {
-    frame.data.emplace_back(buffer, bufferPosition, numZones);
+    frame.data.emplace_back(buffer, bufferPosition);
   }
 
   free(buffer);
@@ -506,10 +492,6 @@ bool ZeDMDComm::Connect(char* pDevice)
       {
         // Store the device name for reconnects.
         SetDevice(pDevice);
-        m_noReadySignalCounter = 0;
-        m_flowControlCounter = 1;
-        if (m_cdc) m_zonesBytesLimit = m_width * m_height * 3 + 128;
-
         Log("ZeDMD found: %sdevice=%s, width=%d, height=%d", m_s3 ? "S3 " : "", pDevice, m_width, m_height);
 
         return true;
@@ -612,9 +594,7 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
       pData[CTRL_CHARS_HEADER_SIZE + 1] = (uint8_t)(compressedSize >> 8 & 0xFF);
       pData[CTRL_CHARS_HEADER_SIZE + 2] = (uint8_t)(compressedSize & 0xFF);
       if ((0 == pData[CTRL_CHARS_HEADER_SIZE + 1] && 0 == pData[CTRL_CHARS_HEADER_SIZE + 2]) ||
-          // The not compressed RGB565 frame is m_width * m_height * 2, but if every pixel is different, we might be
-          // bigger.
-          compressedSize > (m_width * m_height * 3))
+          compressedSize > (ZEDMD_ZONES_BYTE_LIMIT))
       {
         Log("Compression error");
         free(pData);
@@ -632,7 +612,6 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
     {
       int position = 0;
       success = true;
-      m_noReadySignalCounter = 0;
       const uint16_t writeAtOnce = m_s3 ? ZEDMD_S3_COMM_MAX_SERIAL_WRITE_AT_ONCE : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE;
 
       while (position < size && success)

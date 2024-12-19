@@ -47,6 +47,11 @@
 
 #define ZEDMD_ZONES_REPEAT_THRESHOLD 30
 
+// Typically, the MTU is 1480 (1500 - 20 byte header).
+// 1460 is safe. For UART or USB CDC we use the same limit since the ZeDMD firmware is unified.
+ // For USB UART 128x32 send one row (16 zones).
+#define ZEDMD_ZONES_BYTE_LIMIT (128 * 4 * 2 + 16)
+
 typedef enum
 {
   FrameSize = 0x02,
@@ -77,14 +82,13 @@ struct ZeDMDFrameData
 {
   uint8_t* data;
   int size;
-  uint8_t numZones;
 
   // Default constructor
-  ZeDMDFrameData(int sz = 0) : size(sz), data((sz > 0) ? new uint8_t[sz] : nullptr), numZones(0) {}
+  ZeDMDFrameData(int sz = 0) : size(sz), data((sz > 0) ? new uint8_t[sz] : nullptr) {}
 
   // Constructor to copy data
-  ZeDMDFrameData(uint8_t* d, int sz = 0, uint8_t nz = 0)
-      : size(sz), data((sz > 0) ? new uint8_t[sz] : nullptr), numZones(nz)
+  ZeDMDFrameData(uint8_t* d, int sz = 0)
+      : size(sz), data((sz > 0) ? new uint8_t[sz] : nullptr)
   {
     if (sz > 0) memcpy(data, d, sz);
   }
@@ -94,7 +98,7 @@ struct ZeDMDFrameData
 
   // Copy constructor (deep copy)
   ZeDMDFrameData(const ZeDMDFrameData& other)
-      : size(other.size), data((other.size > 0) ? new uint8_t[other.size] : nullptr), numZones(other.numZones)
+      : size(other.size), data((other.size > 0) ? new uint8_t[other.size] : nullptr)
   {
     if (other.size > 0) memcpy(data, other.data, other.size);
   }
@@ -108,17 +112,15 @@ struct ZeDMDFrameData
       size = other.size;
       data = (other.size > 0) ? new uint8_t[other.size] : nullptr;
       if (other.size > 0) memcpy(data, other.data, other.size);
-      numZones = other.numZones;
     }
     return *this;
   }
 
   // Move constructor
-  ZeDMDFrameData(ZeDMDFrameData&& other) noexcept : size(other.size), data(other.data), numZones(other.numZones)
+  ZeDMDFrameData(ZeDMDFrameData&& other) noexcept : size(other.size), data(other.data)
   {
     other.size = 0;
     other.data = nullptr;
-    other.numZones = 0;
   }
 
   // Move assignment operator
@@ -130,11 +132,9 @@ struct ZeDMDFrameData
 
       size = other.size;
       data = other.data;
-      numZones = other.numZones;
 
       other.size = 0;
       other.data = nullptr;
-      other.numZones = 0;
     }
 
     return *this;
@@ -150,9 +150,9 @@ struct ZeDMDFrame
   ZeDMDFrame(uint8_t cmd) : command(cmd) {}
 
   // Constructor to add initial data
-  ZeDMDFrame(uint8_t cmd, uint8_t* d, int s, uint8_t nz = 0) : command(cmd)
+  ZeDMDFrame(uint8_t cmd, uint8_t* d, int s) : command(cmd)
   {
-    data.emplace_back(d, s, nz);  // Create and move a new ZeDMDFrameData object
+    data.emplace_back(d, s);  // Create and move a new ZeDMDFrameData object
   }
 
   // Destructor (no need to manually clear the vector)
@@ -199,7 +199,7 @@ class ZeDMDComm
   virtual bool IsConnected();
 
   void Run();
-  void QueueCommand(char command, uint8_t* buffer, int size, uint16_t width, uint16_t height);
+  void QueueFrame(uint8_t* buffer, int size);
   void QueueCommand(char command, uint8_t* buffer, int size);
   void QueueCommand(char command);
   void QueueCommand(char command, uint8_t value);
@@ -219,7 +219,6 @@ class ZeDMDComm
   uint16_t m_height = 32;
   bool m_s3 = false;
   bool m_cdc = false;
-  uint16_t m_zonesBytesLimit = 0;
   uint8_t m_zoneWidth = 8;
   uint8_t m_zoneHeight = 4;
   bool m_resendZones = false;
@@ -232,10 +231,8 @@ class ZeDMDComm
   const void* m_logUserData = nullptr;
   uint64_t m_zoneHashes[128] = {0};
   uint8_t m_zoneRepeatCounters[128] = {0};
-  const uint8_t m_allBlack[49152] = {0};
+  const uint8_t m_allBlack[32768] = {0};
 
-  uint8_t m_flowControlCounter = 0;
-  uint8_t m_noReadySignalCounter = 0;
   char m_ignoredDevices[10][32] = {0};
   uint8_t m_ignoredDevicesCounter = 0;
   char m_device[32] = {0};

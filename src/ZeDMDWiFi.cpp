@@ -243,7 +243,7 @@ bool ZeDMDWiFi::StreamBytes(ZeDMDFrame* pFrame)
   {
     ZeDMDFrameData frameData = *it;
 
-    if (frameData.size < ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT && pFrame->command != 5)
+    if (frameData.size < ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT && pFrame->command != ZEDMD_COMM_COMMAND::RGB565ZonesStream)
     {
       uint8_t data[ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT + 1] = {0};
       data[0] = pFrame->command;  // command
@@ -262,15 +262,21 @@ bool ZeDMDWiFi::StreamBytes(ZeDMDFrame* pFrame)
     }
     else
     {
-      uint8_t data[ZEDMD_WIFI_ZONES_BYTES_LIMIT] = {0};
+      uint8_t data[ZEDMD_WIFI_MTU] = {0};
       data[0] = pFrame->command;  // command
 
-      mz_ulong compressedSize = mz_compressBound(ZEDMD_WIFI_MTU - 1);
+      mz_ulong compressedSize = mz_compressBound(ZEDMD_ZONES_BYTE_LIMIT);
       int status = mz_compress(&data[1], &compressedSize, frameData.data, frameData.size);
 
       if (compressedSize > (ZEDMD_WIFI_MTU - 1))
       {
         Log("ZeDMD Wifi error, compressed size of %d exceeds the MTU payload of %d", compressedSize, ZEDMD_WIFI_MTU);
+        return false;
+      }
+
+      if (compressedSize > ZEDMD_ZONES_BYTE_LIMIT)
+      {
+        Log("ZeDMD Wifi error, compressed size of %d exceeds the ZEDMD_ZONES_BYTE_LIMIT of %d", compressedSize, ZEDMD_ZONES_BYTE_LIMIT);
         return false;
       }
 

@@ -332,10 +332,10 @@ class ZEDMDAPI ZeDMD
  private:
   bool UpdateFrameBuffer888(uint8_t* pFrame);
   bool UpdateFrameBuffer565(uint16_t* pFrame);
-  uint8_t GetScaleMode(uint16_t frameWidth, uint16_t frameHeight, uint16_t* pWidth, uint16_t* pHeight,
+  uint8_t GetScaleMode(uint16_t frameWidth, uint16_t frameHeight,
                        uint8_t* pXOffset, uint8_t* pYOffset);
-  int Scale888(uint8_t* pScaledFrame, uint8_t* pFrame, uint8_t bytes, uint16_t* width, uint16_t* height);
-  int Scale565(uint8_t* pScaledFrame, uint16_t* pFrame, uint16_t* width, uint16_t* height, bool bigEndian);
+  int Scale888(uint8_t* pScaledFrame, uint8_t* pFrame, uint8_t bytes);
+  int Scale565(uint8_t* pScaledFrame, uint16_t* pFrame, bool bigEndian);
 
   ZeDMDComm* m_pZeDMDComm;
   ZeDMDWiFi* m_pZeDMDWiFi;
@@ -351,7 +351,6 @@ class ZEDMDAPI ZeDMD
 
   uint8_t* m_pFrameBuffer;
   uint8_t* m_pScaledFrameBuffer;
-  uint8_t* m_pCommandBuffer;
   uint8_t* m_pRgb565Buffer;
 };
 
