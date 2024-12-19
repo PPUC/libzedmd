@@ -75,35 +75,6 @@ void ZeDMD::SetFrameSize(uint16_t width, uint16_t height)
 {
   m_romWidth = width;
   m_romHeight = height;
-
-  uint16_t frameWidth = GetWidth();
-  uint16_t frameHeight = GetHeight();
-  uint8_t size[4];
-
-  if ((m_downscaling && (width > frameWidth || height > frameHeight)) ||
-      (m_upscaling && (width < frameWidth || height < frameHeight)))
-  {
-    size[0] = (uint8_t)(frameWidth & 0xFF);
-    size[1] = (uint8_t)((frameWidth >> 8) & 0xFF);
-    size[2] = (uint8_t)(frameHeight & 0xFF);
-    size[3] = (uint8_t)((frameHeight >> 8) & 0xFF);
-  }
-  else
-  {
-    size[0] = (uint8_t)(width & 0xFF);
-    size[1] = (uint8_t)((width >> 8) & 0xFF);
-    size[2] = (uint8_t)(height & 0xFF);
-    size[3] = (uint8_t)((height >> 8) & 0xFF);
-  }
-
-  if (m_usb)
-  {
-    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::FrameSize, size, 4);
-  }
-  else if (m_wifi)
-  {
-    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::FrameSize, size, 4);
-  }
 }
 
 uint16_t const ZeDMD::GetWidth()

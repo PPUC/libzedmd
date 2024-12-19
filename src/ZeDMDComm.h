@@ -28,17 +28,14 @@
 #endif
 
 #define ZEDMD_COMM_BAUD_RATE 921600
-#if defined(_WIN32) || defined(_WIN64)
 #define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 1888
-#else
-#define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 4096
-#endif
 
 #define ZEDMD_S3_COMM_BAUD_RATE 2000000
-#define ZEDMD_S3_COMM_MAX_SERIAL_WRITE_AT_ONCE 992
+#define ZEDMD_S3_COMM_MAX_SERIAL_WRITE_AT_ONCE 256
 
 #define ZEDMD_COMM_SERIAL_READ_TIMEOUT 16
 #define ZEDMD_COMM_SERIAL_WRITE_TIMEOUT 8
+#define ZEDMD_COMM_NUM_TIMEOUTS_TO_WAIT_FOR_ACKNOWLEDGE 3
 
 #define ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT 10
 #define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX 8
@@ -49,7 +46,7 @@
 
 // Typically, the MTU is 1480 (1500 - 20 byte header).
 // 1460 is safe. For UART or USB CDC we use the same limit since the ZeDMD firmware is unified.
- // For USB UART 128x32 send one row (16 zones).
+// For USB UART 128x32 send one row (16 zones).
 #define ZEDMD_ZONES_BYTE_LIMIT (128 * 4 * 2 + 16)
 
 typedef enum
@@ -71,6 +68,7 @@ typedef enum
   GetVersionBytes = 0x20,
   GetResolution = 0x21,
 
+  AnnounceRGB565ZonesStream = 0x04,
   RGB565ZonesStream = 0x05,
   ClearScreen = 0x0a,
 
@@ -87,8 +85,7 @@ struct ZeDMDFrameData
   ZeDMDFrameData(int sz = 0) : size(sz), data((sz > 0) ? new uint8_t[sz] : nullptr) {}
 
   // Constructor to copy data
-  ZeDMDFrameData(uint8_t* d, int sz = 0)
-      : size(sz), data((sz > 0) ? new uint8_t[sz] : nullptr)
+  ZeDMDFrameData(uint8_t* d, int sz = 0) : size(sz), data((sz > 0) ? new uint8_t[sz] : nullptr)
   {
     if (sz > 0) memcpy(data, d, sz);
   }
@@ -226,6 +223,7 @@ class ZeDMDComm
 
  private:
   bool Connect(char* pName);
+  bool SendChunks(uint8_t* pData, uint16_t size);
 
   ZeDMD_LogCallback m_logCallback = nullptr;
   const void* m_logUserData = nullptr;

@@ -47,7 +47,7 @@ int main(int argc, const char* argv[])
     //pZeDMD->EnableUpscaling();
 
     uint8_t* pImage24 = CreateImageRGB24();
-    uint16_t sleep = 10;
+    uint16_t sleep = 2;
 
     pZeDMD->EnablePreUpscaling();
 
@@ -97,6 +97,7 @@ int main(int argc, const char* argv[])
 
       memcpy(rgb565, buffer, size);
       pZeDMD->RenderRgb565(rgb565);
+      std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
     }
 
     if (width == 256)

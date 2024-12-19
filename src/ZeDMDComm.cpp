@@ -85,7 +85,6 @@ void ZeDMDComm::Run()
           {
             // In case of a simple command, add metadata to indicate that the payload data size is 0.
             m_frames.front().data.emplace_back(nullptr, 0);
-
           }
           bool success = StreamBytes(&(m_frames.front()));
           m_frames.pop();
@@ -574,7 +573,7 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
     ZeDMDFrameData frameData = *it;
 
     uint8_t* pData;
-    int size;
+    uint16_t size;
 
     if (frameData.size == 0)
     {
@@ -585,8 +584,20 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
     }
     else
     {
-      mz_ulong compressedSize = mz_compressBound(frameData.size);
-      pData = (uint8_t*)malloc(CTRL_CHARS_HEADER_SIZE + 3 + compressedSize);
+      if (pFrame->command == ZEDMD_COMM_COMMAND::RGB565ZonesStream)
+      {
+        size = CTRL_CHARS_HEADER_SIZE + 1;
+        pData = (uint8_t*)malloc(size);
+        memcpy(pData, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
+        pData[CTRL_CHARS_HEADER_SIZE] = ZEDMD_COMM_COMMAND::AnnounceRGB565ZonesStream;
+
+        bool success = SendChunks(pData, size);
+        free(pData);
+        if (!success) return false;
+      }
+
+      mz_ulong compressedSize = mz_compressBound(ZEDMD_ZONES_BYTE_LIMIT);
+      pData = (uint8_t*)malloc(CTRL_CHARS_HEADER_SIZE + 3 + ZEDMD_ZONES_BYTE_LIMIT);
       memcpy(pData, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
       pData[CTRL_CHARS_HEADER_SIZE] = pFrame->command;
       mz_compress(pData + CTRL_CHARS_HEADER_SIZE + 3, &compressedSize, frameData.data, frameData.size);
@@ -602,47 +613,54 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
       }
     }
 
-    uint8_t flowControlCounter = 255;
-    int8_t status;
-    int32_t bytes_waiting;
-
-    bool success = false;
-
-    if (!m_stopFlag)
-    {
-      int position = 0;
-      success = true;
-      const uint16_t writeAtOnce = m_s3 ? ZEDMD_S3_COMM_MAX_SERIAL_WRITE_AT_ONCE : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE;
-
-      while (position < size && success)
-      {
-        sp_nonblocking_write(m_pSerialPort, &pData[position],
-                             ((size - position) < writeAtOnce) ? (size - position) : writeAtOnce);
-
-        position += writeAtOnce;
-      }
-
-      free(pData);
-
-      uint8_t response = 255;
-      do
-      {
-        status = sp_blocking_read(m_pSerialPort, &response, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
-      } while ((status != 1 || (status == 1 && response != 'A' && response != 'E')) &&
-               !m_stopFlag.load(std::memory_order_relaxed));
-
-      if (response != 'A')
-      {
-        Log("Write bytes failure: response=%d", response);
-        return false;
-      }
-    }
+    bool success = SendChunks(pData, size);
+    free(pData);
+    if (!success) return false;
   }
 
   return true;
 #else
   return false;
 #endif
+}
+
+bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
+{
+  int8_t status = 0;
+
+  if (!m_stopFlag.load(std::memory_order_relaxed))
+  {
+    int position = 0;
+    // USB CDC uses a fixed chunk size of 512 bytes.
+    const uint16_t writeAtOnce = m_cdc ? 512 : (m_s3 ? ZEDMD_S3_COMM_MAX_SERIAL_WRITE_AT_ONCE : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
+
+    while (position < size)
+    {
+      sp_nonblocking_write(m_pSerialPort, &pData[position],
+                           ((size - position) < writeAtOnce) ? (size - position) : writeAtOnce);
+
+      position += writeAtOnce;
+    }
+
+    uint8_t response = 255;
+    uint8_t timeouts = 0;
+    do
+    {
+      status = sp_blocking_read(m_pSerialPort, &response, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
+      if (0 == status && ++timeouts >= ZEDMD_COMM_NUM_TIMEOUTS_TO_WAIT_FOR_ACKNOWLEDGE) break;
+    } while ((status != 1 || (status == 1 && response != 'A' && response != 'E')) &&
+             !m_stopFlag.load(std::memory_order_relaxed));
+
+    if (response != 'A')
+    {
+      Log("Write bytes failure: response=%d", response);
+      return false;
+    }
+
+    return true;
+  }
+
+  return false;
 }
 
 uint16_t const ZeDMDComm::GetWidth() { return m_width; }
