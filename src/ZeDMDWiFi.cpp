@@ -243,59 +243,68 @@ bool ZeDMDWiFi::StreamBytes(ZeDMDFrame* pFrame)
   {
     ZeDMDFrameData frameData = *it;
 
-    if (frameData.size < ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT && pFrame->command != ZEDMD_COMM_COMMAND::RGB565ZonesStream)
+    uint8_t* pData;
+    uint16_t size;
+
+    if (pFrame->command != ZEDMD_COMM_COMMAND::RGB565ZonesStream)
     {
-      uint8_t data[ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT + 1] = {0};
-      data[0] = pFrame->command;  // command
+      size = 1 + frameData.size;
+      pData = (uint8_t*)malloc(size);
+      pData[0] = pFrame->command;
       if (frameData.size > 0)
       {
-        memcpy(&data[1], frameData.data, frameData.size);
+        memcpy(pData + 1, frameData.data, frameData.size);
       }
 
 #if defined(_WIN32) || defined(_WIN64)
-      sendto(m_udpSocket, (const char*)data, frameData.size + 4, 0, (struct sockaddr*)&m_udpServer,
+      sendto(m_udpSocket, (const char*)pData, frameData.size + 1, 0, (struct sockaddr*)&m_udpServer,
              sizeof(m_udpServer));
 #else
-      sendto(m_udpSocket, data, frameData.size + 1, 0, (struct sockaddr*)&m_udpServer, sizeof(m_udpServer));
+      sendto(m_udpSocket, pData, frameData.size + 1, 0, (struct sockaddr*)&m_udpServer, sizeof(m_udpServer));
 #endif
-      continue;
     }
     else
     {
-      uint8_t data[ZEDMD_WIFI_MTU] = {0};
-      data[0] = pFrame->command;  // command
+      pData = (uint8_t*)malloc(ZEDMD_WIFI_MTU);
+      pData[0] = pFrame->command;
 
       mz_ulong compressedSize = mz_compressBound(ZEDMD_ZONES_BYTE_LIMIT);
-      int status = mz_compress(&data[1], &compressedSize, frameData.data, frameData.size);
+      int status = mz_compress(pData + 1, &compressedSize, frameData.data, frameData.size);
 
       if (compressedSize > (ZEDMD_WIFI_MTU - 1))
       {
         Log("ZeDMD Wifi error, compressed size of %d exceeds the MTU payload of %d", compressedSize, ZEDMD_WIFI_MTU);
+        free(pData);
         return false;
       }
 
       if (compressedSize > ZEDMD_ZONES_BYTE_LIMIT)
       {
-        Log("ZeDMD Wifi error, compressed size of %d exceeds the ZEDMD_ZONES_BYTE_LIMIT of %d", compressedSize, ZEDMD_ZONES_BYTE_LIMIT);
+        Log("ZeDMD Wifi error, compressed size of %d exceeds the ZEDMD_ZONES_BYTE_LIMIT of %d", compressedSize,
+            ZEDMD_ZONES_BYTE_LIMIT);
+        free(pData);
         return false;
       }
 
       if (status == MZ_OK)
       {
 #if defined(_WIN32) || defined(_WIN64)
-        sendto(m_udpSocket, (const char*)data, compressedSize + 4, 0, (struct sockaddr*)&m_udpServer,
+        sendto(m_udpSocket, (const char*)pData, compressedSize + 1, 0, (struct sockaddr*)&m_udpServer,
                sizeof(m_udpServer));
 #else
-        sendto(m_udpSocket, data, compressedSize + 1, 0, (struct sockaddr*)&m_udpServer, sizeof(m_udpServer));
+        sendto(m_udpSocket, pData, compressedSize + 1, 0, (struct sockaddr*)&m_udpServer, sizeof(m_udpServer));
 #endif
         continue;
       }
       else
       {
         Log("ZeDMD Wifi compression error");
+        free(pData);
         return false;
       }
     }
+
+    free(pData);
   }
 
   return true;

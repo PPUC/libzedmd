@@ -266,13 +266,13 @@ class ZEDMDAPI ZeDMD
    *  fit into the physical dimensions of the ZeDMD panels,
    *  before the content gets send to ZeDMD, if required.
    */
-  void EnablePreDownscaling();
+  void EnableDownscaling();
 
   /** @brief Disable downscaling on the client side
    *
-   *  @see EnablePreDownscaling()
+   *  @see EnableDownscaling()
    */
-  void DisablePreDownscaling();
+  void DisableDownscaling();
 
   /** @brief Enable upscaling on the client side
    *
@@ -280,27 +280,9 @@ class ZEDMDAPI ZeDMD
    *  fit into the physical dimensions of the ZeDMD panels,
    *  before the content gets send to ZeDMD, if required.
    */
-  void EnablePreUpscaling();
-
-  /** @brief Disable downscaling on the client side
-   *
-   *  @see EnablePreUpscaling()
-   */
-  void DisablePreUpscaling();
-
-  /** @brief Enable upscaling on ZeDMD itself
-   *
-   *  If enabled and required, the content will centered and scaled
-   *  up to fit into the physical dimensions of the ZeDMD panels
-   *  by ZeDMD itself. Compared to EnablePreUpscaling(), less data
-   *  needs to be send to ZeDMD and this might resut in a higher
-   *  frame rate.
-   *  @see DisableRGB24Streaming()
-   *  @see RenderRgb24EncodedAs565()
-   */
   void EnableUpscaling();
 
-  /** @brief Disable upscaling on ZeDMD itself
+  /** @brief Disable downscaling on the client side
    *
    *  @see EnableUpscaling()
    */
@@ -376,10 +358,8 @@ extern "C"
   extern ZEDMDAPI void ZeDMD_SetRGBOrder(ZeDMD* pZeDMD, uint8_t rgbOrder);
   extern ZEDMDAPI void ZeDMD_SetBrightness(ZeDMD* pZeDMD, uint8_t brightness);
   extern ZEDMDAPI void ZeDMD_SaveSettings(ZeDMD* pZeDMD);
-  extern ZEDMDAPI void ZeDMD_EnablePreDownscaling(ZeDMD* pZeDMD);
-  extern ZEDMDAPI void ZeDMD_DisablePreDownscaling(ZeDMD* pZeDMD);
-  extern ZEDMDAPI void ZeDMD_EnablePreUpscaling(ZeDMD* pZeDMD);
-  extern ZEDMDAPI void ZeDMD_DisablePreUpscaling(ZeDMD* pZeDMD);
+  extern ZEDMDAPI void ZeDMD_EnableDownscaling(ZeDMD* pZeDMD);
+  extern ZEDMDAPI void ZeDMD_DisableDownscaling(ZeDMD* pZeDMD);
   extern ZEDMDAPI void ZeDMD_EnableUpscaling(ZeDMD* pZeDMD);
   extern ZEDMDAPI void ZeDMD_DisableUpscaling(ZeDMD* pZeDMD);
   extern ZEDMDAPI void ZeDMD_SetWiFiSSID(ZeDMD* pZeDMD, const char* const ssid);

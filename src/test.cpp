@@ -36,20 +36,18 @@ int main(int argc, const char* argv[])
   ZeDMD* pZeDMD = new ZeDMD();
   pZeDMD->SetLogCallback(LogCallback, nullptr);
 
-  if (pZeDMD->Open())
+  if (pZeDMD->OpenDefaultWiFi())
   {
-    //pZeDMD->EnableDebug();
 
     uint16_t width = pZeDMD->GetWidth();
     uint16_t height = pZeDMD->GetHeight();
 
     pZeDMD->SetFrameSize(128, 32);
-    //pZeDMD->EnableUpscaling();
 
     uint8_t* pImage24 = CreateImageRGB24();
-    uint16_t sleep = 2;
+    uint16_t sleep = 10;
 
-    pZeDMD->EnablePreUpscaling();
+    pZeDMD->EnableUpscaling();
 
     for (int i = 0; i < 10; i++)
     {
@@ -60,7 +58,7 @@ int main(int argc, const char* argv[])
       pZeDMD->ClearScreen();
     }
 
-    pZeDMD->DisablePreUpscaling();
+    pZeDMD->DisableUpscaling();
 
     for (int i = 0; i < 10; i++)
     {
@@ -120,7 +118,7 @@ int main(int argc, const char* argv[])
       }
 
       // test RGB565 centering
-      pZeDMD->DisablePreUpscaling();
+      pZeDMD->DisableUpscaling();
 
       for (int i = 1; i <= 100; i++)
       {
@@ -158,9 +156,8 @@ int main(int argc, const char* argv[])
 
     free(rgb888);
 
-  //  pZeDMD->LedTest();
-  //  std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+    pZeDMD->LedTest();
 
-  //  pZeDMD->Close();
+    pZeDMD->Close();
   }
 }

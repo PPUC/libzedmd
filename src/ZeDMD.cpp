@@ -160,41 +160,17 @@ void ZeDMD::SaveSettings()
   }
 }
 
-void ZeDMD::EnablePreDownscaling() { m_downscaling = true; }
+void ZeDMD::EnableDownscaling() { m_downscaling = true; }
 
-void ZeDMD::DisablePreDownscaling() { m_downscaling = false; }
+void ZeDMD::DisableDownscaling() { m_downscaling = false; }
 
-void ZeDMD::EnablePreUpscaling()
+void ZeDMD::EnableUpscaling()
 {
   m_upscaling = true;
   m_hd = (GetWidth() == 256);
 }
 
-void ZeDMD::DisablePreUpscaling() { m_upscaling = false; }
-
-void ZeDMD::EnableUpscaling()
-{
-  if (m_usb)
-  {
-    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::EnableUpscaling);
-  }
-  else if (m_wifi)
-  {
-    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::EnableUpscaling);
-  }
-}
-
-void ZeDMD::DisableUpscaling()
-{
-  if (m_usb)
-  {
-    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::DisableUpscaling);
-  }
-  else if (m_wifi)
-  {
-    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::DisableUpscaling);
-  }
-}
+void ZeDMD::DisableUpscaling() { m_upscaling = false; }
 
 void ZeDMD::SetWiFiSSID(const char* const ssid)
 {
@@ -491,13 +467,9 @@ ZEDMDAPI void ZeDMD_SetBrightness(ZeDMD* pZeDMD, uint8_t brightness) { return pZ
 
 ZEDMDAPI void ZeDMD_SaveSettings(ZeDMD* pZeDMD) { return pZeDMD->SaveSettings(); }
 
-ZEDMDAPI void ZeDMD_EnablePreDownscaling(ZeDMD* pZeDMD) { return pZeDMD->EnablePreDownscaling(); }
+ZEDMDAPI void ZeDMD_EnableDownscaling(ZeDMD* pZeDMD) { return pZeDMD->EnableDownscaling(); }
 
-ZEDMDAPI void ZeDMD_DisablePreDownscaling(ZeDMD* pZeDMD) { return pZeDMD->DisablePreDownscaling(); }
-
-ZEDMDAPI void ZeDMD_EnablePreUpscaling(ZeDMD* pZeDMD) { return pZeDMD->EnablePreUpscaling(); }
-
-ZEDMDAPI void ZeDMD_DisablePreUpscaling(ZeDMD* pZeDMD) { return pZeDMD->DisablePreUpscaling(); }
+ZEDMDAPI void ZeDMD_DisableDownscaling(ZeDMD* pZeDMD) { return pZeDMD->DisableDownscaling(); }
 
 ZEDMDAPI void ZeDMD_EnableUpscaling(ZeDMD* pZeDMD) { return pZeDMD->EnableUpscaling(); }
 

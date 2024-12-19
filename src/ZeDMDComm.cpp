@@ -111,21 +111,16 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size)
     return;
   }
 
+  // "Delete" delayed frame.
+  m_delayedFrameMutex.lock();
+  m_delayedFrameReady = false;
+  m_delayedFrameMutex.unlock();
+
   ZeDMDFrame frame(command, data, size);
 
-  if (size > ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT && FillDelayed())
-  {
-    m_delayedFrameMutex.lock();
-    m_delayedFrame = std::move(frame);
-    m_delayedFrameReady = true;
-    m_delayedFrameMutex.unlock();
-  }
-  else
-  {
-    m_frameQueueMutex.lock();
-    m_frames.push(std::move(frame));
-    m_frameQueueMutex.unlock();
-  }
+  m_frameQueueMutex.lock();
+  m_frames.push(std::move(frame));
+  m_frameQueueMutex.unlock();
 
   // Next streaming needs to be complete.
   memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
@@ -575,26 +570,26 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
     uint8_t* pData;
     uint16_t size;
 
-    if (frameData.size == 0)
+    if (pFrame->command != ZEDMD_COMM_COMMAND::RGB565ZonesStream)
+    {
+      size = CTRL_CHARS_HEADER_SIZE + 1 + frameData.size;
+      pData = (uint8_t*)malloc(size);
+      memcpy(pData, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
+      pData[CTRL_CHARS_HEADER_SIZE] = pFrame->command;
+      if (frameData.size > 0) {
+        memcpy(pData + CTRL_CHARS_HEADER_SIZE + 1, frameData.data, frameData.size);
+      }
+    }
+    else
     {
       size = CTRL_CHARS_HEADER_SIZE + 1;
       pData = (uint8_t*)malloc(size);
       memcpy(pData, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
-      pData[CTRL_CHARS_HEADER_SIZE] = pFrame->command;
-    }
-    else
-    {
-      if (pFrame->command == ZEDMD_COMM_COMMAND::RGB565ZonesStream)
-      {
-        size = CTRL_CHARS_HEADER_SIZE + 1;
-        pData = (uint8_t*)malloc(size);
-        memcpy(pData, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
-        pData[CTRL_CHARS_HEADER_SIZE] = ZEDMD_COMM_COMMAND::AnnounceRGB565ZonesStream;
+      pData[CTRL_CHARS_HEADER_SIZE] = ZEDMD_COMM_COMMAND::AnnounceRGB565ZonesStream;
 
-        bool success = SendChunks(pData, size);
-        free(pData);
-        if (!success) return false;
-      }
+      bool success = SendChunks(pData, size);
+      free(pData);
+      if (!success) return false;
 
       mz_ulong compressedSize = mz_compressBound(ZEDMD_ZONES_BYTE_LIMIT);
       pData = (uint8_t*)malloc(CTRL_CHARS_HEADER_SIZE + 3 + ZEDMD_ZONES_BYTE_LIMIT);
