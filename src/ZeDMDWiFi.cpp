@@ -239,12 +239,13 @@ bool ZeDMDWiFi::StreamBytes(ZeDMDFrame* pFrame)
 {
   // An UDP package should not exceed the MTU (WiFi rx_buffer in ESP32 is 1460
   // bytes).
+
+  uint8_t* pData;
+  uint16_t size;
+
   for (auto it = pFrame->data.rbegin(); it != pFrame->data.rend(); ++it)
   {
     ZeDMDFrameData frameData = *it;
-
-    uint8_t* pData;
-    uint16_t size;
 
     if (pFrame->command != ZEDMD_COMM_COMMAND::RGB565ZonesStream)
     {
@@ -305,6 +306,19 @@ bool ZeDMDWiFi::StreamBytes(ZeDMDFrame* pFrame)
     }
 
     free(pData);
+  }
+
+  if (pFrame->command != ZEDMD_COMM_COMMAND::RGB565ZonesStream)
+  {
+    size = 1;
+    pData = (uint8_t*)malloc(size);
+    pData[0] = ZEDMD_COMM_COMMAND::RenderRGB565Frame;
+
+#if defined(_WIN32) || defined(_WIN64)
+    sendto(m_udpSocket, (const char*)pData, 1, 0, (struct sockaddr*)&m_udpServer, sizeof(m_udpServer));
+#else
+    sendto(m_udpSocket, pData, 1, 0, (struct sockaddr*)&m_udpServer, sizeof(m_udpServer));
+#endif
   }
 
   return true;

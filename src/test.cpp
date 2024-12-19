@@ -45,7 +45,7 @@ int main(int argc, const char* argv[])
     pZeDMD->SetFrameSize(128, 32);
 
     uint8_t* pImage24 = CreateImageRGB24();
-    uint16_t sleep = 10;
+    uint16_t sleep = 30;
 
     pZeDMD->EnableUpscaling();
 

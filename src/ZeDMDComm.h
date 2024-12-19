@@ -65,6 +65,8 @@ typedef enum
 
   AnnounceRGB565ZonesStream = 0x04,
   RGB565ZonesStream = 0x05,
+  RenderRGB565Frame = 0x06,
+
   ClearScreen = 0x0a,
 
   DisableDebug = 0x62,

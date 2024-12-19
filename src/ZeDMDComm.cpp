@@ -563,12 +563,12 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
     (defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \
     defined(__ANDROID__))
 
+  uint8_t* pData;
+  uint16_t size;
+
   for (auto it = pFrame->data.rbegin(); it != pFrame->data.rend(); ++it)
   {
     ZeDMDFrameData frameData = *it;
-
-    uint8_t* pData;
-    uint16_t size;
 
     if (pFrame->command != ZEDMD_COMM_COMMAND::RGB565ZonesStream)
     {
@@ -576,7 +576,8 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
       pData = (uint8_t*)malloc(size);
       memcpy(pData, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
       pData[CTRL_CHARS_HEADER_SIZE] = pFrame->command;
-      if (frameData.size > 0) {
+      if (frameData.size > 0)
+      {
         memcpy(pData + CTRL_CHARS_HEADER_SIZE + 1, frameData.data, frameData.size);
       }
     }
@@ -613,6 +614,18 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
     if (!success) return false;
   }
 
+  if (pFrame->command == ZEDMD_COMM_COMMAND::RGB565ZonesStream)
+  {
+    size = CTRL_CHARS_HEADER_SIZE + 1;
+    pData = (uint8_t*)malloc(size);
+    memcpy(pData, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
+    pData[CTRL_CHARS_HEADER_SIZE] = ZEDMD_COMM_COMMAND::RenderRGB565Frame;
+
+    bool success = SendChunks(pData, size);
+    free(pData);
+    if (!success) return false;
+  }
+
   return true;
 #else
   return false;
@@ -627,7 +640,8 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
   {
     int position = 0;
     // USB CDC uses a fixed chunk size of 512 bytes.
-    const uint16_t writeAtOnce = m_cdc ? 512 : (m_s3 ? ZEDMD_S3_COMM_MAX_SERIAL_WRITE_AT_ONCE : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
+    const uint16_t writeAtOnce =
+        m_cdc ? 512 : (m_s3 ? ZEDMD_S3_COMM_MAX_SERIAL_WRITE_AT_ONCE : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
 
     while (position < size)
     {
