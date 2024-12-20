@@ -448,7 +448,11 @@ bool ZeDMDComm::Connect(char* pDevice)
   return false;
 }
 
-bool ZeDMDComm::Handshake(char* pDevice) {
+bool ZeDMDComm::Handshake(char* pDevice)
+{
+#if !(                                                                                                                \
+    (defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \
+    defined(__ANDROID__))
   uint8_t data[8] = {0};
 
   data[0] = ZEDMD_COMM_COMMAND::Handshake;
@@ -499,6 +503,7 @@ bool ZeDMDComm::Handshake(char* pDevice) {
       }
     }
   }
+#endif
 
   return false;
 }
@@ -554,7 +559,7 @@ void ZeDMDComm::Reset()
 #endif
 }
 
-void ZeDMDComm::  SoftReset()
+void ZeDMDComm::SoftReset()
 {
   QueueCommand(ZEDMD_COMM_COMMAND::Reset);
   // Wait a bit to let the reset command be transmitted.
@@ -667,17 +672,21 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
     if (response == 'A')
     {
       if (m_noAcknowledgeCounter > 0) m_noAcknowledgeCounter--;
-    } else {
-      if (++m_noAcknowledgeCounter > 64) {
+    }
+    else
+    {
+      if (++m_noAcknowledgeCounter > 64)
+      {
         SoftReset();
         Log("Resetted device", response);
         Handshake(m_device);
-      } else {
+      }
+      else
+      {
         Log("Write bytes failure: response=%d", response);
       }
       return false;
     }
-
 
     return true;
   }
