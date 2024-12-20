@@ -160,10 +160,6 @@ void ZeDMD::SaveSettings()
   }
 }
 
-void ZeDMD::EnableDownscaling() { m_downscaling = true; }
-
-void ZeDMD::DisableDownscaling() { m_downscaling = false; }
-
 void ZeDMD::EnableUpscaling()
 {
   m_upscaling = true;
@@ -312,7 +308,7 @@ void ZeDMD::RenderRgb565(uint16_t* pFrame)
 }
 bool ZeDMD::UpdateFrameBuffer888(uint8_t* pFrame)
 {
-  if (!memcmp(m_pFrameBuffer, pFrame, m_romWidth * m_romHeight * 3))
+  if (0 == memcmp(m_pFrameBuffer, pFrame, m_romWidth * m_romHeight * 3))
   {
     return false;
   }
@@ -323,7 +319,7 @@ bool ZeDMD::UpdateFrameBuffer888(uint8_t* pFrame)
 
 bool ZeDMD::UpdateFrameBuffer565(uint16_t* pFrame)
 {
-  if (!memcmp(m_pFrameBuffer, pFrame, m_romWidth * m_romHeight * 2))
+  if (0 == memcmp(m_pFrameBuffer, pFrame, m_romWidth * m_romHeight * 2))
   {
     return false;
   }
@@ -332,39 +328,44 @@ bool ZeDMD::UpdateFrameBuffer565(uint16_t* pFrame)
   return true;
 }
 
-uint8_t ZeDMD::GetScaleMode(uint16_t frameWidth, uint16_t frameHeight,
-                            uint8_t* pXOffset, uint8_t* pYOffset)
+uint8_t ZeDMD::GetScaleMode(uint16_t frameWidth, uint16_t frameHeight, uint8_t* pXOffset, uint8_t* pYOffset)
 {
-  if (m_upscaling && m_romWidth == 192 && frameWidth == 256)
+  if (m_romWidth == 192 && frameWidth == 256)
   {
     (*pXOffset) = 32;
     return 0;
   }
-  else if (m_downscaling && m_romWidth == 192 && frameWidth == 128)
+  else if (m_romWidth == 192 && frameWidth == 128)
   {
     (*pXOffset) = 16;
     return 1;
   }
-  else if (m_upscaling && m_romHeight == 16 && frameHeight == 32)
+  else if (m_romHeight == 16 && frameHeight == 32)
   {
     (*pYOffset) = 8;
     return 0;
   }
-  else if (m_upscaling && m_romHeight == 16 && frameHeight == 64)
+  else if (m_romHeight == 16 && frameHeight == 64)
   {
-    (*pYOffset) = 16;
-    return 2;
+    if (m_upscaling)
+    {
+      (*pYOffset) = 16;
+      return 2;
+    }
+    (*pXOffset) = 64;
+    (*pYOffset) = 24;
+    return 0;
   }
-  else if (m_downscaling && m_romWidth == 256 && frameWidth == 128)
+  else if (m_romWidth == 256 && frameWidth == 128)
   {
     return 1;
   }
-  else if (m_upscaling && m_romWidth == 128 && frameWidth == 256)
+  else if (m_romWidth == 128 && frameWidth == 256)
   {
-    return 2;
-  }
-  else if (!m_upscaling && m_romWidth == 128 && frameWidth == 256)
-  {
+    if (m_upscaling)
+    {
+      return 2;
+    }
     (*pXOffset) = 64;
     (*pYOffset) = 16;
     return 0;
@@ -403,7 +404,8 @@ int ZeDMD::Scale888(uint8_t* pScaledFrame, uint8_t* pFrame, uint8_t bytes)
     {
       uint8_t* pUncenteredFrame = (uint8_t*)malloc(bufferSize);
       memcpy(pUncenteredFrame, pScaledFrame, bufferSize);
-      FrameUtil::Helper::Center(pScaledFrame, frameWidth, frameHeight, pUncenteredFrame, m_romWidth * 2, m_romHeight * 2, bits);
+      FrameUtil::Helper::Center(pScaledFrame, frameWidth, frameHeight, pUncenteredFrame, m_romWidth * 2,
+                                m_romHeight * 2, bits);
       free(pUncenteredFrame);
     }
   }
@@ -466,10 +468,6 @@ ZEDMDAPI void ZeDMD_SetRGBOrder(ZeDMD* pZeDMD, uint8_t rgbOrder) { return pZeDMD
 ZEDMDAPI void ZeDMD_SetBrightness(ZeDMD* pZeDMD, uint8_t brightness) { return pZeDMD->SetBrightness(brightness); }
 
 ZEDMDAPI void ZeDMD_SaveSettings(ZeDMD* pZeDMD) { return pZeDMD->SaveSettings(); }
-
-ZEDMDAPI void ZeDMD_EnableDownscaling(ZeDMD* pZeDMD) { return pZeDMD->EnableDownscaling(); }
-
-ZEDMDAPI void ZeDMD_DisableDownscaling(ZeDMD* pZeDMD) { return pZeDMD->DisableDownscaling(); }
 
 ZEDMDAPI void ZeDMD_EnableUpscaling(ZeDMD* pZeDMD) { return pZeDMD->EnableUpscaling(); }
 

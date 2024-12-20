@@ -122,9 +122,8 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size)
   m_frames.push(std::move(frame));
   m_frameQueueMutex.unlock();
 
-  // Next streaming needs to be complete.
-  memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
-  memset(m_zoneRepeatCounters, 0, sizeof(m_zoneRepeatCounters));
+  // Next streaming needs to be complete, except black zones.
+  memset(m_zoneHashes, ZEDMD_COMM_COMMAND::ClearScreen == command ? 1 : 0, sizeof(m_zoneHashes));
 }
 
 void ZeDMDComm::QueueCommand(char command, uint8_t value) { QueueCommand(command, &value, 1); }
@@ -133,7 +132,7 @@ void ZeDMDComm::QueueCommand(char command) { QueueCommand(command, nullptr, 0); 
 
 void ZeDMDComm::QueueFrame(uint8_t* data, int size)
 {
-  if (memcmp(data, m_allBlack, size) == 0)
+  if (0 == memcmp(data, m_allBlack, size))
   {
     // Queue a clear screen command. Don't call QueueCommand(ZEDMD_COMM_COMMAND::ClearScreen) because we need to set
     // black hashes.
@@ -161,7 +160,6 @@ void ZeDMDComm::QueueFrame(uint8_t* data, int size)
 
     // Use "1" as hash for black.
     memset(m_zoneHashes, 1, sizeof(m_zoneHashes));
-    memset(m_zoneRepeatCounters, 0, sizeof(m_zoneRepeatCounters));
 
     return;
   }
@@ -182,7 +180,6 @@ void ZeDMDComm::QueueFrame(uint8_t* data, int size)
   {
     // A delayed frame needs to be complete.
     memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
-    memset(m_zoneRepeatCounters, 0, sizeof(m_zoneRepeatCounters));
   }
 
   memset(buffer, 0, zonesBytesLimit);
@@ -195,14 +192,12 @@ void ZeDMDComm::QueueFrame(uint8_t* data, int size)
         memcpy(&zone[z * m_zoneWidth * 2], &data[((y + z) * m_width + x) * 2], m_zoneWidth * 2);
       }
 
-      bool black = (memcmp(zone, m_allBlack, zoneBytes) == 0);
-
+      bool black = (0 == memcmp(zone, m_allBlack, zoneBytes));
       // Use "1" as hash for black.
       uint64_t hash = black ? 1 : komihash(zone, zoneBytes, 0);
-      if (hash != m_zoneHashes[idx] || (m_resendZones && ++m_zoneRepeatCounters[idx] >= ZEDMD_ZONES_REPEAT_THRESHOLD))
+      if (hash != m_zoneHashes[idx])
       {
         m_zoneHashes[idx] = hash;
-        m_zoneRepeatCounters[idx] = 0;
 
         if (black)
         {
@@ -223,6 +218,7 @@ void ZeDMDComm::QueueFrame(uint8_t* data, int size)
           bufferPosition = 0;
         }
       }
+
       idx++;
     }
   }
@@ -444,6 +440,15 @@ bool ZeDMDComm::Connect(char* pDevice)
 
   Reset();
 
+  if (Handshake(pDevice)) return true;
+
+  Disconnect();
+#endif
+
+  return false;
+}
+
+bool ZeDMDComm::Handshake(char* pDevice) {
   uint8_t data[8] = {0};
 
   data[0] = ZEDMD_COMM_COMMAND::Handshake;
@@ -468,14 +473,13 @@ bool ZeDMDComm::Connect(char* pDevice)
     auto current_time = std::chrono::steady_clock::now();
     if (current_time - handshake_start_time >= duration)
     {
-      Disconnect();
       return false;
     }
   }
 
   if (sp_blocking_read(m_pSerialPort, &data[1], 7, ZEDMD_COMM_SERIAL_READ_TIMEOUT))
   {
-    if (!memcmp(data, CTRL_CHARS_HEADER, 4))
+    if (memcmp(data, CTRL_CHARS_HEADER, 4) == 0)
     {
       m_width = data[4] + data[5] * 256;
       m_height = data[6] + data[7] * 256;
@@ -488,13 +492,13 @@ bool ZeDMDComm::Connect(char* pDevice)
         SetDevice(pDevice);
         Log("ZeDMD found: %sdevice=%s, width=%d, height=%d", m_s3 ? "S3 " : "", pDevice, m_width, m_height);
 
+        // Next streaming needs to be complete.
+        memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
+
         return true;
       }
     }
   }
-
-  Disconnect();
-#endif
 
   return false;
 }
@@ -550,7 +554,7 @@ void ZeDMDComm::Reset()
 #endif
 }
 
-void ZeDMDComm::SoftReset()
+void ZeDMDComm::  SoftReset()
 {
   QueueCommand(ZEDMD_COMM_COMMAND::Reset);
   // Wait a bit to let the reset command be transmitted.
@@ -614,7 +618,7 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
     if (!success) return false;
   }
 
-  if (pFrame->command == ZEDMD_COMM_COMMAND::RGB565ZonesStream)
+  if (m_s3 && pFrame->command == ZEDMD_COMM_COMMAND::RGB565ZonesStream)
   {
     size = CTRL_CHARS_HEADER_SIZE + 1;
     pData = (uint8_t*)malloc(size);
@@ -660,11 +664,20 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
     } while ((status != 1 || (status == 1 && response != 'A' && response != 'E')) &&
              !m_stopFlag.load(std::memory_order_relaxed));
 
-    if (response != 'A')
+    if (response == 'A')
     {
-      Log("Write bytes failure: response=%d", response);
+      if (m_noAcknowledgeCounter > 0) m_noAcknowledgeCounter--;
+    } else {
+      if (++m_noAcknowledgeCounter > 64) {
+        SoftReset();
+        Log("Resetted device", response);
+        Handshake(m_device);
+      } else {
+        Log("Write bytes failure: response=%d", response);
+      }
       return false;
     }
+
 
     return true;
   }

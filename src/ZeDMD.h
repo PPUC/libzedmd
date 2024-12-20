@@ -144,10 +144,8 @@ class ZEDMDAPI ZeDMD
    *  next on the ZeDMD device. Depending on the settings and
    *  the physical dimensions of the LED panels, the content
    *  will by centered and scaled correctly.
-   *  @see EnablePreDownscaling()
-   *  @see EnablePreUpscaling()
-   *  @see EnableDownscaling()
    *  @see EnableUpscaling()
+   *  @see DisableUpscaling()
    *
    *  @param width the frame width
    *  @param height the frame height
@@ -260,20 +258,6 @@ class ZEDMDAPI ZeDMD
    */
   void SaveSettings();
 
-  /** @brief Enable downscaling on the client side
-   *
-   *  If enabled, the content will centered and scaled down to
-   *  fit into the physical dimensions of the ZeDMD panels,
-   *  before the content gets send to ZeDMD, if required.
-   */
-  void EnableDownscaling();
-
-  /** @brief Disable downscaling on the client side
-   *
-   *  @see EnableDownscaling()
-   */
-  void DisableDownscaling();
-
   /** @brief Enable upscaling on the client side
    *
    *  If enabled, the content will centered and scaled up to
@@ -282,7 +266,7 @@ class ZEDMDAPI ZeDMD
    */
   void EnableUpscaling();
 
-  /** @brief Disable downscaling on the client side
+  /** @brief Disable upscaling on the client side
    *
    *  @see EnableUpscaling()
    */
@@ -328,7 +312,6 @@ class ZEDMDAPI ZeDMD
   bool m_usb = false;
   bool m_wifi = false;
   bool m_hd = false;
-  bool m_downscaling = false;
   bool m_upscaling = false;
 
   uint8_t* m_pFrameBuffer;
@@ -358,8 +341,6 @@ extern "C"
   extern ZEDMDAPI void ZeDMD_SetRGBOrder(ZeDMD* pZeDMD, uint8_t rgbOrder);
   extern ZEDMDAPI void ZeDMD_SetBrightness(ZeDMD* pZeDMD, uint8_t brightness);
   extern ZEDMDAPI void ZeDMD_SaveSettings(ZeDMD* pZeDMD);
-  extern ZEDMDAPI void ZeDMD_EnableDownscaling(ZeDMD* pZeDMD);
-  extern ZEDMDAPI void ZeDMD_DisableDownscaling(ZeDMD* pZeDMD);
   extern ZEDMDAPI void ZeDMD_EnableUpscaling(ZeDMD* pZeDMD);
   extern ZEDMDAPI void ZeDMD_DisableUpscaling(ZeDMD* pZeDMD);
   extern ZEDMDAPI void ZeDMD_SetWiFiSSID(ZeDMD* pZeDMD, const char* const ssid);

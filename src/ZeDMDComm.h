@@ -37,7 +37,6 @@
 #define ZEDMD_COMM_SERIAL_WRITE_TIMEOUT 8
 #define ZEDMD_COMM_NUM_TIMEOUTS_TO_WAIT_FOR_ACKNOWLEDGE 3
 #define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX 8
-#define ZEDMD_ZONES_REPEAT_THRESHOLD 30
 
 // Typically, the MTU is 1480 (1500 - 20 byte header).
 // 1460 is safe. For UART or USB CDC we use the same limit since the ZeDMD firmware is unified.
@@ -220,16 +219,17 @@ class ZeDMDComm
 
  private:
   bool Connect(char* pName);
+  bool Handshake(char* pDevice);
   bool SendChunks(uint8_t* pData, uint16_t size);
 
   ZeDMD_LogCallback m_logCallback = nullptr;
   const void* m_logUserData = nullptr;
   uint64_t m_zoneHashes[128] = {0};
-  uint8_t m_zoneRepeatCounters[128] = {0};
   const uint8_t m_allBlack[32768] = {0};
 
   char m_ignoredDevices[10][32] = {0};
   uint8_t m_ignoredDevicesCounter = 0;
+  uint8_t m_noAcknowledgeCounter = 0;
   char m_device[32] = {0};
 #if !(                                                                                                                \
     (defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \

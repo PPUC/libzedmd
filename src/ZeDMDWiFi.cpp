@@ -308,7 +308,7 @@ bool ZeDMDWiFi::StreamBytes(ZeDMDFrame* pFrame)
     free(pData);
   }
 
-  if (pFrame->command != ZEDMD_COMM_COMMAND::RGB565ZonesStream)
+  if (m_s3 && pFrame->command == ZEDMD_COMM_COMMAND::RGB565ZonesStream)
   {
     size = 1;
     pData = (uint8_t*)malloc(size);

@@ -36,7 +36,7 @@ int main(int argc, const char* argv[])
   ZeDMD* pZeDMD = new ZeDMD();
   pZeDMD->SetLogCallback(LogCallback, nullptr);
 
-  if (pZeDMD->OpenDefaultWiFi())
+  if (pZeDMD->Open())
   {
 
     uint16_t width = pZeDMD->GetWidth();
@@ -45,17 +45,18 @@ int main(int argc, const char* argv[])
     pZeDMD->SetFrameSize(128, 32);
 
     uint8_t* pImage24 = CreateImageRGB24();
-    uint16_t sleep = 30;
+    uint16_t sleep = 16;
 
     pZeDMD->EnableUpscaling();
 
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 3; i++)
     {
       printf("Render loop: %d\n", i);
       printf("RGB24 Streaming\n");
       pZeDMD->RenderRgb888(pImage24);
       std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
       pZeDMD->ClearScreen();
+      std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
     }
 
     pZeDMD->DisableUpscaling();
@@ -67,6 +68,7 @@ int main(int argc, const char* argv[])
       pZeDMD->RenderRgb888(pImage24);
       std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
       pZeDMD->ClearScreen();
+      std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
     }
 
     free(pImage24);
@@ -155,6 +157,8 @@ int main(int argc, const char* argv[])
     }
 
     free(rgb888);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
     pZeDMD->LedTest();
 
