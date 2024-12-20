@@ -239,65 +239,86 @@ bool ZeDMDWiFi::StreamBytes(ZeDMDFrame* pFrame)
 {
   // An UDP package should not exceed the MTU (WiFi rx_buffer in ESP32 is 1460
   // bytes).
+
+  uint8_t* pData;
+  uint16_t size;
+
   for (auto it = pFrame->data.rbegin(); it != pFrame->data.rend(); ++it)
   {
     ZeDMDFrameData frameData = *it;
 
-    if (frameData.size < ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT && pFrame->command != 4 && pFrame->command != 5)
+    if (pFrame->command != ZEDMD_COMM_COMMAND::RGB565ZonesStream)
     {
-      uint8_t data[ZEDMD_COMM_FRAME_SIZE_COMMAND_LIMIT + 4] = {0};
-      data[0] = pFrame->command;  // command
-      data[1] = 0;                // not compressed
-      data[2] = (uint8_t)(frameData.size >> 8 & 0xFF);
-      data[3] = (uint8_t)(frameData.size & 0xFF);
+      size = 1 + frameData.size;
+      pData = (uint8_t*)malloc(size);
+      pData[0] = pFrame->command;
       if (frameData.size > 0)
       {
-        memcpy(&data[4], frameData.data, frameData.size);
+        memcpy(pData + 1, frameData.data, frameData.size);
       }
 
 #if defined(_WIN32) || defined(_WIN64)
-      sendto(m_udpSocket, (const char*)data, frameData.size + 4, 0, (struct sockaddr*)&m_udpServer,
+      sendto(m_udpSocket, (const char*)pData, frameData.size + 1, 0, (struct sockaddr*)&m_udpServer,
              sizeof(m_udpServer));
 #else
-      sendto(m_udpSocket, data, frameData.size + 4, 0, (struct sockaddr*)&m_udpServer, sizeof(m_udpServer));
+      sendto(m_udpSocket, pData, frameData.size + 1, 0, (struct sockaddr*)&m_udpServer, sizeof(m_udpServer));
 #endif
-      continue;
     }
     else
     {
-      // If RGB565 streaming is active; the frame only needs 2 bytes per color
-      uint8_t bytesPerPixel = (pFrame->command == 5) ? 2 : 3;
+      pData = (uint8_t*)malloc(ZEDMD_WIFI_MTU);
+      pData[0] = pFrame->command;
 
-      uint8_t data[ZEDMD_WIFI_ZONES_BYTES_LIMIT] = {0};
-      data[0] = pFrame->command;  // command
-      // In case of a mostly black screen we can get 128 zones. That is handled in ZeDMD firmware.
-      data[1] = (uint8_t)(128 | frameData.numZones);  // compressed + num zones
+      mz_ulong compressedSize = mz_compressBound(ZEDMD_ZONES_BYTE_LIMIT);
+      int status = mz_compress(pData + 1, &compressedSize, frameData.data, frameData.size);
 
-      mz_ulong compressedSize = mz_compressBound(frameData.size);
-      int status = mz_compress(&data[4], &compressedSize, frameData.data, frameData.size);
-
-      if (compressedSize > ZEDMD_WIFI_MTU)
+      if (compressedSize > (ZEDMD_WIFI_MTU - 1))
       {
         Log("ZeDMD Wifi error, compressed size of %d exceeds the MTU payload of %d", compressedSize, ZEDMD_WIFI_MTU);
+        free(pData);
+        return false;
       }
-      data[2] = (uint8_t)(compressedSize >> 8 & 0xFF);
-      data[3] = (uint8_t)(compressedSize & 0xFF);
+
+      if (compressedSize > ZEDMD_ZONES_BYTE_LIMIT)
+      {
+        Log("ZeDMD Wifi error, compressed size of %d exceeds the ZEDMD_ZONES_BYTE_LIMIT of %d", compressedSize,
+            ZEDMD_ZONES_BYTE_LIMIT);
+        free(pData);
+        return false;
+      }
 
       if (status == MZ_OK)
       {
 #if defined(_WIN32) || defined(_WIN64)
-        sendto(m_udpSocket, (const char*)data, compressedSize + 4, 0, (struct sockaddr*)&m_udpServer,
+        sendto(m_udpSocket, (const char*)pData, compressedSize + 1, 0, (struct sockaddr*)&m_udpServer,
                sizeof(m_udpServer));
 #else
-        sendto(m_udpSocket, data, compressedSize + 4, 0, (struct sockaddr*)&m_udpServer, sizeof(m_udpServer));
+        sendto(m_udpSocket, pData, compressedSize + 1, 0, (struct sockaddr*)&m_udpServer, sizeof(m_udpServer));
 #endif
         continue;
       }
-
-      Log("ZeDMD Wifi compression error");
-
-      return false;
+      else
+      {
+        Log("ZeDMD Wifi compression error");
+        free(pData);
+        return false;
+      }
     }
+
+    free(pData);
+  }
+
+  if (m_s3 && pFrame->command == ZEDMD_COMM_COMMAND::RGB565ZonesStream)
+  {
+    size = 1;
+    pData = (uint8_t*)malloc(size);
+    pData[0] = ZEDMD_COMM_COMMAND::RenderRGB565Frame;
+
+#if defined(_WIN32) || defined(_WIN64)
+    sendto(m_udpSocket, (const char*)pData, 1, 0, (struct sockaddr*)&m_udpServer, sizeof(m_udpServer));
+#else
+    sendto(m_udpSocket, pData, 1, 0, (struct sockaddr*)&m_udpServer, sizeof(m_udpServer));
+#endif
   }
 
   return true;
