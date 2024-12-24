@@ -216,6 +216,7 @@ class ZeDMDComm
   uint8_t m_zoneHeight = 4;
   bool m_resendZones = false;
   std::atomic<bool> m_stopFlag;
+  std::atomic<bool> m_fullFrameFlag;
 
  private:
   bool Connect(char* pName);
