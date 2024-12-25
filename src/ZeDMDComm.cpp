@@ -646,6 +646,10 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
 
 bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
 {
+#if !(                                                                                                                \
+    (defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \
+    defined(__ANDROID__))
+
   int8_t status = 0;
 
   if (!m_stopFlag.load(std::memory_order_relaxed))
@@ -697,7 +701,7 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
 
     return true;
   }
-
+#endif
   return false;
 }
 
