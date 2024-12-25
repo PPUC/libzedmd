@@ -465,7 +465,7 @@ bool ZeDMDComm::Handshake(char* pDevice)
   std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
   auto handshake_start_time = std::chrono::steady_clock::now();
-  std::chrono::milliseconds duration(ZEDMD_COMM_SERIAL_READ_TIMEOUT);
+  std::chrono::milliseconds duration(ZEDMD_COMM_SERIAL_READ_TIMEOUT * 10);
 
   // Sometimes, the driver seems to initilize the buffer with "garbage".
   // So we read until the first expected char occures or a timeout is reached.
@@ -488,7 +488,7 @@ bool ZeDMDComm::Handshake(char* pDevice)
   {
     if (memcmp(data, CTRL_CHARS_HEADER, 4) == 0)
     {
-      m_width = data[5] + data[5] * 256;
+      m_width = data[4] + data[5] * 256;
       m_height = data[6] + data[7] * 256;
       m_zoneWidth = m_width / 16;
       m_zoneHeight = m_height / 8;
