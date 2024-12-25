@@ -508,7 +508,7 @@ bool ZeDMDComm::Handshake(char* pDevice)
     }
 
     auto current_time = std::chrono::steady_clock::now();
-    if (current_time - handshake_start_time >= duration || m_stopFlag.load(std::memory_order_relaxed))
+    if (current_time - handshake_start_time >= duration)
     {
       return false;
     }
