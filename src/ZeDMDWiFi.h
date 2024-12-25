@@ -20,10 +20,7 @@
 class ZeDMDWiFi : public ZeDMDComm
 {
  public:
-  ZeDMDWiFi() : ZeDMDComm()
-  {
-    m_resendZones = false;
-  }
+  ZeDMDWiFi() : ZeDMDComm() {}
 
   virtual bool Connect(const char* name_or_ip, int port);
   virtual void Disconnect();
