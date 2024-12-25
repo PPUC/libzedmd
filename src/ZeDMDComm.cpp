@@ -6,6 +6,7 @@
 ZeDMDComm::ZeDMDComm()
 {
   m_stopFlag.store(false, std::memory_order_release);
+  m_fullFrameFlag.store(false, std::memory_order_release);
 
   m_pThread = nullptr;
 #if !(                                                                                                                \
@@ -132,8 +133,10 @@ void ZeDMDComm::QueueCommand(char command) { QueueCommand(command, nullptr, 0); 
 
 void ZeDMDComm::QueueFrame(uint8_t* data, int size)
 {
-  if (0 == memcmp(data, m_allBlack, size))
+  if (0 == memcmp(data, m_allBlack, size) || m_fullFrameFlag.load(std::memory_order_relaxed))
   {
+    m_fullFrameFlag.store(false, std::memory_order_release);
+
     // Queue a clear screen command. Don't call QueueCommand(ZEDMD_COMM_COMMAND::ClearScreen) because we need to set
     // black hashes.
     ZeDMDFrame frame(ZEDMD_COMM_COMMAND::ClearScreen);
@@ -643,6 +646,10 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
 
 bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
 {
+#if !(                                                                                                                \
+    (defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \
+    defined(__ANDROID__))
+
   int8_t status = 0;
 
   if (!m_stopFlag.load(std::memory_order_relaxed))
@@ -666,12 +673,16 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
     {
       status = sp_blocking_read(m_pSerialPort, &response, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
       if (0 == status && ++timeouts >= ZEDMD_COMM_NUM_TIMEOUTS_TO_WAIT_FOR_ACKNOWLEDGE) break;
-    } while ((status != 1 || (status == 1 && response != 'A' && response != 'E')) &&
+    } while ((status != 1 || (status == 1 && response != 'A' && response != 'E' && response != 'F')) &&
              !m_stopFlag.load(std::memory_order_relaxed));
 
     if (response == 'A')
     {
       if (m_noAcknowledgeCounter > 0) m_noAcknowledgeCounter--;
+    }
+    else if (response == 'F')
+    {
+      m_fullFrameFlag.store(true, std::memory_order_release);
     }
     else
     {
@@ -690,7 +701,7 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
 
     return true;
   }
-
+#endif
   return false;
 }
 
