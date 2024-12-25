@@ -414,7 +414,7 @@ bool ZeDMDComm::Connect(char* pDevice)
     else if (0x10c4 == usb_vid && 0xea60 == usb_pid)
     {
       // CP210x, could be an ESP32.
-      // On Wndows, libserialport reports SP_TRANSPORT_USB, on Linux and macOS SP_TRANSPORT_NATIVE is reported and
+      // On Windows, libserialport reports SP_TRANSPORT_USB, on Linux and macOS SP_TRANSPORT_NATIVE is reported and
       // handled below.
     }
     else
@@ -469,16 +469,16 @@ bool ZeDMDComm::Handshake(char* pDevice)
 
   // Sometimes, the driver seems to initilize the buffer with "garbage".
   // So we read until the first expected char occures or a timeout is reached.
-  while (sp_input_waiting(m_pSerialPort) > 0)
+  while (true)
   {
-    sp_nonblocking_read(m_pSerialPort, data, 1);
+    sp_blocking_read(m_pSerialPort, &data[0], 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
     if (CTRL_CHARS_HEADER[0] == data[0])
     {
       break;
     }
 
     auto current_time = std::chrono::steady_clock::now();
-    if (current_time - handshake_start_time >= duration)
+    if (current_time - handshake_start_time >= duration || m_stopFlag.load(std::memory_order_relaxed))
     {
       return false;
     }
@@ -488,7 +488,7 @@ bool ZeDMDComm::Handshake(char* pDevice)
   {
     if (memcmp(data, CTRL_CHARS_HEADER, 4) == 0)
     {
-      m_width = data[4] + data[5] * 256;
+      m_width = data[5] + data[5] * 256;
       m_height = data[6] + data[7] * 256;
       m_zoneWidth = m_width / 16;
       m_zoneHeight = m_height / 8;
