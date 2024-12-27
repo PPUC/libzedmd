@@ -458,59 +458,37 @@ bool ZeDMDComm::Handshake(char* pDevice)
     defined(__ANDROID__))
   uint8_t data[8] = {0};
 
+  // Sometimes, the driver seems to initilize the buffer with "garbage".
+  while (sp_input_waiting(m_pSerialPort) > 0)
+  {
+    sp_nonblocking_read(m_pSerialPort, data, 8);
+  }
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
   data[0] = ZEDMD_COMM_COMMAND::Handshake;
   sp_nonblocking_write(m_pSerialPort, (void*)CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
   sp_blocking_write(m_pSerialPort, (void*)data, 1, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
 
   std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
-  auto handshake_start_time = std::chrono::steady_clock::now();
-  std::chrono::milliseconds duration(1000);
+ if (sp_blocking_read(m_pSerialPort, data, 8, ZEDMD_COMM_SERIAL_READ_TIMEOUT) && memcmp(data, CTRL_CHARS_HEADER, 4) == 0) {
 
-  // Sometimes, the driver seems to initilize the buffer with "garbage".
-  // So we read until the first expected char occures or a timeout is reached.
-  while (!m_stopFlag.load(std::memory_order_relaxed))
-  {
-    sp_blocking_read(m_pSerialPort, &data[0], 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
-    if (CTRL_CHARS_HEADER[0] == data[0])
+    m_width = data[4] + data[5] * 256;
+    m_height = data[6] + data[7] * 256;
+    m_zoneWidth = m_width / 16;
+    m_zoneHeight = m_height / 8;
+
+    if (sp_blocking_read(m_pSerialPort, data, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT) && data[0] == 'R')
     {
-      sp_blocking_read(m_pSerialPort, &data[1], 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
-      if (CTRL_CHARS_HEADER[1] == data[1])
-      {
-        sp_blocking_read(m_pSerialPort, &data[2], 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
-        if (CTRL_CHARS_HEADER[2] == data[2])
-        {
-          sp_blocking_read(m_pSerialPort, &data[3], 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
-          if (CTRL_CHARS_HEADER[3] == data[3])
-          {
-            if (sp_blocking_read(m_pSerialPort, &data[4], 4, ZEDMD_COMM_SERIAL_READ_TIMEOUT))
-            {
-              m_width = data[4] + data[5] * 256;
-              m_height = data[6] + data[7] * 256;
-              m_zoneWidth = m_width / 16;
-              m_zoneHeight = m_height / 8;
+      // Store the device name for reconnects.
+      SetDevice(pDevice);
+      Log("ZeDMD found: %sdevice=%s, width=%d, height=%d", m_s3 ? "S3 " : "", pDevice, m_width, m_height);
 
-              if (sp_blocking_read(m_pSerialPort, data, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT) && data[0] == 'R')
-              {
-                // Store the device name for reconnects.
-                SetDevice(pDevice);
-                Log("ZeDMD found: %sdevice=%s, width=%d, height=%d", m_s3 ? "S3 " : "", pDevice, m_width, m_height);
+      // Next streaming needs to be complete.
+      memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
 
-                // Next streaming needs to be complete.
-                memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
-
-                return true;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    auto current_time = std::chrono::steady_clock::now();
-    if (current_time - handshake_start_time >= duration)
-    {
-      return false;
+      return true;
     }
   }
 #endif
