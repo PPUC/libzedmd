@@ -473,7 +473,12 @@ bool ZeDMDComm::Handshake(char* pDevice)
 
   data[0] = ZEDMD_COMM_COMMAND::Handshake;
   sp_nonblocking_write(m_pSerialPort, (void*)CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
+  if (m_cdc) {
+    sp_nonblocking_write(m_pSerialPort, (void*)data, 1);
+  }
+  else {
   sp_blocking_write(m_pSerialPort, (void*)data, 1, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
+  }
 
   std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
