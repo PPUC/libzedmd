@@ -446,7 +446,7 @@ bool ZeDMDComm::Connect(char* pDevice)
   sp_set_xon_xoff(m_pSerialPort, SP_XONXOFF_DISABLED);
   sp_set_flowcontrol(m_pSerialPort, SP_FLOWCONTROL_NONE);
 
-  Reset();
+  //Reset();
 
   if (Handshake(pDevice)) return true;
 
