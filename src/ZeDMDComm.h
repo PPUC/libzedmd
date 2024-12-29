@@ -145,7 +145,9 @@ struct ZeDMDFrame
   // Constructor to add initial data
   ZeDMDFrame(uint8_t cmd, uint8_t* d, int s) : command(cmd)
   {
-    data.emplace_back(d, s);  // Create and move a new ZeDMDFrameData object
+    if (s > 0) {
+      data.emplace_back(d, s);  // Create and move a new ZeDMDFrameData object
+    }
   }
 
   // Destructor (no need to manually clear the vector)
@@ -207,6 +209,7 @@ class ZeDMDComm
   virtual bool StreamBytes(ZeDMDFrame* pFrame);
   virtual void Reset();
   void Log(const char* format, ...);
+  void ClearFrames();
 
   uint16_t m_width = 128;
   uint16_t m_height = 32;

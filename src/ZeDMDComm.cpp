@@ -105,6 +105,21 @@ void ZeDMDComm::Run()
       });
 }
 
+void ZeDMDComm::ClearFrames()
+{
+  m_frameQueueMutex.lock();
+  while (!m_frames.empty())
+  {
+    m_frames.pop();
+  }
+  m_frameQueueMutex.unlock();
+
+  // "Delete" delayed frame.
+  m_delayedFrameMutex.lock();
+  m_delayedFrameReady = false;
+  m_delayedFrameMutex.unlock();
+}
+
 void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size)
 {
   if (!IsConnected())
@@ -112,10 +127,10 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size)
     return;
   }
 
-  // "Delete" delayed frame.
-  m_delayedFrameMutex.lock();
-  m_delayedFrameReady = false;
-  m_delayedFrameMutex.unlock();
+  if (FillDelayed())
+  {
+    ClearFrames();
+  }
 
   ZeDMDFrame frame(command, data, size);
 
@@ -144,17 +159,7 @@ void ZeDMDComm::QueueFrame(uint8_t* data, int size)
     // If ZeDMD is already behind, clear the screen immediately.
     if (FillDelayed())
     {
-      m_frameQueueMutex.lock();
-      while (!m_frames.empty())
-      {
-        m_frames.pop();
-      }
-      m_frameQueueMutex.unlock();
-
-      // "Delete" delayed frame.
-      m_delayedFrameMutex.lock();
-      m_delayedFrameReady = false;
-      m_delayedFrameMutex.unlock();
+      ClearFrames();
     }
 
     m_frameQueueMutex.lock();
@@ -472,8 +477,9 @@ bool ZeDMDComm::Handshake(char* pDevice)
 
   std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
- if (sp_blocking_read(m_pSerialPort, data, 8, ZEDMD_COMM_SERIAL_READ_TIMEOUT) && memcmp(data, CTRL_CHARS_HEADER, 4) == 0) {
-
+  if (sp_blocking_read(m_pSerialPort, data, 8, ZEDMD_COMM_SERIAL_READ_TIMEOUT) &&
+      memcmp(data, CTRL_CHARS_HEADER, 4) == 0)
+  {
     m_width = data[4] + data[5] * 256;
     m_height = data[6] + data[7] * 256;
     m_zoneWidth = m_width / 16;
