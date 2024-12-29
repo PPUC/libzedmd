@@ -473,17 +473,30 @@ bool ZeDMDComm::Handshake(char* pDevice)
 
   data[0] = ZEDMD_COMM_COMMAND::Handshake;
   sp_nonblocking_write(m_pSerialPort, (void*)CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
-  if (m_cdc) {
+  if (m_cdc)
+  {
     sp_nonblocking_write(m_pSerialPort, (void*)data, 1);
   }
-  else {
-  sp_blocking_write(m_pSerialPort, (void*)data, 1, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
+  else
+  {
+    sp_blocking_write(m_pSerialPort, (void*)data, 1, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
   }
 
   std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
-  if (sp_blocking_read(m_pSerialPort, data, 8, ZEDMD_COMM_SERIAL_READ_TIMEOUT) &&
-      memcmp(data, CTRL_CHARS_HEADER, 4) == 0)
+  if (m_cdc)
+  {
+    while (sp_input_waiting(m_pSerialPort) > 0)
+    {
+      sp_nonblocking_read(m_pSerialPort, data, 8);
+    }
+  }
+  else
+  {
+    sp_blocking_read(m_pSerialPort, data, 8, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
+  }
+
+  if (memcmp(data, CTRL_CHARS_HEADER, 4) == 0)
   {
     m_width = data[4] + data[5] * 256;
     m_height = data[6] + data[7] * 256;
