@@ -463,7 +463,7 @@ bool ZeDMDComm::Handshake(char* pDevice)
     defined(__ANDROID__))
   uint8_t data[8] = {0};
 
-  // Sometimes, the driver seems to initilize the buffer with "garbage".
+  // Sometimes, the ESP sends some debug output after reset which is still in the buffer.
   while (sp_input_waiting(m_pSerialPort) > 0)
   {
     sp_nonblocking_read(m_pSerialPort, data, 8);
@@ -471,30 +471,13 @@ bool ZeDMDComm::Handshake(char* pDevice)
 
   std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
-  data[0] = ZEDMD_COMM_COMMAND::Handshake;
-  sp_nonblocking_write(m_pSerialPort, (void*)CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
-  if (m_cdc)
-  {
-    sp_nonblocking_write(m_pSerialPort, (void*)data, 1);
-  }
-  else
-  {
-    sp_blocking_write(m_pSerialPort, (void*)data, 1, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
-  }
+  memcpy(data, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
+  data[5] = ZEDMD_COMM_COMMAND::Handshake;
+  sp_nonblocking_write(m_pSerialPort, data, 5);
 
   std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
-  if (m_cdc)
-  {
-    while (sp_input_waiting(m_pSerialPort) > 0)
-    {
-      sp_nonblocking_read(m_pSerialPort, data, 8);
-    }
-  }
-  else
-  {
-    sp_blocking_read(m_pSerialPort, data, 8, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
-  }
+  sp_blocking_read(m_pSerialPort, data, 8, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
 
   if (memcmp(data, CTRL_CHARS_HEADER, 4) == 0)
   {
