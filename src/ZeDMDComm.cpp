@@ -305,16 +305,17 @@ bool ZeDMDComm::Connect()
     Log("Searching for ZeDMD...");
 
     struct sp_port** ppPorts;
-    enum sp_return result = sp_list_ports(&ppPorts);
+    sp_return result = sp_list_ports(&ppPorts);
     if (result == SP_OK)
     {
       for (int i = 0; ppPorts[i]; i++)
       {
-        enum sp_transport transport = sp_get_port_transport(ppPorts[i]);
+        sp_transport transport = sp_get_port_transport(ppPorts[i]);
         // Ignore SP_TRANSPORT_BLUETOOTH.
         if (SP_TRANSPORT_USB != transport && SP_TRANSPORT_NATIVE != transport) continue;
 
         char* pDevice = sp_get_port_name(ppPorts[i]);
+
         bool ignored = false;
         for (int j = 0; j < m_ignoredDevicesCounter; j++)
         {
@@ -373,8 +374,8 @@ bool ZeDMDComm::Connect(char* pDevice)
 #if !(                                                                                                                \
     (defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \
     defined(__ANDROID__))
-  enum sp_return result = sp_get_port_by_name(pDevice, &m_pSerialPort);
-  enum sp_transport transport = sp_get_port_transport(m_pSerialPort);
+  sp_return result = sp_get_port_by_name(pDevice, &m_pSerialPort);
+  sp_transport transport = sp_get_port_transport(m_pSerialPort);
   // Ignore SP_TRANSPORT_BLUETOOTH.
   if (result != SP_OK || SP_TRANSPORT_BLUETOOTH == transport)
   {
@@ -384,6 +385,7 @@ bool ZeDMDComm::Connect(char* pDevice)
   result = sp_open(m_pSerialPort, SP_MODE_READ_WRITE);
   if (result != SP_OK)
   {
+    Log("Unable to open device %s, error code %d", pDevice, result);
     sp_free_port(m_pSerialPort);
     m_pSerialPort = nullptr;
 
@@ -420,7 +422,7 @@ bool ZeDMDComm::Connect(char* pDevice)
     {
       // CP210x, could be an ESP32.
       // On Windows, libserialport reports SP_TRANSPORT_USB, on Linux and macOS SP_TRANSPORT_NATIVE is reported and
-      // handled below.
+      // handled below. Newer versions of libserialport seem to report SP_TRANSPORT_USB on macOS as well.
     }
     else
     {
@@ -439,6 +441,8 @@ bool ZeDMDComm::Connect(char* pDevice)
     return false;
   }
 
+  Log("ZeDMD candidate: device=%s", pDevice);
+
   sp_set_baudrate(m_pSerialPort, m_cdc ? 115200 : (m_s3 ? ZEDMD_S3_COMM_BAUD_RATE : ZEDMD_COMM_BAUD_RATE));
   sp_set_bits(m_pSerialPort, 8);
   sp_set_parity(m_pSerialPort, SP_PARITY_NONE);
@@ -446,7 +450,7 @@ bool ZeDMDComm::Connect(char* pDevice)
   sp_set_xon_xoff(m_pSerialPort, SP_XONXOFF_DISABLED);
   sp_set_flowcontrol(m_pSerialPort, SP_FLOWCONTROL_NONE);
 
-  //Reset();
+  Reset();
 
   if (Handshake(pDevice)) return true;
 
@@ -476,7 +480,7 @@ bool ZeDMDComm::Handshake(char* pDevice)
   sp_nonblocking_write(m_pSerialPort, data, 6);
 
   std::this_thread::sleep_for(std::chrono::milliseconds(200));
-
+  memset(data, 0, 8);
   sp_blocking_read(m_pSerialPort, data, 8, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
 
   if (memcmp(data, CTRL_CHARS_HEADER, 4) == 0)
@@ -496,6 +500,10 @@ bool ZeDMDComm::Handshake(char* pDevice)
       memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
 
       return true;
+    }
+    else
+    {
+      Log("ZeDMD found but ready signal is missing.");
     }
   }
 #endif
