@@ -577,6 +577,7 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
 
   uint8_t* pData;
   uint16_t size;
+  bool rgb565ZoneStreamAnnounced = false;
 
   for (auto it = pFrame->data.rbegin(); it != pFrame->data.rend(); ++it)
   {
@@ -595,14 +596,17 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
     }
     else
     {
-      size = CTRL_CHARS_HEADER_SIZE + 1;
-      pData = (uint8_t*)malloc(size);
-      memcpy(pData, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
-      pData[CTRL_CHARS_HEADER_SIZE] = ZEDMD_COMM_COMMAND::AnnounceRGB565ZonesStream;
+      if (!rgb565ZoneStreamAnnounced)
+      {
+        size = CTRL_CHARS_HEADER_SIZE + 1;
+        pData = (uint8_t*)malloc(size);
+        memcpy(pData, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
+        pData[CTRL_CHARS_HEADER_SIZE] = ZEDMD_COMM_COMMAND::AnnounceRGB565ZonesStream;
 
-      bool success = SendChunks(pData, size);
-      free(pData);
-      if (!success) return false;
+        bool success = SendChunks(pData, size);
+        free(pData);
+        if (!success) return false;
+      }
 
       mz_ulong compressedSize = mz_compressBound(ZEDMD_ZONES_BYTE_LIMIT);
       pData = (uint8_t*)malloc(CTRL_CHARS_HEADER_SIZE + 3 + ZEDMD_ZONES_BYTE_LIMIT);
@@ -678,7 +682,7 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
 
     if (response == 'A')
     {
-      if (m_noAcknowledgeCounter > 0) m_noAcknowledgeCounter--;
+      m_noAcknowledgeCounter = 0;
     }
     else if (response == 'F')
     {
