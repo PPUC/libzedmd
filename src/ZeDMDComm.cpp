@@ -148,10 +148,17 @@ void ZeDMDComm::QueueCommand(char command) { QueueCommand(command, nullptr, 0); 
 
 void ZeDMDComm::QueueFrame(uint8_t* data, int size)
 {
-  if (0 == memcmp(data, m_allBlack, size) || m_fullFrameFlag.load(std::memory_order_relaxed))
+  if (m_fullFrameFlag.load(std::memory_order_relaxed))
   {
     m_fullFrameFlag.store(false, std::memory_order_release);
+    ClearFrames();
+    memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
 
+    return;
+  }
+
+  if (0 == memcmp(data, m_allBlack, size))
+  {
     // Queue a clear screen command. Don't call QueueCommand(ZEDMD_COMM_COMMAND::ClearScreen) because we need to set
     // black hashes.
     ZeDMDFrame frame(ZEDMD_COMM_COMMAND::ClearScreen);
@@ -577,6 +584,7 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
 
   uint8_t* pData;
   uint16_t size;
+  bool rgb565ZoneStreamAnnounced = false;
 
   for (auto it = pFrame->data.rbegin(); it != pFrame->data.rend(); ++it)
   {
@@ -595,6 +603,18 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
     }
     else
     {
+      if (!rgb565ZoneStreamAnnounced)
+      {
+        size = CTRL_CHARS_HEADER_SIZE + 1;
+        pData = (uint8_t*)malloc(size);
+        memcpy(pData, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
+        pData[CTRL_CHARS_HEADER_SIZE] = ZEDMD_COMM_COMMAND::AnnounceRGB565ZonesStream;
+
+        bool success = SendChunks(pData, size);
+        free(pData);
+        if (!success) return false;
+      }
+
       mz_ulong compressedSize = mz_compressBound(ZEDMD_ZONES_BYTE_LIMIT);
       pData = (uint8_t*)malloc(CTRL_CHARS_HEADER_SIZE + 3 + ZEDMD_ZONES_BYTE_LIMIT);
       memcpy(pData, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
@@ -674,6 +694,7 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
     else if (response == 'F')
     {
       m_fullFrameFlag.store(true, std::memory_order_release);
+      return false;
     }
     else
     {
