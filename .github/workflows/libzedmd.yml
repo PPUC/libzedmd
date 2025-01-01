@@ -142,6 +142,7 @@ jobs:
             if [[ "${{ matrix.type }}" == "Debug" ]]; then
               cp build/${{ matrix.type }}/*.pdb tmp
             fi
+            cp -r test tmp/
           else
             ARTIFACT_PATH="libzedmd-${{ needs.version.outputs.tag }}-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz"
             if [[ "${{ matrix.platform }}" == "macos" ]]; then
@@ -161,6 +162,7 @@ jobs:
                cp build/libzedmd.a tmp
                cp build/libzedmd.so tmp
             fi
+            cp -r test tmp/
             cd tmp
             tar -czvf ../${ARTIFACT_PATH} *
           fi
