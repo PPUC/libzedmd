@@ -42,6 +42,7 @@
 // 1460 is safe. For UART or USB CDC we use the same limit since the ZeDMD firmware is unified.
 // For USB UART 128x32 send one row (16 zones).
 #define ZEDMD_ZONES_BYTE_LIMIT (128 * 4 * 2 + 16)
+#define ZEDMD_S3_ZONES_BYTE_LIMIT (ZEDMD_ZONES_BYTE_LIMIT / 4)
 
 typedef enum
 {
