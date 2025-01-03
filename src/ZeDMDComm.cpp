@@ -148,10 +148,17 @@ void ZeDMDComm::QueueCommand(char command) { QueueCommand(command, nullptr, 0); 
 
 void ZeDMDComm::QueueFrame(uint8_t* data, int size)
 {
-  if (0 == memcmp(data, m_allBlack, size) || m_fullFrameFlag.load(std::memory_order_relaxed))
+  if (m_fullFrameFlag.load(std::memory_order_relaxed))
   {
     m_fullFrameFlag.store(false, std::memory_order_release);
+    ClearFrames();
+    memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
 
+    return;
+  }
+
+  if (0 == memcmp(data, m_allBlack, size))
+  {
     // Queue a clear screen command. Don't call QueueCommand(ZEDMD_COMM_COMMAND::ClearScreen) because we need to set
     // black hashes.
     ZeDMDFrame frame(ZEDMD_COMM_COMMAND::ClearScreen);
@@ -173,7 +180,7 @@ void ZeDMDComm::QueueFrame(uint8_t* data, int size)
   }
 
   uint8_t idx = 0;
-  uint16_t zonesBytesLimit = ZEDMD_ZONES_BYTE_LIMIT;
+  uint16_t zonesBytesLimit = (m_s3 && !m_cdc) ? ZEDMD_S3_ZONES_BYTE_LIMIT : ZEDMD_ZONES_BYTE_LIMIT;
   const uint16_t zoneBytes = m_zoneWidth * m_zoneHeight * 2;
   const uint16_t zoneBytesTotal = zoneBytes + 1;
   uint8_t* zone = (uint8_t*)malloc(zoneBytes);
@@ -305,16 +312,17 @@ bool ZeDMDComm::Connect()
     Log("Searching for ZeDMD...");
 
     struct sp_port** ppPorts;
-    enum sp_return result = sp_list_ports(&ppPorts);
+    sp_return result = sp_list_ports(&ppPorts);
     if (result == SP_OK)
     {
       for (int i = 0; ppPorts[i]; i++)
       {
-        enum sp_transport transport = sp_get_port_transport(ppPorts[i]);
+        sp_transport transport = sp_get_port_transport(ppPorts[i]);
         // Ignore SP_TRANSPORT_BLUETOOTH.
         if (SP_TRANSPORT_USB != transport && SP_TRANSPORT_NATIVE != transport) continue;
 
         char* pDevice = sp_get_port_name(ppPorts[i]);
+
         bool ignored = false;
         for (int j = 0; j < m_ignoredDevicesCounter; j++)
         {
@@ -373,8 +381,8 @@ bool ZeDMDComm::Connect(char* pDevice)
 #if !(                                                                                                                \
     (defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \
     defined(__ANDROID__))
-  enum sp_return result = sp_get_port_by_name(pDevice, &m_pSerialPort);
-  enum sp_transport transport = sp_get_port_transport(m_pSerialPort);
+  sp_return result = sp_get_port_by_name(pDevice, &m_pSerialPort);
+  sp_transport transport = sp_get_port_transport(m_pSerialPort);
   // Ignore SP_TRANSPORT_BLUETOOTH.
   if (result != SP_OK || SP_TRANSPORT_BLUETOOTH == transport)
   {
@@ -384,6 +392,7 @@ bool ZeDMDComm::Connect(char* pDevice)
   result = sp_open(m_pSerialPort, SP_MODE_READ_WRITE);
   if (result != SP_OK)
   {
+    Log("Unable to open device %s, error code %d", pDevice, result);
     sp_free_port(m_pSerialPort);
     m_pSerialPort = nullptr;
 
@@ -420,7 +429,7 @@ bool ZeDMDComm::Connect(char* pDevice)
     {
       // CP210x, could be an ESP32.
       // On Windows, libserialport reports SP_TRANSPORT_USB, on Linux and macOS SP_TRANSPORT_NATIVE is reported and
-      // handled below.
+      // handled below. Newer versions of libserialport seem to report SP_TRANSPORT_USB on macOS as well.
     }
     else
     {
@@ -438,6 +447,8 @@ bool ZeDMDComm::Connect(char* pDevice)
 
     return false;
   }
+
+  Log("ZeDMD candidate: device=%s", pDevice);
 
   sp_set_baudrate(m_pSerialPort, m_cdc ? 115200 : (m_s3 ? ZEDMD_S3_COMM_BAUD_RATE : ZEDMD_COMM_BAUD_RATE));
   sp_set_bits(m_pSerialPort, 8);
@@ -463,7 +474,7 @@ bool ZeDMDComm::Handshake(char* pDevice)
     defined(__ANDROID__))
   uint8_t data[8] = {0};
 
-  // Sometimes, the driver seems to initilize the buffer with "garbage".
+  // Sometimes, the ESP sends some debug output after reset which is still in the buffer.
   while (sp_input_waiting(m_pSerialPort) > 0)
   {
     sp_nonblocking_read(m_pSerialPort, data, 8);
@@ -471,14 +482,15 @@ bool ZeDMDComm::Handshake(char* pDevice)
 
   std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
-  data[0] = ZEDMD_COMM_COMMAND::Handshake;
-  sp_nonblocking_write(m_pSerialPort, (void*)CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
-  sp_blocking_write(m_pSerialPort, (void*)data, 1, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
+  memcpy(data, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
+  data[5] = ZEDMD_COMM_COMMAND::Handshake;
+  sp_nonblocking_write(m_pSerialPort, data, 6);
 
   std::this_thread::sleep_for(std::chrono::milliseconds(200));
+  memset(data, 0, 8);
+  sp_blocking_read(m_pSerialPort, data, 8, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
 
-  if (sp_blocking_read(m_pSerialPort, data, 8, ZEDMD_COMM_SERIAL_READ_TIMEOUT) &&
-      memcmp(data, CTRL_CHARS_HEADER, 4) == 0)
+  if (memcmp(data, CTRL_CHARS_HEADER, 4) == 0)
   {
     m_width = data[4] + data[5] * 256;
     m_height = data[6] + data[7] * 256;
@@ -495,6 +507,10 @@ bool ZeDMDComm::Handshake(char* pDevice)
       memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
 
       return true;
+    }
+    else
+    {
+      Log("ZeDMD found but ready signal is missing.");
     }
   }
 #endif
@@ -586,15 +602,6 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
     }
     else
     {
-      size = CTRL_CHARS_HEADER_SIZE + 1;
-      pData = (uint8_t*)malloc(size);
-      memcpy(pData, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
-      pData[CTRL_CHARS_HEADER_SIZE] = ZEDMD_COMM_COMMAND::AnnounceRGB565ZonesStream;
-
-      bool success = SendChunks(pData, size);
-      free(pData);
-      if (!success) return false;
-
       mz_ulong compressedSize = mz_compressBound(ZEDMD_ZONES_BYTE_LIMIT);
       pData = (uint8_t*)malloc(CTRL_CHARS_HEADER_SIZE + 3 + ZEDMD_ZONES_BYTE_LIMIT);
       memcpy(pData, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
@@ -669,11 +676,12 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
 
     if (response == 'A')
     {
-      if (m_noAcknowledgeCounter > 0) m_noAcknowledgeCounter--;
+      m_noAcknowledgeCounter = 0;
     }
     else if (response == 'F')
     {
       m_fullFrameFlag.store(true, std::memory_order_release);
+      return false;
     }
     else
     {

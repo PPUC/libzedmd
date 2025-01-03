@@ -295,6 +295,8 @@ bool ZeDMDWiFi::StreamBytes(ZeDMDFrame* pFrame)
 #else
         sendto(m_udpSocket, pData, compressedSize + 1, 0, (struct sockaddr*)&m_udpServer, sizeof(m_udpServer));
 #endif
+        // Don't send UDP packages too fast, otherwise the ESP32 might miss some which would lead to artefacts.
+        std::this_thread::sleep_for(std::chrono::microseconds(500));
         continue;
       }
       else
