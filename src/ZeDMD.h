@@ -177,6 +177,22 @@ class ZEDMDAPI ZeDMD
    */
   bool const IsS3();
 
+  /** @brief Get the libezedmd version
+   *
+   *  Get the version of the library.
+   *
+   *  @return version string
+   */
+  const char* GetVersion();
+
+  /** @brief Get the ZeDMD firmware version
+   *
+   *  Get the version of the ZeDMD firmware.
+   *
+   *  @return version string
+   */
+  const char* GetFirmwareVersion();
+
   /** @brief Test the panels attached to ZeDMD
    *
    *  Renders a sequence of full red, full green and full blue frames.
@@ -298,8 +314,7 @@ class ZEDMDAPI ZeDMD
  private:
   bool UpdateFrameBuffer888(uint8_t* pFrame);
   bool UpdateFrameBuffer565(uint16_t* pFrame);
-  uint8_t GetScaleMode(uint16_t frameWidth, uint16_t frameHeight,
-                       uint8_t* pXOffset, uint8_t* pYOffset);
+  uint8_t GetScaleMode(uint16_t frameWidth, uint16_t frameHeight, uint8_t* pXOffset, uint8_t* pYOffset);
   int Scale888(uint8_t* pScaledFrame, uint8_t* pFrame, uint8_t bytes);
   int Scale565(uint8_t* pScaledFrame, uint16_t* pFrame, bool bigEndian);
 
@@ -326,6 +341,7 @@ extern "C"
 
   extern ZEDMDAPI ZeDMD* ZeDMD_GetInstance();
   extern ZEDMDAPI const char* ZeDMD_GetVersion();
+  extern ZEDMDAPI const char* ZeDMD_GetFirmwareVersion();
   extern ZEDMDAPI void ZeDMD_IgnoreDevice(ZeDMD* pZeDMD, const char* const ignore_device);
   extern ZEDMDAPI void ZeDMD_SetDevice(ZeDMD* pZeDMD, const char* const device);
   extern ZEDMDAPI bool ZeDMD_Open(ZeDMD* pZeDMD);

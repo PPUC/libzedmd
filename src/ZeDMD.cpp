@@ -104,6 +104,18 @@ bool const ZeDMD::IsS3()
   return m_pZeDMDComm->IsS3();
 }
 
+const char* ZeDMD::GetVersion() { return ZEDMD_VERSION; }
+
+const char* ZeDMD::GetFirmwareVersion()
+{
+  if (m_usb)
+  {
+    return m_pZeDMDComm->GetFirmwareVersion();
+  }
+
+  return m_pZeDMDWiFi->GetFirmwareVersion();
+}
+
 void ZeDMD::LedTest()
 {
   if (m_usb)
@@ -436,6 +448,8 @@ int ZeDMD::Scale565(uint8_t* pScaledFrame, uint16_t* pFrame, bool bigEndian)
 ZEDMDAPI ZeDMD* ZeDMD_GetInstance() { return new ZeDMD(); }
 
 ZEDMDAPI const char* ZeDMD_GetVersion() { return ZEDMD_VERSION; };
+
+ZEDMDAPI const char* ZeDMD_GetFirmwareVersion(ZeDMD* pZeDMD) { return pZeDMD->GetFirmwareVersion(); };
 
 ZEDMDAPI void ZeDMD_IgnoreDevice(ZeDMD* pZeDMD, const char* const ignore_device)
 {

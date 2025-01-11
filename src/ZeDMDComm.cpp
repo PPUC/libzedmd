@@ -472,7 +472,7 @@ bool ZeDMDComm::Handshake(char* pDevice)
 #if !(                                                                                                                \
     (defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \
     defined(__ANDROID__))
-  uint8_t data[8] = {0};
+  uint8_t data[11] = {0};
 
   // Sometimes, the ESP sends some debug output after reset which is still in the buffer.
   while (sp_input_waiting(m_pSerialPort) > 0)
@@ -487,8 +487,8 @@ bool ZeDMDComm::Handshake(char* pDevice)
   sp_nonblocking_write(m_pSerialPort, data, 6);
 
   std::this_thread::sleep_for(std::chrono::milliseconds(200));
-  memset(data, 0, 8);
-  sp_blocking_read(m_pSerialPort, data, 8, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
+  memset(data, 0, 11);
+  sp_blocking_read(m_pSerialPort, data, 11, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
 
   if (memcmp(data, CTRL_CHARS_HEADER, 4) == 0)
   {
@@ -496,12 +496,14 @@ bool ZeDMDComm::Handshake(char* pDevice)
     m_height = data[6] + data[7] * 256;
     m_zoneWidth = m_width / 16;
     m_zoneHeight = m_height / 8;
+    sprintf(m_firmwareVersion, "%d.%d.%d", data[8], data[9], data[10]);
 
     if (sp_blocking_read(m_pSerialPort, data, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT) && data[0] == 'R')
     {
       // Store the device name for reconnects.
       SetDevice(pDevice);
-      Log("ZeDMD found: %sdevice=%s, width=%d, height=%d", m_s3 ? "S3 " : "", pDevice, m_width, m_height);
+      Log("ZeDMD %s found: %sdevice=%s, width=%d, height=%d", m_firmwareVersion, m_s3 ? "S3 " : "", pDevice, m_width,
+          m_height);
 
       // Next streaming needs to be complete.
       memset(m_zoneHashes, 0, sizeof(m_zoneHashes));

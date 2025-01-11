@@ -76,9 +76,12 @@ bool ZeDMDWiFi::DoConnect(const char* ip, int port)
   if (SendGetRequest("/get_width")) m_width = (uint16_t)ReceiveIntegerPayload();
   if (SendGetRequest("/get_height")) m_height = (uint16_t)ReceiveIntegerPayload();
   if (SendGetRequest("/get_s3")) m_s3 = (ReceiveIntegerPayload() == 1);
+  if (SendGetRequest("/get_version")) strncpy(m_firmwareVersion, ReceiveStringPayload(), sizeof(m_firmwareVersion) - 1);
 
   m_zoneWidth = m_width / 16;
   m_zoneHeight = m_height / 8;
+
+  Log("ZeDMD %s found: %sWiFi, width=%d, height=%d", m_firmwareVersion, m_s3 ? "S3 " : "", m_width, m_height);
 
   return true;
 }
@@ -229,6 +232,23 @@ int ZeDMDWiFi::ReceiveIntegerPayload()
     // std::cerr << "Integer out of range: " << e.what() << std::endl;
     return 0;  // Or another error code
   }
+}
+
+const char* ZeDMDWiFi::ReceiveStringPayload()
+{
+  std::string response = ReceiveResponse();
+
+  size_t headerEnd = response.find("\r\n\r\n");
+  if (headerEnd == std::string::npos)
+  {
+    // std::cerr << "Invalid HTTP response (no headers found)." << std::endl;
+    return "";  // Or another error code
+  }
+
+  // The payload starts after "\r\n\r\n"
+  std::string payload = response.substr(headerEnd + 4);
+
+  return payload.c_str();
 }
 
 bool ZeDMDWiFi::IsConnected() { return m_connected; }

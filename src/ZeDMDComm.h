@@ -146,7 +146,8 @@ struct ZeDMDFrame
   // Constructor to add initial data
   ZeDMDFrame(uint8_t cmd, uint8_t* d, int s) : command(cmd)
   {
-    if (s > 0) {
+    if (s > 0)
+    {
       data.emplace_back(d, s);  // Create and move a new ZeDMDFrameData object
     }
   }
@@ -205,6 +206,7 @@ class ZeDMDComm
   uint16_t const GetWidth();
   uint16_t const GetHeight();
   bool const IsS3();
+  const char* GetFirmwareVersion() { return (const char*)m_firmwareVersion; }
 
  protected:
   virtual bool StreamBytes(ZeDMDFrame* pFrame);
@@ -212,6 +214,7 @@ class ZeDMDComm
   void Log(const char* format, ...);
   void ClearFrames();
 
+  char m_firmwareVersion[12] = "0.0.0";
   uint16_t m_width = 128;
   uint16_t m_height = 32;
   bool m_s3 = false;
