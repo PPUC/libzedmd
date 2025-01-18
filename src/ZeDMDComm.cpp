@@ -480,7 +480,7 @@ bool ZeDMDComm::Handshake(char* pDevice)
     sp_nonblocking_read(m_pSerialPort, data, 8);
   }
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(200));
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   memcpy(data, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
   data[5] = ZEDMD_COMM_COMMAND::Handshake;
@@ -496,7 +496,7 @@ bool ZeDMDComm::Handshake(char* pDevice)
     m_height = data[6] + data[7] * 256;
     m_zoneWidth = m_width / 16;
     m_zoneHeight = m_height / 8;
-    sprintf(m_firmwareVersion, "%d.%d.%d", data[8], data[9], data[10]);
+    snprintf(m_firmwareVersion, 12, "%d.%d.%d", data[8], data[9], data[10]);
 
     if (sp_blocking_read(m_pSerialPort, data, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT) && data[0] == 'R')
     {

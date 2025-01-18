@@ -22,15 +22,15 @@ class ZeDMDWiFi : public ZeDMDComm
  public:
   ZeDMDWiFi() : ZeDMDComm() {}
 
-  virtual bool Connect(const char* name_or_ip, int port);
+  virtual bool Connect(const char* name_or_ip);
   virtual void Disconnect();
   virtual bool IsConnected();
 
  protected:
-  bool DoConnect(const char* ip, int port);
+  bool DoConnect(const char* ip);
   virtual bool StreamBytes(ZeDMDFrame* pFrame);
   virtual void Reset();
-  bool openTcpConnection();
+  bool openTcpConnection(int sock, sockaddr_in server, int16_t timeout);
   bool SendGetRequest(const std::string& path);
   bool SendPostRequest(const std::string& path, const std::string& data);
   std::string ReceiveResponse();
@@ -38,10 +38,10 @@ class ZeDMDWiFi : public ZeDMDComm
   const char* ReceiveStringPayload();
 
  private:
-  int m_udpSocket = -1;
   int m_tcpSocket = -1;
-  struct sockaddr_in m_udpServer;
+  int m_httpSocket = -1;
   struct sockaddr_in m_tcpServer;
+  struct sockaddr_in m_httpServer;
   bool m_connected = false;
   bool m_wsaStarted = false;
 };

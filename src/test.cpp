@@ -36,9 +36,9 @@ int main(int argc, const char* argv[])
   ZeDMD* pZeDMD = new ZeDMD();
   pZeDMD->SetLogCallback(LogCallback, nullptr);
 
-  if (pZeDMD->Open())
+  if (pZeDMD->Open() || pZeDMD->OpenDefaultWiFi())
   {
-
+    pZeDMD->EnableDebug();
     uint16_t width = pZeDMD->GetWidth();
     uint16_t height = pZeDMD->GetHeight();
 

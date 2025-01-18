@@ -207,9 +207,9 @@ void ZeDMD::SetWiFiPort(int port)
   m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetWiFiPort, data, 2);
 }
 
-bool ZeDMD::OpenWiFi(const char* ip, int port)
+bool ZeDMD::OpenWiFi(const char* ip)
 {
-  m_wifi = m_pZeDMDWiFi->Connect(ip, port);
+  m_wifi = m_pZeDMDWiFi->Connect(ip);
 
   if (m_wifi && !m_usb)
   {
@@ -227,7 +227,7 @@ bool ZeDMD::OpenWiFi(const char* ip, int port)
   return m_wifi;
 }
 
-bool ZeDMD::OpenDefaultWiFi() { return OpenWiFi("zedmd-wifi.local", 3333); }
+bool ZeDMD::OpenDefaultWiFi() { return OpenWiFi("zedmd-wifi.local"); }
 
 bool ZeDMD::Open()
 {
@@ -460,7 +460,7 @@ ZEDMDAPI void ZeDMD_SetDevice(ZeDMD* pZeDMD, const char* const device) { return 
 
 ZEDMDAPI bool ZeDMD_Open(ZeDMD* pZeDMD) { return pZeDMD->Open(); }
 
-ZEDMDAPI bool ZeDMD_OpenWiFi(ZeDMD* pZeDMD, const char* ip, int port) { return pZeDMD->OpenWiFi(ip, port); }
+ZEDMDAPI bool ZeDMD_OpenWiFi(ZeDMD* pZeDMD, const char* ip) { return pZeDMD->OpenWiFi(ip); }
 
 ZEDMDAPI bool ZeDMD_OpenDefaultWiFi(ZeDMD* pZeDMD) { return pZeDMD->OpenDefaultWiFi(); }
 

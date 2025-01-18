@@ -44,6 +44,13 @@ class ZEDMDAPI ZeDMD
   ZeDMD();
   ~ZeDMD();
 
+  /** @brief Set the log callback
+   *
+   *  Set the log callback.
+   *
+   *  @param callback
+   *  @param userData
+   */
   void SetLogCallback(ZeDMD_LogCallback callback, const void* userData);
 
   /** @brief Ignore a serial device when searching for ZeDMD
@@ -110,9 +117,8 @@ class ZEDMDAPI ZeDMD
    *  @see SaveSettings()
    *
    *  @param ip the IPv4 address of the ZeDMD device
-   *  @param port the port
    */
-  bool OpenWiFi(const char* ip, int port);
+  bool OpenWiFi(const char* ip);
 
   /** @brief Open default WiFi connection to ZeDMD.
    *
@@ -345,10 +351,10 @@ extern "C"
   extern ZEDMDAPI void ZeDMD_IgnoreDevice(ZeDMD* pZeDMD, const char* const ignore_device);
   extern ZEDMDAPI void ZeDMD_SetDevice(ZeDMD* pZeDMD, const char* const device);
   extern ZEDMDAPI bool ZeDMD_Open(ZeDMD* pZeDMD);
-  extern ZEDMDAPI bool ZeDMD_OpenWiFi(ZeDMD* pZeDMD, const char* ip, int port);
+  extern ZEDMDAPI bool ZeDMD_OpenWiFi(ZeDMD* pZeDMD, const char* ip);
   extern ZEDMDAPI bool ZeDMD_OpenDefaultWiFi(ZeDMD* pZeDMD);
   extern ZEDMDAPI void ZeDMD_Close(ZeDMD* pZeDMD);
-
+  extern ZEDMDAPI void ZeDMD_SetLogCallback(ZeDMD* pZeDMD, ZeDMD_LogCallback callback, const void* userData);
   extern ZEDMDAPI void ZeDMD_SetFrameSize(ZeDMD* pZeDMD, uint16_t width, uint16_t height);
   extern ZEDMDAPI void ZeDMD_SetDefaultPalette(ZeDMD* pZeDMD, uint8_t bitDepth);
   extern ZEDMDAPI void ZeDMD_LedTest(ZeDMD* pZeDMD);
