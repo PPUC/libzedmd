@@ -480,7 +480,7 @@ bool ZeDMDComm::Handshake(char* pDevice)
     sp_nonblocking_read(m_pSerialPort, data, 8);
   }
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(200));
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   memcpy(data, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
   data[5] = ZEDMD_COMM_COMMAND::Handshake;

@@ -341,6 +341,7 @@ bool ZeDMDWiFi::StreamBytes(ZeDMDFrame* pFrame)
 #else
     sendto(m_udpSocket, pData, 1, 0, (struct sockaddr*)&m_udpServer, sizeof(m_udpServer));
 #endif
+    free(pData);
   }
 
   return true;
