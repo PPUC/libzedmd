@@ -480,6 +480,7 @@ bool ZeDMDComm::Handshake(char* pDevice)
     sp_nonblocking_read(m_pSerialPort, data, 8);
   }
 
+  // For Linux and macOS, 200ms seem to be sufficient. But some WIndows installations require a longer sleep here.
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   memcpy(data, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
