@@ -73,10 +73,45 @@ bool ZeDMDWiFi::DoConnect(const char* ip, int port)
   // anything else.
   SendGetRequest("/get_version");
 
-  if (SendGetRequest("/get_width")) m_width = (uint16_t)ReceiveIntegerPayload();
-  if (SendGetRequest("/get_height")) m_height = (uint16_t)ReceiveIntegerPayload();
-  if (SendGetRequest("/get_s3")) m_s3 = (ReceiveIntegerPayload() == 1);
-  if (SendGetRequest("/get_version")) strncpy(m_firmwareVersion, ReceiveStringPayload(), sizeof(m_firmwareVersion) - 1);
+  if (SendGetRequest("/get_version"))
+  {
+    strncpy(m_firmwareVersion, ReceiveStringPayload(), sizeof(m_firmwareVersion) - 1);
+  }
+  else
+  {
+    Log("ZeDMD version could not be detected");
+    return false;
+  }
+
+  if (SendGetRequest("/get_width"))
+  {
+    m_width = (uint16_t)ReceiveIntegerPayload();
+  }
+  else
+  {
+    Log("ZeDMD width could not be detected");
+    return false;
+  }
+
+  if (SendGetRequest("/get_height"))
+  {
+    m_height = (uint16_t)ReceiveIntegerPayload();
+  }
+  else
+  {
+    Log("ZeDMD height could not be detected");
+    return false;
+  }
+
+  if (SendGetRequest("/get_s3"))
+  {
+    m_s3 = (ReceiveIntegerPayload() == 1);
+  }
+  else
+  {
+    Log("ZeDMD ESP32 generation could not be detected");
+    return false;
+  }
 
   m_zoneWidth = m_width / 16;
   m_zoneHeight = m_height / 8;
