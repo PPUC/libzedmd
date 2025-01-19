@@ -98,24 +98,30 @@ if(BUILD_SHARED)
          third-party/runtime-libs/${PLATFORM}/${ARCH}
       )
       if(ARCH STREQUAL "x64")
-         target_link_libraries(zedmd_shared PUBLIC libserialport64 ws2_32)
-         target_link_libraries(zedmd_shared PUBLIC sockpp64 ws2_32)
+         target_link_libraries(zedmd_shared PUBLIC libserialport64 sockpp64 ws2_32)
       else()
-         target_link_libraries(zedmd_shared PUBLIC libserialport ws2_32)
-         target_link_libraries(zedmd_shared PUBLIC sockpp ws2_32)
+         target_link_libraries(zedmd_shared PUBLIC libserialport sockpp ws2_32)
       endif()
    elseif(PLATFORM STREQUAL "macos")
       target_link_directories(zedmd_shared PUBLIC
          third-party/runtime-libs/${PLATFORM}/${ARCH}
       )
-      target_link_libraries(zedmd_shared PUBLIC serialport)
-      target_link_libraries(zedmd_shared PUBLIC sockpp)
+      target_link_libraries(zedmd_shared PUBLIC serialport sockpp)
    elseif(PLATFORM STREQUAL "linux")
       target_link_directories(zedmd_shared PUBLIC
          third-party/runtime-libs/${PLATFORM}/${ARCH}
       )
-      target_link_libraries(zedmd_shared PUBLIC serialport)
-      target_link_libraries(zedmd_shared PUBLIC sockpp)
+      target_link_libraries(zedmd_shared PUBLIC serialport sockpp)
+   elseif(PLATFORM STREQUAL "ios" OR PLATFORM STREQUAL "ios-simulator" OR PLATFORM STREQUAL "tvos")
+      target_link_directories(zedmd_shared PUBLIC
+         third-party/build-libs/${PLATFORM}/${ARCH}
+      )
+      target_link_libraries(zedmd_shared PUBLIC serialport sockpp)
+   elseif(PLATFORM STREQUAL "android")
+      target_link_directories(zedmd_shared PUBLIC
+         third-party/runtime-libs/${PLATFORM}/${ARCH}
+      )
+      target_link_libraries(zedmd_shared PUBLIC serialport sockpp)
    endif()
 
    if(PLATFORM STREQUAL "win" AND ARCH STREQUAL "x64")
@@ -204,24 +210,20 @@ if(BUILD_STATIC)
          )
 
          if(ARCH STREQUAL "x64")
-            target_link_libraries(zedmd_test_s PUBLIC zedmd_static libserialport64 ws2_32)
-            target_link_libraries(zedmd_test_s PUBLIC zedmd_static sockpp64 ws2_32)
+            target_link_libraries(zedmd_test_s PUBLIC zedmd_static libserialport64 sockpp64 ws2_32)
          else()
-            target_link_libraries(zedmd_test_s PUBLIC zedmd_static libserialport ws2_32)
-            target_link_libraries(zedmd_test_s PUBLIC zedmd_static sockpp ws2_32)
+            target_link_libraries(zedmd_test_s PUBLIC zedmd_static libserialport sockpp ws2_32)
          endif()
       elseif(PLATFORM STREQUAL "macos")
          target_link_directories(zedmd_test_s PUBLIC
             third-party/runtime-libs/${PLATFORM}/${ARCH}
          )
-         target_link_libraries(zedmd_test_s PUBLIC zedmd_static serialport)
-         target_link_libraries(zedmd_test_s PUBLIC zedmd_static sockpp)
+         target_link_libraries(zedmd_test_s PUBLIC zedmd_static serialport sockpp)
       elseif(PLATFORM STREQUAL "linux")
          target_link_directories(zedmd_test_s PUBLIC
             third-party/runtime-libs/${PLATFORM}/${ARCH}
          )
-         target_link_libraries(zedmd_test_s PUBLIC zedmd_static serialport)
-         target_link_libraries(zedmd_test_s PUBLIC zedmd_static sockpp)
+         target_link_libraries(zedmd_test_s PUBLIC zedmd_static serialport sockpp)
       endif()
 
       if(POST_BUILD_COPY_EXT_LIBS)
