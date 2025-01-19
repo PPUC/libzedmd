@@ -484,7 +484,9 @@ bool ZeDMDComm::Handshake(char* pDevice)
 
   memcpy(data, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
   data[5] = ZEDMD_COMM_COMMAND::Handshake;
-  sp_nonblocking_write(m_pSerialPort, data, 6);
+  data[6] = 0;
+  data[7] = 0;
+  sp_nonblocking_write(m_pSerialPort, data, 8);
 
   std::this_thread::sleep_for(std::chrono::milliseconds(200));
   memset(data, 0, 11);
@@ -593,10 +595,12 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
 
     if (pFrame->command != ZEDMD_COMM_COMMAND::RGB565ZonesStream)
     {
-      size = CTRL_CHARS_HEADER_SIZE + 1 + frameData.size;
+      size = CTRL_CHARS_HEADER_SIZE + 3 + frameData.size;
       pData = (uint8_t*)malloc(size);
       memcpy(pData, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
       pData[CTRL_CHARS_HEADER_SIZE] = pFrame->command;
+      pData[CTRL_CHARS_HEADER_SIZE + 1] = (uint8_t)(frameData.size >> 8 & 0xFF);
+      pData[CTRL_CHARS_HEADER_SIZE + 2] = (uint8_t)(frameData.size & 0xFF);
       if (frameData.size > 0)
       {
         memcpy(pData + CTRL_CHARS_HEADER_SIZE + 1, frameData.data, frameData.size);
@@ -604,16 +608,22 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
     }
     else
     {
-      mz_ulong compressedSize = mz_compressBound(ZEDMD_ZONES_BYTE_LIMIT);
-      pData = (uint8_t*)malloc(CTRL_CHARS_HEADER_SIZE + 3 + ZEDMD_ZONES_BYTE_LIMIT);
+      mz_ulong compressedSize = mz_compressBound(frameData.size);
+      pData = (uint8_t*)malloc(CTRL_CHARS_HEADER_SIZE + 3 + compressedSize);
       memcpy(pData, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
       pData[CTRL_CHARS_HEADER_SIZE] = pFrame->command;
-      mz_compress(pData + CTRL_CHARS_HEADER_SIZE + 3, &compressedSize, frameData.data, frameData.size);
+      int status = mz_compress(pData + CTRL_CHARS_HEADER_SIZE + 3, &compressedSize, frameData.data, frameData.size);
+      if (status != MZ_OK)
+      {
+        Log("Compression error: %d", status);
+        free(pData);
+        return false;
+      }
       size = CTRL_CHARS_HEADER_SIZE + 3 + compressedSize;
       pData[CTRL_CHARS_HEADER_SIZE + 1] = (uint8_t)(compressedSize >> 8 & 0xFF);
       pData[CTRL_CHARS_HEADER_SIZE + 2] = (uint8_t)(compressedSize & 0xFF);
       if ((0 == pData[CTRL_CHARS_HEADER_SIZE + 1] && 0 == pData[CTRL_CHARS_HEADER_SIZE + 2]) ||
-          compressedSize > (ZEDMD_ZONES_BYTE_LIMIT))
+          compressedSize > (frameData.size + 32))
       {
         Log("Compression error");
         free(pData);
@@ -628,10 +638,12 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
 
   if (m_s3 && pFrame->command == ZEDMD_COMM_COMMAND::RGB565ZonesStream)
   {
-    size = CTRL_CHARS_HEADER_SIZE + 1;
+    size = CTRL_CHARS_HEADER_SIZE + 3;
     pData = (uint8_t*)malloc(size);
     memcpy(pData, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
     pData[CTRL_CHARS_HEADER_SIZE] = ZEDMD_COMM_COMMAND::RenderRGB565Frame;
+    pData[CTRL_CHARS_HEADER_SIZE + 1] = 0;
+    pData[CTRL_CHARS_HEADER_SIZE + 2] = 0;
 
     bool success = SendChunks(pData, size);
     free(pData);

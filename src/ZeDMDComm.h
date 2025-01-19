@@ -38,11 +38,8 @@
 #define ZEDMD_COMM_NUM_TIMEOUTS_TO_WAIT_FOR_ACKNOWLEDGE 3
 #define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX 8
 
-// Typically, the MTU is 1480 (1500 - 20 byte header).
-// 1460 is safe. For UART or USB CDC we use the same limit since the ZeDMD firmware is unified.
-// For USB UART 128x32 send one row (16 zones).
 #define ZEDMD_ZONES_BYTE_LIMIT (128 * 4 * 2 + 16)
-#define ZEDMD_S3_ZONES_BYTE_LIMIT (ZEDMD_ZONES_BYTE_LIMIT / 4)
+#define ZEDMD_S3_ZONES_BYTE_LIMIT (ZEDMD_ZONES_BYTE_LIMIT)
 
 typedef enum
 {
@@ -63,7 +60,6 @@ typedef enum
   GetVersionBytes = 0x20,
   GetResolution = 0x21,
 
-  AnnounceRGB565ZonesStream = 0x04,
   RGB565ZonesStream = 0x05,
   RenderRGB565Frame = 0x06,
 
@@ -209,7 +205,7 @@ class ZeDMDComm
   const char* GetFirmwareVersion() { return (const char*)m_firmwareVersion; }
 
  protected:
-  virtual bool StreamBytes(ZeDMDFrame* pFrame);
+  virtual bool SendChunks(uint8_t* pData, uint16_t size);
   virtual void Reset();
   void Log(const char* format, ...);
   void ClearFrames();
@@ -227,7 +223,7 @@ class ZeDMDComm
  private:
   bool Connect(char* pName);
   bool Handshake(char* pDevice);
-  bool SendChunks(uint8_t* pData, uint16_t size);
+  bool StreamBytes(ZeDMDFrame* pFrame);
 
   ZeDMD_LogCallback m_logCallback = nullptr;
   const void* m_logUserData = nullptr;

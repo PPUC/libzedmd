@@ -8,14 +8,8 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
-
 #endif
-
-// Typically, the MTU is 1480 (1500 - 20 byte header).
-// We use our own command header of 4 bytes and compressed zones.
-// Even if the compression works bad on a specific frame, it should
-// be safe to fit the compressed zones within the MTU.
-#define ZEDMD_WIFI_MTU 1460
+#include "sockpp/tcp_connector.h"
 
 class ZeDMDWiFi : public ZeDMDComm
 {
@@ -28,7 +22,7 @@ class ZeDMDWiFi : public ZeDMDComm
 
  protected:
   bool DoConnect(const char* ip);
-  virtual bool StreamBytes(ZeDMDFrame* pFrame);
+  virtual bool SendChunks(uint8_t* pData, uint16_t size);
   virtual void Reset();
   bool openTcpConnection(int sock, sockaddr_in server, int16_t timeout);
   bool SendGetRequest(const std::string& path);
@@ -38,10 +32,9 @@ class ZeDMDWiFi : public ZeDMDComm
   const char* ReceiveStringPayload();
 
  private:
-  int m_tcpSocket = -1;
   int m_httpSocket = -1;
-  struct sockaddr_in m_tcpServer;
   struct sockaddr_in m_httpServer;
+  sockpp::tcp_connector* m_tcpConnector = nullptr;
   bool m_connected = false;
   bool m_wsaStarted = false;
 };

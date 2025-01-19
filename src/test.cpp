@@ -162,6 +162,8 @@ int main(int argc, const char* argv[])
 
     pZeDMD->LedTest();
 
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+
     pZeDMD->Close();
   }
 }

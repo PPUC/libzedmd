@@ -25,6 +25,15 @@ jobs:
           TAG="${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}"
           echo "${TAG}"
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
+      - name: Check git tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          GIT_TAG="${GITHUB_REF#refs/tags/}"
+          EXPECTED_TAG="v${{ steps.version.outputs.tag }}"
+          if [[ "${GIT_TAG}" != "${EXPECTED_TAG}" ]]; then
+            echo "Error: Git tag (${GIT_TAG}) does not match version from ZeDMD.h (v${{ steps.version.outputs.tag }})"
+            exit 1
+          fi
 
   build:
     name: Build libzedmd-${{ matrix.platform }}-${{ matrix.arch }}-${{ matrix.type }}
@@ -214,13 +223,13 @@ jobs:
           name: libzedmd-${{ needs.version.outputs.tag }}-macos-Release
           path: libzedmd-${{ needs.version.outputs.tag }}-macos.tar.gz
       - name: Package
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/v')
         run: |
           zip -r libzedmd-${{ needs.version.outputs.tag }}-win-x64.zip libzedmd-${{ needs.version.outputs.tag }}-win-x64-Release
           zip -r libzedmd-${{ needs.version.outputs.tag }}-win-x86.zip libzedmd-${{ needs.version.outputs.tag }}-win-x86-Release
       - name: Release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/v')
         with:
           draft: true
           files: |

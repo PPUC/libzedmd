@@ -102,16 +102,23 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
     return false;
   }
 
+  if ((m_width != 128 && m_width != 256) || (m_height != 32 && m_height != 64))
+  {
+    Log("Invalid dimensions reported from ZeDMD: %dx%d", m_width, m_height);
+    return false;
+  }
+
   m_zoneWidth = m_width / 16;
   m_zoneHeight = m_height / 8;
 
   Log("ZeDMD %s found: %sWiFi, width=%d, height=%d", m_firmwareVersion, m_s3 ? "S3 " : "", m_width, m_height);
 
-  m_tcpSocket = socket(AF_INET, SOCK_STREAM, 0);  // TCP
-
-  m_tcpServer.sin_family = AF_INET;  // TCP
-  m_tcpServer.sin_port = htons(port);
-  m_tcpServer.sin_addr.s_addr = inet_addr(ip);
+  m_tcpConnector = new sockpp::tcp_connector({ip, (in_port_t)port});
+  if (!m_tcpConnector)
+  {
+    Log("Unable to connect ZeDMD TCP streaming port %s:%d", ip, port);
+    return false;
+  }
 
   m_connected = true;
 
@@ -121,16 +128,19 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
 void ZeDMDWiFi::Disconnect()
 {
 #if defined(_WIN32) || defined(_WIN64)
-  if (m_tcpSocket >= 0) closesocket(m_tcpSocket);
   if (m_httpSocket >= 0) closesocket(m_httpSocket);
   if (m_wsaStarted) WSACleanup();
 #else
-  if (m_tcpSocket >= 0) close(m_tcpSocket);
   if (m_httpSocket >= 0) close(m_httpSocket);
 #endif
-
-  m_tcpSocket = -1;
   m_httpSocket = -1;
+
+  if (m_tcpConnector)
+  {
+    m_tcpConnector->close();
+    delete m_tcpConnector;
+  }
+  m_tcpConnector = nullptr;
   m_connected = false;
 }
 
@@ -291,94 +301,14 @@ bool ZeDMDWiFi::IsConnected() { return m_connected; }
 
 void ZeDMDWiFi::Reset() {}
 
-bool ZeDMDWiFi::StreamBytes(ZeDMDFrame* pFrame)
+bool ZeDMDWiFi::SendChunks(uint8_t* pData, uint16_t size)
 {
-  // A package should not exceed the MTU (WiFi rx_buffer in ESP32 is 1460
-  // bytes).
-
-  uint16_t size;
-  uint8_t* pData = (uint8_t*)malloc(ZEDMD_WIFI_MTU);
-
-  if (!m_connected) return false;
-
-  if (!openTcpConnection(m_tcpSocket, m_tcpServer, 3000)) return false;
-
-  for (auto it = pFrame->data.rbegin(); it != pFrame->data.rend(); ++it)
+  if (m_tcpConnector->write_n(pData, size) < 0)
   {
-    ZeDMDFrameData frameData = *it;
-
-    if (pFrame->command != ZEDMD_COMM_COMMAND::RGB565ZonesStream)
-    {
-      pData[0] = pFrame->command;
-      pData[1] = (uint8_t)(frameData.size >> 8 & 0xFF);
-      pData[2] = (uint8_t)(frameData.size & 0xFF);
-      if (frameData.size > 0)
-      {
-        memcpy(pData + 3, frameData.data, frameData.size);
-      }
-
-      if (send(m_tcpSocket, (const char*)pData, frameData.size + 3, 0) < 0)
-      {
-        Log("Failed to send data: %s", strerror(errno));
-        free(pData);
-        return false;
-      }
-    }
-    else
-    {
-      mz_ulong compressedSize = mz_compressBound(ZEDMD_ZONES_BYTE_LIMIT);
-      int status = mz_compress(pData + 1, &compressedSize, frameData.data, frameData.size);
-
-      if (compressedSize > (ZEDMD_WIFI_MTU - 3))
-      {
-        Log("ZeDMD Wifi error, compressed size of %d exceeds the MTU payload of %d", compressedSize, ZEDMD_WIFI_MTU);
-        free(pData);
-        return false;
-      }
-
-      if (compressedSize > ZEDMD_ZONES_BYTE_LIMIT)
-      {
-        Log("ZeDMD Wifi error, compressed size of %d exceeds the ZEDMD_ZONES_BYTE_LIMIT of %d", compressedSize,
-            ZEDMD_ZONES_BYTE_LIMIT);
-        free(pData);
-        return false;
-      }
-
-      if (status == MZ_OK)
-      {
-        pData[0] = pFrame->command;
-        pData[1] = (uint8_t)(compressedSize >> 8 & 0xFF);
-        pData[2] = (uint8_t)(compressedSize & 0xFF);
-        if (send(m_tcpSocket, (const char*)pData, compressedSize + 3, 0) < 0)
-        {
-          Log("Failed to send data: %s", strerror(errno));
-          free(pData);
-          return false;
-        }
-      }
-      else
-      {
-        Log("ZeDMD Wifi compression error");
-        free(pData);
-        return false;
-      }
-    }
+    Log("TCP stream error: %s", m_tcpConnector->last_error_str().c_str());
+    return false;
   }
+  // std::this_thread::sleep_for(std::chrono::microseconds(500));
 
-  if (m_s3 && pFrame->command == ZEDMD_COMM_COMMAND::RGB565ZonesStream)
-  {
-    pData[0] = ZEDMD_COMM_COMMAND::RenderRGB565Frame;
-    pData[1] = 0;
-    pData[2] = 0;
-
-    if (send(m_tcpSocket, (const char*)pData, 3, 0) < 0)
-    {
-      Log("Failed to send data: %s", strerror(errno));
-      free(pData);
-      return false;
-    }
-  }
-
-  free(pData);
   return true;
 }
