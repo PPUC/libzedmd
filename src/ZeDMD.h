@@ -6,8 +6,8 @@
 #pragma once
 
 #define ZEDMD_VERSION_MAJOR 0  // X Digits
-#define ZEDMD_VERSION_MINOR 8  // Max 2 Digits
-#define ZEDMD_VERSION_PATCH 1  // Max 2 Digits
+#define ZEDMD_VERSION_MINOR 9  // Max 2 Digits
+#define ZEDMD_VERSION_PATCH 0  // Max 2 Digits
 
 #define _ZEDMD_STR(x) #x
 #define ZEDMD_STR(x) _ZEDMD_STR(x)
