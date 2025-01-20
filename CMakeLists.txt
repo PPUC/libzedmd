@@ -116,12 +116,12 @@ if(BUILD_SHARED)
       target_link_directories(zedmd_shared PUBLIC
          third-party/build-libs/${PLATFORM}/${ARCH}
       )
-      target_link_libraries(zedmd_shared PUBLIC serialport sockpp)
+      target_link_libraries(zedmd_shared PUBLIC sockpp)
    elseif(PLATFORM STREQUAL "android")
       target_link_directories(zedmd_shared PUBLIC
          third-party/runtime-libs/${PLATFORM}/${ARCH}
       )
-      target_link_libraries(zedmd_shared PUBLIC serialport sockpp)
+      target_link_libraries(zedmd_shared PUBLIC sockpp)
    endif()
 
    if(PLATFORM STREQUAL "win" AND ARCH STREQUAL "x64")
