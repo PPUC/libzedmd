@@ -77,6 +77,8 @@ void ZeDMDComm::Run()
             }
             m_delayedFrameMutex.unlock();
             m_frameQueueMutex.unlock();
+
+            KeepAlive();
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
             continue;

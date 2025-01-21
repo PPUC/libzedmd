@@ -65,6 +65,8 @@ typedef enum
 
   ClearScreen = 0x0a,
 
+  KeepAlive = 0x0b,
+
   DisableDebug = 0x62,
   EnableDebug = 0x63,
 } ZEDMD_COMM_COMMAND;
@@ -206,6 +208,7 @@ class ZeDMDComm
 
  protected:
   virtual bool SendChunks(uint8_t* pData, uint16_t size);
+  virtual bool KeepAlive() { return false; }
   virtual void Reset();
   void Log(const char* format, ...);
   void ClearFrames();

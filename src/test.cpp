@@ -38,14 +38,14 @@ int main(int argc, const char* argv[])
 
   if (pZeDMD->Open() || pZeDMD->OpenDefaultWiFi())
   {
-    pZeDMD->EnableDebug();
+    pZeDMD->DisableDebug();
     uint16_t width = pZeDMD->GetWidth();
     uint16_t height = pZeDMD->GetHeight();
 
     pZeDMD->SetFrameSize(128, 32);
 
     uint8_t* pImage24 = CreateImageRGB24();
-    uint16_t sleep = 16;
+    uint16_t sleep = 8;
 
     pZeDMD->EnableUpscaling();
 
@@ -158,7 +158,7 @@ int main(int argc, const char* argv[])
 
     free(rgb888);
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
     pZeDMD->LedTest();
 

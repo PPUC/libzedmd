@@ -6,6 +6,7 @@
 #include <netdb.h>
 #include <unistd.h>
 #endif
+#include <netinet/tcp.h>
 
 #include "komihash/komihash.h"
 #include "miniz/miniz.h"
@@ -119,6 +120,9 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
     Log("Unable to connect ZeDMD TCP streaming port %s:%d", ip, port);
     return false;
   }
+
+  int flag = 1;  // Disable Nagle's algorithm
+  m_tcpConnector->set_option(IPPROTO_TCP, TCP_NODELAY, flag);
 
   m_connected = true;
 
@@ -301,6 +305,32 @@ bool ZeDMDWiFi::IsConnected() { return m_connected; }
 
 void ZeDMDWiFi::Reset() {}
 
+bool ZeDMDWiFi::KeepAlive()
+{
+  static auto lastRun = std::chrono::steady_clock::now();
+  const auto minInterval = std::chrono::milliseconds(100);
+
+  auto now = std::chrono::steady_clock::now();
+  if (now - lastRun < minInterval)
+  {
+    // Skip this call
+    return true;
+  }
+
+  lastRun = now;
+
+  uint16_t size = CTRL_CHARS_HEADER_SIZE + 3;
+  uint8_t* pData = (uint8_t*)malloc(size);
+  memcpy(pData, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
+  pData[CTRL_CHARS_HEADER_SIZE] = ZEDMD_COMM_COMMAND::KeepAlive;
+  pData[CTRL_CHARS_HEADER_SIZE + 1] = 0;
+  pData[CTRL_CHARS_HEADER_SIZE + 2] = 0;
+  SendChunks(pData, size);
+  free(pData);
+
+  return true;
+}
+
 bool ZeDMDWiFi::SendChunks(uint8_t* pData, uint16_t size)
 {
   if (m_tcpConnector->write_n(pData, size) < 0)
@@ -308,7 +338,6 @@ bool ZeDMDWiFi::SendChunks(uint8_t* pData, uint16_t size)
     Log("TCP stream error: %s", m_tcpConnector->last_error_str().c_str());
     return false;
   }
-  // std::this_thread::sleep_for(std::chrono::microseconds(500));
 
   return true;
 }
