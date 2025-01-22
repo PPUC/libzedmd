@@ -677,7 +677,7 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
 
   uint8_t ack[1] = {0};
   int status = 0;
-  u_int16_t sent = 0;
+  uint16_t sent = 0;
 
   while (sent < size && !m_stopFlag.load(std::memory_order_relaxed))
   {
