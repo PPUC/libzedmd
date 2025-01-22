@@ -364,8 +364,6 @@ void ZeDMDComm::Disconnect()
     return;
   }
 
-  SoftReset();
-
 #if !(                                                                                                                \
     (defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \
     defined(__ANDROID__))
@@ -474,37 +472,39 @@ bool ZeDMDComm::Handshake(char* pDevice)
 #if !(                                                                                                                \
     (defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \
     defined(__ANDROID__))
-  uint8_t data[11] = {0};
+  uint8_t* data = (uint8_t*)malloc(ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
 
   // Sometimes, the ESP sends some debug output after reset which is still in the buffer.
   while (sp_input_waiting(m_pSerialPort) > 0)
   {
-    sp_nonblocking_read(m_pSerialPort, data, 8);
+    sp_nonblocking_read(m_pSerialPort, data, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
   }
 
   // For Linux and macOS, 200ms seem to be sufficient. But some Windows installations require a longer sleep here.
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
+  memset(data, 0, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
   memcpy(data, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
-  data[5] = ZEDMD_COMM_COMMAND::Handshake;
-  data[6] = 0;
-  data[7] = 0;
-  sp_nonblocking_write(m_pSerialPort, data, 8);
+  data[CTRL_CHARS_HEADER_SIZE] = ZEDMD_COMM_COMMAND::Handshake;
+  data[CTRL_CHARS_HEADER_SIZE + 1] = 0;
+  data[CTRL_CHARS_HEADER_SIZE + 2] = 0;
+  sp_nonblocking_write(m_pSerialPort, data, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
 
   std::this_thread::sleep_for(std::chrono::milliseconds(200));
-  memset(data, 0, 11);
-  sp_blocking_read(m_pSerialPort, data, 11, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
+  memset(data, 0, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
+  sp_blocking_read(m_pSerialPort, data, 14, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
 
   if (memcmp(data, CTRL_CHARS_HEADER, 4) == 0)
   {
-    m_width = data[4] + data[5] * 256;
-    m_height = data[6] + data[7] * 256;
-    m_zoneWidth = m_width / 16;
-    m_zoneHeight = m_height / 8;
-    snprintf(m_firmwareVersion, 12, "%d.%d.%d", data[8], data[9], data[10]);
-
-    if (sp_blocking_read(m_pSerialPort, data, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT) && data[0] == 'R')
+    if (data[13] == 'R')
     {
+      m_width = data[4] + data[5] * 256;
+      m_height = data[6] + data[7] * 256;
+      m_zoneWidth = m_width / 16;
+      m_zoneHeight = m_height / 8;
+      snprintf(m_firmwareVersion, 12, "%d.%d.%d", data[8], data[9], data[10]);
+      m_writeAtOnce = data[11] + data[12] * 256;
+
       // Store the device name for reconnects.
       SetDevice(pDevice);
       Log("ZeDMD %s found: %sdevice=%s, width=%d, height=%d", m_firmwareVersion, m_s3 ? "S3 " : "", pDevice, m_width,
@@ -513,6 +513,15 @@ bool ZeDMDComm::Handshake(char* pDevice)
       // Next streaming needs to be complete.
       memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
 
+      std::this_thread::sleep_for(std::chrono::milliseconds(200));
+      // Empty the buffer. In case m_writeAtOnce is smaller than ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE, some ACKs are
+      // still in the buffer
+      while (sp_input_waiting(m_pSerialPort) > 0)
+      {
+        sp_nonblocking_read(m_pSerialPort, data, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
+      }
+
+      free(data);
       return true;
     }
     else
@@ -520,6 +529,7 @@ bool ZeDMDComm::Handshake(char* pDevice)
       Log("ZeDMD found but ready signal is missing.");
     }
   }
+  free(data);
 #endif
 
   return false;
@@ -665,58 +675,36 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
     (defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \
     defined(__ANDROID__))
 
-  int8_t status = 0;
+  uint8_t ack[1] = {0};
+  int status = 0;
+  u_int16_t sent = 0;
 
-  if (!m_stopFlag.load(std::memory_order_relaxed))
+  while (sent < size && !m_stopFlag.load(std::memory_order_relaxed))
   {
-    int position = 0;
-    // USB CDC uses a fixed chunk size of 512 bytes.
-    const uint16_t writeAtOnce =
-        m_cdc ? 512 : (m_s3 ? ZEDMD_S3_COMM_MAX_SERIAL_WRITE_AT_ONCE : ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
-
-    while (position < size)
-    {
-      sp_nonblocking_write(m_pSerialPort, &pData[position],
-                           ((size - position) < writeAtOnce) ? (size - position) : writeAtOnce);
-
-      position += writeAtOnce;
-    }
-
-    uint8_t response = 255;
-    uint8_t timeouts = 0;
-    do
-    {
-      status = sp_blocking_read(m_pSerialPort, &response, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
-      if (0 == status && ++timeouts >= ZEDMD_COMM_NUM_TIMEOUTS_TO_WAIT_FOR_ACKNOWLEDGE) break;
-    } while ((status != 1 || (status == 1 && response != 'A' && response != 'E' && response != 'F')) &&
-             !m_stopFlag.load(std::memory_order_relaxed));
-
-    if (response == 'A')
-    {
-      m_noAcknowledgeCounter = 0;
-    }
-    else if (response == 'F')
+    // std::this_thread::sleep_for(std::chrono::milliseconds(8));
+    int toSend = ((size - sent) < m_writeAtOnce) ? size - sent : m_writeAtOnce;
+    status = sp_nonblocking_write(m_pSerialPort, &pData[sent], toSend);
+    if (status < toSend)
     {
       m_fullFrameFlag.store(true, std::memory_order_release);
       return false;
     }
-    else
+    else if (status < m_writeAtOnce)
     {
-      if (++m_noAcknowledgeCounter > 64)
-      {
-        SoftReset();
-        Log("Resetted device", response);
-        Handshake(m_device);
-      }
-      else
-      {
-        Log("Write bytes failure: response=%d", response);
-      }
-      return false;
+      sp_nonblocking_write(m_pSerialPort, m_allBlack, m_writeAtOnce - status);
     }
 
-    return true;
+    sent += status;
+    status = sp_blocking_read(m_pSerialPort, ack, sizeof(ack), ZEDMD_COMM_CDC_READ_TIMEOUT);
+    if (ack[0] != 'A')
+    {
+      m_fullFrameFlag.store(true, std::memory_order_release);
+      return false;
+    }
   }
+
+  return true;
+
 #endif
   return false;
 }

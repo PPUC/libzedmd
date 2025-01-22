@@ -51,6 +51,8 @@ void ZeDMD::SetLogCallback(ZeDMD_LogCallback callback, const void* userData)
 
 void ZeDMD::Close()
 {
+  Reset();
+
   m_pZeDMDComm->Disconnect();
   m_pZeDMDWiFi->Disconnect();
 }

@@ -28,14 +28,16 @@
 #endif
 
 #define ZEDMD_COMM_BAUD_RATE 921600
-#define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 1888
-
 #define ZEDMD_S3_COMM_BAUD_RATE 2000000
-#define ZEDMD_S3_COMM_MAX_SERIAL_WRITE_AT_ONCE 256
+#define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 1024
 
 #define ZEDMD_COMM_SERIAL_READ_TIMEOUT 16
 #define ZEDMD_COMM_SERIAL_WRITE_TIMEOUT 8
 #define ZEDMD_COMM_NUM_TIMEOUTS_TO_WAIT_FOR_ACKNOWLEDGE 3
+
+#define ZEDMD_COMM_CDC_READ_TIMEOUT 16
+#define ZEDMD_COMM_CDC_WRITE_TIMEOUT 16
+
 #define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX 8
 
 #define ZEDMD_ZONES_BYTE_LIMIT (128 * 4 * 2 + 16)
@@ -235,7 +237,6 @@ class ZeDMDComm
 
   char m_ignoredDevices[10][32] = {0};
   uint8_t m_ignoredDevicesCounter = 0;
-  uint8_t m_noAcknowledgeCounter = 0;
   char m_device[32] = {0};
 #if !(                                                                                                                \
     (defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \
@@ -249,4 +250,5 @@ class ZeDMDComm
   ZeDMDFrame m_delayedFrame = {0};
   std::mutex m_delayedFrameMutex;
   bool m_delayedFrameReady = false;
+  uint16_t m_writeAtOnce = ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE;
 };

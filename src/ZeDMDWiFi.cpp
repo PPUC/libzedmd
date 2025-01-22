@@ -4,9 +4,9 @@
 #include <ws2tcpip.h>
 #else
 #include <netdb.h>
+#include <netinet/tcp.h>
 #include <unistd.h>
 #endif
-#include <netinet/tcp.h>
 
 #include "komihash/komihash.h"
 #include "miniz/miniz.h"
