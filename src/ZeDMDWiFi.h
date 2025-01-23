@@ -11,10 +11,12 @@
 #endif
 #include "sockpp/tcp_connector.h"
 
+#define ZEDMD_WIFI_KEEP_ALIVE_INTERVAL 100
+
 class ZeDMDWiFi : public ZeDMDComm
 {
  public:
-  ZeDMDWiFi() : ZeDMDComm() {}
+  ZeDMDWiFi() : ZeDMDComm() { m_keepAliveInterval = std::chrono::milliseconds(ZEDMD_WIFI_KEEP_ALIVE_INTERVAL); }
 
   virtual bool Connect(const char* name_or_ip);
   virtual void Disconnect();
@@ -23,7 +25,6 @@ class ZeDMDWiFi : public ZeDMDComm
  protected:
   bool DoConnect(const char* ip);
   virtual bool SendChunks(uint8_t* pData, uint16_t size);
-  virtual bool KeepAlive();
   virtual void Reset();
   bool openTcpConnection(int sock, sockaddr_in server, int16_t timeout);
   bool SendGetRequest(const std::string& path);

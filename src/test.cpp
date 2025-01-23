@@ -88,7 +88,7 @@ int main(int argc, const char* argv[])
 
       if (fileptr == NULL)
       {
-        printf("Failed to open file, make sure to copy the test folder with the RAW files!");
+        printf("Failed to open file, make sure to copy the test folder with the RAW files!\n");
         break;
       }
 
@@ -99,6 +99,11 @@ int main(int argc, const char* argv[])
       pZeDMD->RenderRgb565(rgb565);
       std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
     }
+
+    printf("Test KeepAlive\n");
+    pZeDMD->EnableDebug();
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+    pZeDMD->DisableDebug();
 
     if (width == 256)
     {

@@ -33,10 +33,11 @@
 
 #define ZEDMD_COMM_SERIAL_READ_TIMEOUT 16
 #define ZEDMD_COMM_SERIAL_WRITE_TIMEOUT 8
-#define ZEDMD_COMM_NUM_TIMEOUTS_TO_WAIT_FOR_ACKNOWLEDGE 3
 
 #define ZEDMD_COMM_CDC_READ_TIMEOUT 16
-#define ZEDMD_COMM_CDC_WRITE_TIMEOUT 16
+#define ZEDMD_COMM_CDC_WRITE_TIMEOUT 8
+
+#define ZEDMD_COMM_KEEP_ALIVE_INTERVAL 3000
 
 #define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX 8
 
@@ -210,7 +211,6 @@ class ZeDMDComm
 
  protected:
   virtual bool SendChunks(uint8_t* pData, uint16_t size);
-  virtual bool KeepAlive() { return false; }
   virtual void Reset();
   void Log(const char* format, ...);
   void ClearFrames();
@@ -224,11 +224,13 @@ class ZeDMDComm
   uint8_t m_zoneHeight = 4;
   std::atomic<bool> m_stopFlag;
   std::atomic<bool> m_fullFrameFlag;
+  std::chrono::milliseconds m_keepAliveInterval;
 
  private:
   bool Connect(char* pName);
   bool Handshake(char* pDevice);
   bool StreamBytes(ZeDMDFrame* pFrame);
+  void KeepAlive();
 
   ZeDMD_LogCallback m_logCallback = nullptr;
   const void* m_logUserData = nullptr;
@@ -251,4 +253,5 @@ class ZeDMDComm
   std::mutex m_delayedFrameMutex;
   bool m_delayedFrameReady = false;
   uint16_t m_writeAtOnce = ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE;
+  std::chrono::steady_clock::time_point m_lastKeepAlive;
 };

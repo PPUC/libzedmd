@@ -5,6 +5,8 @@
 
 ZeDMDComm::ZeDMDComm()
 {
+  m_keepAliveInterval = std::chrono::milliseconds(ZEDMD_COMM_KEEP_ALIVE_INTERVAL);
+
   m_stopFlag.store(false, std::memory_order_release);
   m_fullFrameFlag.store(false, std::memory_order_release);
 
@@ -52,6 +54,8 @@ void ZeDMDComm::Log(const char* format, ...)
 
 void ZeDMDComm::Run()
 {
+  m_lastKeepAlive = std::chrono::steady_clock::now();
+
   m_pThread = new std::thread(
       [this]()
       {
@@ -595,12 +599,10 @@ void ZeDMDComm::SoftReset()
 
 bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
 {
-#if !(                                                                                                                \
-    (defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \
-    defined(__ANDROID__))
+  m_lastKeepAlive = std::chrono::steady_clock::now();
 
-  uint8_t* pData;
-  uint16_t size;
+  static uint8_t payload[36864] = {0};
+  uint16_t pos = 0;
 
   for (auto it = pFrame->data.rbegin(); it != pFrame->data.rend(); ++it)
   {
@@ -608,65 +610,66 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
 
     if (pFrame->command != ZEDMD_COMM_COMMAND::RGB565ZonesStream)
     {
-      size = CTRL_CHARS_HEADER_SIZE + 3 + frameData.size;
-      pData = (uint8_t*)malloc(size);
-      memcpy(pData, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
-      pData[CTRL_CHARS_HEADER_SIZE] = pFrame->command;
-      pData[CTRL_CHARS_HEADER_SIZE + 1] = (uint8_t)(frameData.size >> 8 & 0xFF);
-      pData[CTRL_CHARS_HEADER_SIZE + 2] = (uint8_t)(frameData.size & 0xFF);
+      memcpy(&payload[pos], CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
+      pos += CTRL_CHARS_HEADER_SIZE;
+      payload[pos++] = pFrame->command;
+      payload[pos++] = (uint8_t)(frameData.size >> 8 & 0xFF);
+      payload[pos++] = (uint8_t)(frameData.size & 0xFF);
+      payload[pos++] = 0;
       if (frameData.size > 0)
       {
-        memcpy(pData + CTRL_CHARS_HEADER_SIZE + 1, frameData.data, frameData.size);
+        memcpy(&payload[pos], frameData.data, frameData.size);
+        pos += frameData.size;
       }
     }
     else
     {
       mz_ulong compressedSize = mz_compressBound(frameData.size);
-      pData = (uint8_t*)malloc(CTRL_CHARS_HEADER_SIZE + 3 + compressedSize);
-      memcpy(pData, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
-      pData[CTRL_CHARS_HEADER_SIZE] = pFrame->command;
-      int status = mz_compress(pData + CTRL_CHARS_HEADER_SIZE + 3, &compressedSize, frameData.data, frameData.size);
-      if (status != MZ_OK)
+      memcpy(&payload[pos], CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
+      pos += CTRL_CHARS_HEADER_SIZE;
+      payload[pos++] = pFrame->command;
+      int status = mz_compress(&payload[pos + 3], &compressedSize, frameData.data, frameData.size);
+      if (status != MZ_OK || compressedSize > frameData.size || 0 >= compressedSize)
       {
-        Log("Compression error: %d", status);
-        free(pData);
-        return false;
+        if (status != MZ_OK)
+        {
+          Log("Compression error. Status: %d, Frame Size: %d, Compressed Size: %d", status, frameData.size,
+              compressedSize);
+        }
+        payload[pos++] = (uint8_t)(frameData.size >> 8 & 0xFF);
+        payload[pos++] = (uint8_t)(frameData.size & 0xFF);
+        payload[pos++] = 0;
+        if (frameData.size > 0)
+        {
+          memcpy(&payload[pos], frameData.data, frameData.size);
+          pos += frameData.size;
+        }
       }
-      size = CTRL_CHARS_HEADER_SIZE + 3 + compressedSize;
-      pData[CTRL_CHARS_HEADER_SIZE + 1] = (uint8_t)(compressedSize >> 8 & 0xFF);
-      pData[CTRL_CHARS_HEADER_SIZE + 2] = (uint8_t)(compressedSize & 0xFF);
-      if ((0 == pData[CTRL_CHARS_HEADER_SIZE + 1] && 0 == pData[CTRL_CHARS_HEADER_SIZE + 2]) ||
-          compressedSize > (frameData.size + 32))
+      else
       {
-        Log("Compression error");
-        free(pData);
-        return false;
+        payload[pos++] = (uint8_t)(compressedSize >> 8 & 0xFF);
+        payload[pos++] = (uint8_t)(compressedSize & 0xFF);
+        payload[pos++] = 1;
+        pos += compressedSize;
       }
     }
-
-    bool success = SendChunks(pData, size);
-    free(pData);
-    if (!success) return false;
   }
 
   if (m_s3 && pFrame->command == ZEDMD_COMM_COMMAND::RGB565ZonesStream)
   {
-    size = CTRL_CHARS_HEADER_SIZE + 3;
-    pData = (uint8_t*)malloc(size);
-    memcpy(pData, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
-    pData[CTRL_CHARS_HEADER_SIZE] = ZEDMD_COMM_COMMAND::RenderRGB565Frame;
-    pData[CTRL_CHARS_HEADER_SIZE + 1] = 0;
-    pData[CTRL_CHARS_HEADER_SIZE + 2] = 0;
-
-    bool success = SendChunks(pData, size);
-    free(pData);
-    if (!success) return false;
+    memcpy(&payload[pos], CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
+    pos += CTRL_CHARS_HEADER_SIZE;
+    payload[pos++] = ZEDMD_COMM_COMMAND::RenderRGB565Frame;
+    payload[pos++] = 0;
+    payload[pos++] = 0;
+    payload[pos++] = 0;
   }
 
+  if (!SendChunks(payload, pos)) return false;
+
+  m_lastKeepAlive = std::chrono::steady_clock::now();
+
   return true;
-#else
-  return false;
-#endif
 }
 
 bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
@@ -695,6 +698,7 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
     }
 
     sent += status;
+    ack[0] = 0;
     status = sp_blocking_read(m_pSerialPort, ack, sizeof(ack), ZEDMD_COMM_CDC_READ_TIMEOUT);
     if (ack[0] != 'A')
     {
@@ -707,6 +711,25 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
 
 #endif
   return false;
+}
+
+void ZeDMDComm::KeepAlive()
+{
+  auto now = std::chrono::steady_clock::now();
+  if (now - m_lastKeepAlive > m_keepAliveInterval)
+  {
+    m_lastKeepAlive = now;
+
+    uint16_t size = CTRL_CHARS_HEADER_SIZE + 4;
+    uint8_t* pData = (uint8_t*)malloc(size);
+    memcpy(pData, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
+    pData[CTRL_CHARS_HEADER_SIZE] = ZEDMD_COMM_COMMAND::KeepAlive;
+    pData[CTRL_CHARS_HEADER_SIZE + 1] = 0;
+    pData[CTRL_CHARS_HEADER_SIZE + 2] = 0;
+    pData[CTRL_CHARS_HEADER_SIZE + 3] = 0;
+    SendChunks(pData, size);
+    free(pData);
+  }
 }
 
 uint16_t const ZeDMDComm::GetWidth() { return m_width; }
