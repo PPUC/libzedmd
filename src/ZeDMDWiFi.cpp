@@ -92,6 +92,19 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
     return false;
   }
 
+  if (SendGetRequest("/get_protocol"))
+  {
+    if (strcmp("TCP", ReceiveStringPayload()) == 0)
+    {
+      m_tcp = true;
+    }
+  }
+  else
+  {
+    Log("ZeDMD port could not be detected");
+    return false;
+  }
+
   int port = 3333;
   if (SendGetRequest("/get_port"))
   {
@@ -112,17 +125,26 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
   m_zoneWidth = m_width / 16;
   m_zoneHeight = m_height / 8;
 
-  Log("ZeDMD %s found: %sWiFi, width=%d, height=%d", m_firmwareVersion, m_s3 ? "S3 " : "", m_width, m_height);
+  Log("ZeDMD %s found: %sWiFi %s, width=%d, height=%d", m_firmwareVersion, m_s3 ? "S3 " : "", m_tcp ? "TCP" : "UDP",
+      m_width, m_height);
 
-  m_tcpConnector = new sockpp::tcp_connector({ip, (in_port_t)port});
-  if (!m_tcpConnector)
+  if (m_tcp)
   {
-    Log("Unable to connect ZeDMD TCP streaming port %s:%d", ip, port);
-    return false;
-  }
+    m_tcpConnector = new sockpp::tcp_connector({ip, (in_port_t)port});
+    if (!m_tcpConnector)
+    {
+      Log("Unable to connect ZeDMD TCP streaming port %s:%d", ip, port);
+      return false;
+    }
 
-  int flag = 1;  // Disable Nagle's algorithm
-  m_tcpConnector->set_option(IPPROTO_TCP, TCP_NODELAY, flag);
+    int flag = 1;  // Disable Nagle's algorithm
+    m_tcpConnector->set_option(IPPROTO_TCP, TCP_NODELAY, flag);
+  }
+  else
+  {
+    m_udpSocket = new sockpp::udp_socket();
+    m_udpServer = new sockpp::inet_address(ip, (in_port_t)port);
+  }
 
   m_connected = true;
 
@@ -145,6 +167,19 @@ void ZeDMDWiFi::Disconnect()
     delete m_tcpConnector;
   }
   m_tcpConnector = nullptr;
+
+  if (m_udpServer)
+  {
+    delete m_udpServer;
+  }
+  m_udpServer = nullptr;
+
+  if (m_udpSocket)
+  {
+    delete m_udpSocket;
+  }
+  m_udpSocket = nullptr;
+
   m_connected = false;
 }
 
@@ -307,10 +342,31 @@ void ZeDMDWiFi::Reset() {}
 
 bool ZeDMDWiFi::SendChunks(uint8_t* pData, uint16_t size)
 {
-  if (m_tcpConnector->write_n(pData, size) < 0)
+  if (m_tcp)
   {
-    Log("TCP stream error: %s", m_tcpConnector->last_error_str().c_str());
-    return false;
+    if (m_tcpConnector->write_n(pData, size) < 0)
+    {
+      Log("TCP stream error: %s", m_tcpConnector->last_error_str().c_str());
+      return false;
+    }
+  }
+  else
+  {
+    int status = 0;
+    uint16_t sent = 0;
+
+    while (sent < size && !m_stopFlag.load(std::memory_order_relaxed))
+    {
+      // std::this_thread::sleep_for(std::chrono::milliseconds(8));
+      int toSend = ((size - sent) < ZEDMD_WIFI_UDP_CHUNK_SIZE) ? size - sent : ZEDMD_WIFI_UDP_CHUNK_SIZE;
+      status = m_udpSocket->send_to(&pData[sent], (size_t)toSend, *m_udpServer);
+      if (status < toSend)
+      {
+        m_fullFrameFlag.store(true, std::memory_order_release);
+        return false;
+      }
+      sent += status;
+    }
   }
 
   return true;

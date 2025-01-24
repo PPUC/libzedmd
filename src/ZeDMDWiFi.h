@@ -10,8 +10,10 @@
 #include <sys/socket.h>
 #endif
 #include "sockpp/tcp_connector.h"
+#include "sockpp/udp_socket.h"
 
 #define ZEDMD_WIFI_KEEP_ALIVE_INTERVAL 100
+#define ZEDMD_WIFI_UDP_CHUNK_SIZE 1400
 
 class ZeDMDWiFi : public ZeDMDComm
 {
@@ -36,7 +38,10 @@ class ZeDMDWiFi : public ZeDMDComm
  private:
   int m_httpSocket = -1;
   struct sockaddr_in m_httpServer;
+  sockpp::udp_socket* m_udpSocket = nullptr;
+  sockpp::inet_address* m_udpServer = nullptr;
   sockpp::tcp_connector* m_tcpConnector = nullptr;
   bool m_connected = false;
+  bool m_tcp = false;
   bool m_wsaStarted = false;
 };
