@@ -488,13 +488,16 @@ bool ZeDMDComm::Handshake(char* pDevice)
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   memset(data, 0, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
-  memcpy(data, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
-  data[CTRL_CHARS_HEADER_SIZE] = ZEDMD_COMM_COMMAND::Handshake;
-  data[CTRL_CHARS_HEADER_SIZE + 1] = 0;
-  data[CTRL_CHARS_HEADER_SIZE + 2] = 0;
+  memcpy(data, FRAME_HEADER, FRAME_HEADER_SIZE);
+  memcpy(&data[FRAME_HEADER_SIZE], CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
+  data[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE] = ZEDMD_COMM_COMMAND::Handshake;
+  data[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 1] = 0;
+  data[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 2] = 0;
+  data[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 3] = 0;
   sp_nonblocking_write(m_pSerialPort, data, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(200));
+  // For Linux and macOS, 200ms seem to be sufficient. But some Windows installations require a longer sleep here.
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));
   memset(data, 0, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
   sp_blocking_read(m_pSerialPort, data, 14, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
 
@@ -516,14 +519,6 @@ bool ZeDMDComm::Handshake(char* pDevice)
 
       // Next streaming needs to be complete.
       memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
-
-      std::this_thread::sleep_for(std::chrono::milliseconds(200));
-      // Empty the buffer. In case m_writeAtOnce is smaller than ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE, some ACKs are
-      // still in the buffer
-      while (sp_input_waiting(m_pSerialPort) > 0)
-      {
-        sp_nonblocking_read(m_pSerialPort, data, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
-      }
 
       free(data);
       return true;
@@ -599,10 +594,11 @@ void ZeDMDComm::SoftReset()
 
 bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
 {
-  m_lastKeepAlive = std::chrono::steady_clock::now();
-
   static uint8_t payload[36864] = {0};
-  uint16_t pos = 0;
+  memcpy(payload, FRAME_HEADER, FRAME_HEADER_SIZE);
+  uint16_t pos = FRAME_HEADER_SIZE;
+
+  m_lastKeepAlive = std::chrono::steady_clock::now();
 
   for (auto it = pFrame->data.rbegin(); it != pFrame->data.rend(); ++it)
   {
@@ -655,7 +651,7 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
     }
   }
 
-  if (m_s3 && pFrame->command == ZEDMD_COMM_COMMAND::RGB565ZonesStream)
+  if (pFrame->command == ZEDMD_COMM_COMMAND::RGB565ZonesStream)
   {
     memcpy(&payload[pos], CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
     pos += CTRL_CHARS_HEADER_SIZE;
@@ -720,13 +716,14 @@ void ZeDMDComm::KeepAlive()
   {
     m_lastKeepAlive = now;
 
-    uint16_t size = CTRL_CHARS_HEADER_SIZE + 4;
+    uint16_t size = FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 4;
     uint8_t* pData = (uint8_t*)malloc(size);
-    memcpy(pData, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
-    pData[CTRL_CHARS_HEADER_SIZE] = ZEDMD_COMM_COMMAND::KeepAlive;
-    pData[CTRL_CHARS_HEADER_SIZE + 1] = 0;
-    pData[CTRL_CHARS_HEADER_SIZE + 2] = 0;
-    pData[CTRL_CHARS_HEADER_SIZE + 3] = 0;
+    memcpy(pData, FRAME_HEADER, FRAME_HEADER_SIZE);
+    memcpy(&pData[FRAME_HEADER_SIZE], CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
+    pData[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE] = ZEDMD_COMM_COMMAND::KeepAlive;
+    pData[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 1] = 0; // Size high byte
+    pData[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 2] = 0; // Size low byte
+    pData[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 3] = 0; // Compression flag
     SendChunks(pData, size);
     free(pData);
   }

@@ -182,6 +182,8 @@ class ZeDMDComm
  public:
   static const int CTRL_CHARS_HEADER_SIZE = 5;
   static constexpr uint8_t CTRL_CHARS_HEADER[] = {'Z', 'e', 'D', 'M', 'D'};
+  static const int FRAME_HEADER_SIZE = 5;
+  static constexpr uint8_t FRAME_HEADER[] = {'F', 'R', 'A', 'M', 'E'};
 
  public:
   ZeDMDComm();
