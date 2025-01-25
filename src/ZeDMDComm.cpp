@@ -500,7 +500,7 @@ bool ZeDMDComm::Handshake(char* pDevice)
   // For Linux and macOS, 200ms seem to be sufficient. But some Windows installations require a longer sleep here.
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
   memset(data, 0, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
-  sp_blocking_read(m_pSerialPort, data, 14, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
+  sp_blocking_read(m_pSerialPort, data, 20, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
 
   if (memcmp(data, CTRL_CHARS_HEADER, 4) == 0)
   {
@@ -520,6 +520,11 @@ bool ZeDMDComm::Handshake(char* pDevice)
 
       // Next streaming needs to be complete.
       memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
+
+      while (sp_input_waiting(m_pSerialPort) > 0)
+      {
+        sp_nonblocking_read(m_pSerialPort, data, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
+      }
 
       free(data);
       return true;
@@ -679,6 +684,7 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
   uint8_t ack[1] = {0};
   int status = 0;
   uint16_t sent = 0;
+  uint8_t numCtrlCharsFound = 0;
 
   while (sent < size && !m_stopFlag.load(std::memory_order_relaxed))
   {
@@ -711,8 +717,29 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
     }
     sent += status;
 
-    ack[0] = 0;
-    status = sp_blocking_read(m_pSerialPort, ack, sizeof(ack), ZEDMD_COMM_SERIAL_READ_TIMEOUT);
+    numCtrlCharsFound = 0;
+    while (!m_stopFlag.load(std::memory_order_relaxed) && numCtrlCharsFound < CTRL_CHARS_HEADER_SIZE)
+    {
+      status = sp_nonblocking_read(m_pSerialPort, ack, 1);
+      if (status == 1)
+      {
+        // Detect 5 consecutive start bits
+        if (ack[0] == CTRL_CHARS_HEADER[numCtrlCharsFound])
+        {
+          numCtrlCharsFound++;
+        }
+        else
+        {
+          numCtrlCharsFound = 0;
+        }
+      }
+    }
+
+    status = sp_blocking_read(m_pSerialPort, ack, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
+    while (!m_stopFlag.load(std::memory_order_relaxed) && sp_input_waiting(m_pSerialPort) > 0)
+    {
+      sp_nonblocking_read(m_pSerialPort, ack, 1);
+    }
     if (ack[0] == 'F')
     {
       m_fullFrameFlag.store(true, std::memory_order_release);
