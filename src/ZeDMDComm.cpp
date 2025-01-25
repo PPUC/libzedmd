@@ -479,6 +479,7 @@ bool ZeDMDComm::Handshake(char* pDevice)
   uint8_t* data = (uint8_t*)malloc(ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
 
   // Sometimes, the ESP sends some debug output after reset which is still in the buffer.
+  sp_flush(m_pSerialPort, SP_BUF_BOTH);
   while (sp_input_waiting(m_pSerialPort) > 0)
   {
     sp_nonblocking_read(m_pSerialPort, data, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
@@ -491,9 +492,9 @@ bool ZeDMDComm::Handshake(char* pDevice)
   memcpy(data, FRAME_HEADER, FRAME_HEADER_SIZE);
   memcpy(&data[FRAME_HEADER_SIZE], CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
   data[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE] = ZEDMD_COMM_COMMAND::Handshake;
-  data[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 1] = 0;
-  data[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 2] = 0;
-  data[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 3] = 0;
+  data[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 1] = 0;  // Size high byte
+  data[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 2] = 0;  // Size low byte
+  data[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 3] = 0;  // Compression flag
   sp_nonblocking_write(m_pSerialPort, data, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
 
   // For Linux and macOS, 200ms seem to be sufficient. But some Windows installations require a longer sleep here.
@@ -609,9 +610,9 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
       memcpy(&payload[pos], CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
       pos += CTRL_CHARS_HEADER_SIZE;
       payload[pos++] = pFrame->command;
-      payload[pos++] = (uint8_t)(frameData.size >> 8 & 0xFF);
-      payload[pos++] = (uint8_t)(frameData.size & 0xFF);
-      payload[pos++] = 0;
+      payload[pos++] = (uint8_t)(frameData.size >> 8 & 0xFF);  // Size high byte
+      payload[pos++] = (uint8_t)(frameData.size & 0xFF);       // Size low byte
+      payload[pos++] = 0;                                      // Compression flag
       if (frameData.size > 0)
       {
         memcpy(&payload[pos], frameData.data, frameData.size);
@@ -632,9 +633,9 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
           Log("Compression error. Status: %d, Frame Size: %d, Compressed Size: %d", status, frameData.size,
               compressedSize);
         }
-        payload[pos++] = (uint8_t)(frameData.size >> 8 & 0xFF);
-        payload[pos++] = (uint8_t)(frameData.size & 0xFF);
-        payload[pos++] = 0;
+        payload[pos++] = (uint8_t)(frameData.size >> 8 & 0xFF);  // Size high byte
+        payload[pos++] = (uint8_t)(frameData.size & 0xFF);       // Size low byte
+        payload[pos++] = 0;                                      // Compression flag
         if (frameData.size > 0)
         {
           memcpy(&payload[pos], frameData.data, frameData.size);
@@ -643,9 +644,9 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
       }
       else
       {
-        payload[pos++] = (uint8_t)(compressedSize >> 8 & 0xFF);
-        payload[pos++] = (uint8_t)(compressedSize & 0xFF);
-        payload[pos++] = 1;
+        payload[pos++] = (uint8_t)(compressedSize >> 8 & 0xFF);  // Size high byte
+        payload[pos++] = (uint8_t)(compressedSize & 0xFF);       // Size low byte
+        payload[pos++] = 1;                                      // Compression flag
         pos += compressedSize;
       }
     }
@@ -656,9 +657,9 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
     memcpy(&payload[pos], CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
     pos += CTRL_CHARS_HEADER_SIZE;
     payload[pos++] = ZEDMD_COMM_COMMAND::RenderRGB565Frame;
-    payload[pos++] = 0;
-    payload[pos++] = 0;
-    payload[pos++] = 0;
+    payload[pos++] = 0;  // Size high byte
+    payload[pos++] = 0;  // Size low byte
+    payload[pos++] = 0;  // Compression flag
   }
 
   if (!SendChunks(payload, pos)) return false;
@@ -682,7 +683,14 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
   {
     // std::this_thread::sleep_for(std::chrono::milliseconds(8));
     int toSend = ((size - sent) < m_writeAtOnce) ? size - sent : m_writeAtOnce;
-    status = sp_nonblocking_write(m_pSerialPort, &pData[sent], toSend);
+    if (m_cdc)
+    {
+      status = sp_blocking_write(m_pSerialPort, &pData[sent], toSend, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
+    }
+    else
+    {
+      status = sp_nonblocking_write(m_pSerialPort, &pData[sent], toSend);
+    }
     if (status < toSend)
     {
       m_fullFrameFlag.store(true, std::memory_order_release);
@@ -690,12 +698,19 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
     }
     else if (status < m_writeAtOnce)
     {
-      sp_nonblocking_write(m_pSerialPort, m_allBlack, m_writeAtOnce - status);
+      if (m_cdc)
+      {
+        sp_blocking_write(m_pSerialPort, m_allBlack, m_writeAtOnce - status, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
+      }
+      else
+      {
+        sp_nonblocking_write(m_pSerialPort, m_allBlack, m_writeAtOnce - status);
+      }
     }
-
     sent += status;
+
     ack[0] = 0;
-    status = sp_blocking_read(m_pSerialPort, ack, sizeof(ack), ZEDMD_COMM_CDC_READ_TIMEOUT);
+    status = sp_blocking_read(m_pSerialPort, ack, sizeof(ack), ZEDMD_COMM_SERIAL_READ_TIMEOUT);
     if (ack[0] != 'A')
     {
       m_fullFrameFlag.store(true, std::memory_order_release);
@@ -721,9 +736,9 @@ void ZeDMDComm::KeepAlive()
     memcpy(pData, FRAME_HEADER, FRAME_HEADER_SIZE);
     memcpy(&pData[FRAME_HEADER_SIZE], CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
     pData[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE] = ZEDMD_COMM_COMMAND::KeepAlive;
-    pData[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 1] = 0; // Size high byte
-    pData[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 2] = 0; // Size low byte
-    pData[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 3] = 0; // Compression flag
+    pData[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 1] = 0;  // Size high byte
+    pData[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 2] = 0;  // Size low byte
+    pData[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 3] = 0;  // Compression flag
     SendChunks(pData, size);
     free(pData);
   }
