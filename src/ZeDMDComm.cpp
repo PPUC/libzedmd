@@ -103,7 +103,7 @@ void ZeDMDComm::Run()
             Log("ZeDMD StreamBytes failed");
 
             // Allow ZeDMD to empty its buffers.
-            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+            std::this_thread::sleep_for(std::chrono::milliseconds(16));
           }
         }
 
@@ -596,6 +596,7 @@ void ZeDMDComm::SoftReset()
 bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
 {
   static uint8_t payload[36864] = {0};
+  memset(payload, 0, 36864);
   memcpy(payload, FRAME_HEADER, FRAME_HEADER_SIZE);
   uint16_t pos = FRAME_HEADER_SIZE;
 
@@ -694,6 +695,7 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
     if (status < toSend)
     {
       m_fullFrameFlag.store(true, std::memory_order_release);
+      Log("Full frame forced, error %d", status);
       return false;
     }
     else if (status < m_writeAtOnce)
@@ -711,9 +713,16 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
 
     ack[0] = 0;
     status = sp_blocking_read(m_pSerialPort, ack, sizeof(ack), ZEDMD_COMM_SERIAL_READ_TIMEOUT);
-    if (ack[0] != 'A')
+    if (ack[0] == 'F')
     {
       m_fullFrameFlag.store(true, std::memory_order_release);
+      Log("Full frame requested by ZeDMD because of internal error");
+      return false;
+    }
+    else if (ack[0] != 'A')
+    {
+      m_fullFrameFlag.store(true, std::memory_order_release);
+      Log("Full frame forced, error %d", status);
       return false;
     }
   }
