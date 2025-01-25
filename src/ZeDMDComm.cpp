@@ -736,10 +736,6 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
     }
 
     status = sp_blocking_read(m_pSerialPort, ack, 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
-    while (!m_stopFlag.load(std::memory_order_relaxed) && sp_input_waiting(m_pSerialPort) > 0)
-    {
-      sp_nonblocking_read(m_pSerialPort, ack, 1);
-    }
     if (ack[0] == 'F')
     {
       m_fullFrameFlag.store(true, std::memory_order_release);
