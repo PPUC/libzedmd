@@ -123,10 +123,23 @@ void ZeDMD::LedTest()
   if (m_usb)
   {
     m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::LEDTest);
+    m_pZeDMDComm->DisableKeepAlive();
   }
   else if (m_wifi)
   {
     m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::LEDTest);
+    m_pZeDMDWiFi->DisableKeepAlive();
+  }
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(8000));
+
+  if (m_usb)
+  {
+    m_pZeDMDComm->EnableKeepAlive();
+  }
+  else if (m_wifi)
+  {
+    m_pZeDMDWiFi->EnableKeepAlive();
   }
 }
 

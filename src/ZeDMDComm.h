@@ -202,6 +202,8 @@ class ZeDMDComm
   void QueueCommand(char command, uint8_t value);
   bool FillDelayed();
   void SoftReset();
+  void EnableKeepAlive() { m_keepAlive = true; }
+  void DisableKeepAlive() { m_keepAlive = false; }
 
   uint16_t const GetWidth();
   uint16_t const GetHeight();
@@ -252,5 +254,6 @@ class ZeDMDComm
   std::mutex m_delayedFrameMutex;
   bool m_delayedFrameReady = false;
   uint16_t m_writeAtOnce = ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE;
+  bool m_keepAlive = true;
   std::chrono::steady_clock::time_point m_lastKeepAlive;
 };
