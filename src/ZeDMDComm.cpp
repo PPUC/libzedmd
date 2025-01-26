@@ -495,43 +495,47 @@ bool ZeDMDComm::Handshake(char* pDevice)
   data[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 1] = 0;  // Size high byte
   data[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 2] = 0;  // Size low byte
   data[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 3] = 0;  // Compression flag
-  sp_nonblocking_write(m_pSerialPort, data, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
-
-  // For Linux and macOS, 200ms seem to be sufficient. But some Windows installations require a longer sleep here.
-  std::this_thread::sleep_for(std::chrono::milliseconds(200));
-  memset(data, 0, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
-  int result = sp_blocking_read(m_pSerialPort, data, 20, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
-
-  if (memcmp(data, CTRL_CHARS_HEADER, 4) == 0)
+  int result =
+      sp_blocking_write(m_pSerialPort, data, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
+  if (result == ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE)
   {
-    if (data[13] == 'R')
+    // For Linux and macOS, 200ms seem to be sufficient. But some Windows installations require a longer sleep here for
+    // the S3.
+    std::this_thread::sleep_for(std::chrono::milliseconds(m_s3 ? 500 : 200));
+    memset(data, 0, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
+    result = sp_blocking_read(m_pSerialPort, data, 20, 200);
+
+    if (result == 20 && memcmp(data, CTRL_CHARS_HEADER, 4) == 0)
     {
-      m_width = data[4] + data[5] * 256;
-      m_height = data[6] + data[7] * 256;
-      m_zoneWidth = m_width / 16;
-      m_zoneHeight = m_height / 8;
-      snprintf(m_firmwareVersion, 12, "%d.%d.%d", data[8], data[9], data[10]);
-      m_writeAtOnce = data[11] + data[12] * 256;
-
-      // Store the device name for reconnects.
-      SetDevice(pDevice);
-      Log("ZeDMD %s found: %sdevice=%s, width=%d, height=%d", m_firmwareVersion, m_s3 ? "S3 " : "", pDevice, m_width,
-          m_height);
-
-      // Next streaming needs to be complete.
-      memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
-
-      while (sp_input_waiting(m_pSerialPort) > 0)
+      if (data[13] == 'R')
       {
-        sp_nonblocking_read(m_pSerialPort, data, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
-      }
+        m_width = data[4] + data[5] * 256;
+        m_height = data[6] + data[7] * 256;
+        m_zoneWidth = m_width / 16;
+        m_zoneHeight = m_height / 8;
+        snprintf(m_firmwareVersion, 12, "%d.%d.%d", data[8], data[9], data[10]);
+        m_writeAtOnce = data[11] + data[12] * 256;
 
-      free(data);
-      return true;
-    }
-    else
-    {
-      Log("ZeDMD found but ready signal is missing.");
+        // Store the device name for reconnects.
+        SetDevice(pDevice);
+        Log("ZeDMD %s found: %sdevice=%s, width=%d, height=%d", m_firmwareVersion, m_s3 ? "S3 " : "", pDevice, m_width,
+            m_height);
+
+        // Next streaming needs to be complete.
+        memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
+
+        while (sp_input_waiting(m_pSerialPort) > 0)
+        {
+          sp_nonblocking_read(m_pSerialPort, data, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
+        }
+
+        free(data);
+        return true;
+      }
+      else
+      {
+        Log("ZeDMD found but ready signal is missing.");
+      }
     }
   }
   free(data);
@@ -692,14 +696,16 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
   {
     // std::this_thread::sleep_for(std::chrono::milliseconds(8));
     int toSend = ((size - sent) < m_writeAtOnce) ? size - sent : m_writeAtOnce;
-    if (toSend < m_writeAtOnce) {
-      uint8_t* padded = (uint8_t*) malloc(m_writeAtOnce);
+    if (toSend < m_writeAtOnce)
+    {
+      uint8_t* padded = (uint8_t*)malloc(m_writeAtOnce);
       memset(padded, 0, m_writeAtOnce);
       memcpy(padded, &pData[sent], toSend);
       status = sp_blocking_write(m_pSerialPort, padded, m_writeAtOnce, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
       free(padded);
     }
-    else {
+    else
+    {
       status = sp_blocking_write(m_pSerialPort, &pData[sent], toSend, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
     }
 
@@ -754,7 +760,8 @@ void ZeDMDComm::KeepAlive()
 {
   auto now = std::chrono::steady_clock::now();
 
-  if (!m_keepAlive) {
+  if (!m_keepAlive)
+  {
     m_lastKeepAlive = now;
     return;
   }
