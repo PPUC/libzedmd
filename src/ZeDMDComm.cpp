@@ -692,30 +692,22 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
   {
     // std::this_thread::sleep_for(std::chrono::milliseconds(8));
     int toSend = ((size - sent) < m_writeAtOnce) ? size - sent : m_writeAtOnce;
-    if (m_cdc)
-    {
+    if (toSend < m_writeAtOnce) {
+      uint8_t* padded = (uint8_t*) malloc(m_writeAtOnce);
+      memset(padded, 0, m_writeAtOnce);
+      memcpy(padded, &pData[sent], toSend);
+      status = sp_blocking_write(m_pSerialPort, padded, m_writeAtOnce, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
+      free(padded);
+    }
+    else {
       status = sp_blocking_write(m_pSerialPort, &pData[sent], toSend, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
     }
-    else
-    {
-      status = sp_nonblocking_write(m_pSerialPort, &pData[sent], toSend);
-    }
+
     if (status < toSend)
     {
       m_fullFrameFlag.store(true, std::memory_order_release);
       Log("Full frame forced, error %d", status);
       return false;
-    }
-    else if (status < m_writeAtOnce)
-    {
-      if (m_cdc)
-      {
-        sp_blocking_write(m_pSerialPort, m_allBlack, m_writeAtOnce - status, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
-      }
-      else
-      {
-        sp_nonblocking_write(m_pSerialPort, m_allBlack, m_writeAtOnce - status);
-      }
     }
     sent += status;
 
