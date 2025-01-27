@@ -12,13 +12,14 @@
 #include "sockpp/tcp_connector.h"
 #include "sockpp/udp_socket.h"
 
-#define ZEDMD_WIFI_KEEP_ALIVE_INTERVAL 100
+#define ZEDMD_WIFI_TCP_KEEP_ALIVE_INTERVAL 100
+#define ZEDMD_WIFI_UDP_KEEP_ALIVE_INTERVAL 3000
 #define ZEDMD_WIFI_UDP_CHUNK_SIZE 1400
 
 class ZeDMDWiFi : public ZeDMDComm
 {
  public:
-  ZeDMDWiFi() : ZeDMDComm() { m_keepAliveInterval = std::chrono::milliseconds(ZEDMD_WIFI_KEEP_ALIVE_INTERVAL); }
+  ZeDMDWiFi() : ZeDMDComm() {}
 
   virtual bool Connect(const char* name_or_ip);
   virtual void Disconnect();

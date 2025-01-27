@@ -138,12 +138,23 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
     }
 
     int flag = 1;  // Disable Nagle's algorithm
-    m_tcpConnector->set_option(IPPROTO_TCP, TCP_NODELAY, flag);
+    if (!m_tcpConnector->set_option(IPPROTO_TCP, TCP_NODELAY, flag))
+    {
+      Log("%s", m_tcpConnector->last_error_str().c_str());
+    }
+    // Set QoS (IP_TOS)
+    int qos_value = 0x10;  // Low delay DSCP value
+    if (!m_tcpConnector->set_option(IPPROTO_IP, IP_TOS, qos_value))
+    {
+      Log("%s", m_tcpConnector->last_error_str().c_str());
+    }
+    m_keepAliveInterval = std::chrono::milliseconds(ZEDMD_WIFI_TCP_KEEP_ALIVE_INTERVAL);
   }
   else
   {
     m_udpSocket = new sockpp::udp_socket();
     m_udpServer = new sockpp::inet_address(ip, (in_port_t)port);
+    m_keepAliveInterval = std::chrono::milliseconds(ZEDMD_WIFI_UDP_KEEP_ALIVE_INTERVAL);
   }
 
   m_connected = true;
@@ -347,6 +358,7 @@ bool ZeDMDWiFi::SendChunks(uint8_t* pData, uint16_t size)
     if (m_tcpConnector->write_n(pData, size) < 0)
     {
       Log("TCP stream error: %s", m_tcpConnector->last_error_str().c_str());
+      m_fullFrameFlag.store(true, std::memory_order_release);
       return false;
     }
   }
@@ -357,15 +369,19 @@ bool ZeDMDWiFi::SendChunks(uint8_t* pData, uint16_t size)
 
     while (sent < size && !m_stopFlag.load(std::memory_order_relaxed))
     {
-      // std::this_thread::sleep_for(std::chrono::milliseconds(8));
       int toSend = ((size - sent) < ZEDMD_WIFI_UDP_CHUNK_SIZE) ? size - sent : ZEDMD_WIFI_UDP_CHUNK_SIZE;
       status = m_udpSocket->send_to(&pData[sent], (size_t)toSend, *m_udpServer);
       if (status < toSend)
       {
+        Log("UDP stream error: %s", m_udpSocket->last_error_str().c_str());
         m_fullFrameFlag.store(true, std::memory_order_release);
         return false;
       }
       sent += status;
+      // ESP32 crashes if too many packages arrive in a short time, mainly in FlexDMD tables.
+      // Even if the firmware has some protections and should ignore some packages, it crashes.
+      // It seems like a bug in AsyncUDP. At the moment, only that delay seems to avoid the crash.
+      std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
   }
 
