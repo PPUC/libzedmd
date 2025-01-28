@@ -499,15 +499,13 @@ bool ZeDMDComm::Handshake(char* pDevice)
       sp_blocking_write(m_pSerialPort, data, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
   if (result == ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE)
   {
-    // For Linux and macOS, 200ms seem to be sufficient. But some Windows installations require a longer sleep here for
-    // the S3.
-    std::this_thread::sleep_for(std::chrono::milliseconds(m_s3 ? 500 : 200));
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
     memset(data, 0, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
-    result = sp_blocking_read(m_pSerialPort, data, 20, 200);
+    result = sp_blocking_read(m_pSerialPort, data, 64, 500);
 
-    if (result == 20 && memcmp(data, CTRL_CHARS_HEADER, 4) == 0)
+    if (result == 64 && memcmp(data, CTRL_CHARS_HEADER, 4) == 0)
     {
-      if (data[13] == 'R')
+      if (data[57] == 'R')
       {
         m_width = data[4] + data[5] * 256;
         m_height = data[6] + data[7] * 256;
