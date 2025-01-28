@@ -701,12 +701,26 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
       uint8_t* padded = (uint8_t*)malloc(m_writeAtOnce);
       memset(padded, 0, m_writeAtOnce);
       memcpy(padded, &pData[sent], toSend);
-      status = sp_blocking_write(m_pSerialPort, padded, m_writeAtOnce, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
+      if (m_cdc)
+      {
+        status = sp_blocking_write(m_pSerialPort, padded, m_writeAtOnce, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
+      }
+      else
+      {
+        status = sp_nonblocking_write(m_pSerialPort, padded, m_writeAtOnce);
+      }
       free(padded);
     }
     else
     {
-      status = sp_blocking_write(m_pSerialPort, &pData[sent], toSend, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
+      if (m_cdc)
+      {
+        status = sp_blocking_write(m_pSerialPort, &pData[sent], toSend, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
+      }
+      else
+      {
+        status = sp_nonblocking_write(m_pSerialPort, &pData[sent], toSend);
+      }
     }
 
     if (status < toSend)
