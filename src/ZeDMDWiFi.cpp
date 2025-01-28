@@ -7,6 +7,7 @@
 #include <netinet/tcp.h>
 #include <unistd.h>
 #endif
+#include <sstream>
 
 #include "komihash/komihash.h"
 #include "miniz/miniz.h"
@@ -52,71 +53,139 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
   m_httpServer.sin_port = htons(80);
   m_httpServer.sin_addr.s_addr = inet_addr(ip);
 
-  if (SendGetRequest("/get_version"))
+  int port = 3333;
+  m_udpDelay = 5;
+  uint8_t tries;
+  for (tries = 0; tries < 2; tries++)
   {
-    strncpy(m_firmwareVersion, ReceiveStringPayload(), sizeof(m_firmwareVersion) - 1);
-  }
-  else
-  {
-    Log("ZeDMD version could not be detected");
-    return false;
-  }
-
-  if (SendGetRequest("/get_width"))
-  {
-    m_width = (uint16_t)ReceiveIntegerPayload();
-  }
-  else
-  {
-    Log("ZeDMD width could not be detected");
-    return false;
-  }
-
-  if (SendGetRequest("/get_height"))
-  {
-    m_height = (uint16_t)ReceiveIntegerPayload();
-  }
-  else
-  {
-    Log("ZeDMD height could not be detected");
-    return false;
-  }
-
-  if (SendGetRequest("/get_s3"))
-  {
-    m_s3 = (ReceiveIntegerPayload() == 1);
-  }
-  else
-  {
-    Log("ZeDMD ESP32 generation could not be detected");
-    return false;
-  }
-
-  if (SendGetRequest("/get_protocol"))
-  {
-    if (strcmp("TCP", ReceiveStringPayload()) == 0)
+    if (SendGetRequest("/handshake"))
     {
-      m_tcp = true;
+      tries = 3;
+
+      std::string handshake = ReceiveStringPayload();
+      std::stringstream ss(handshake);
+      std::string item;
+
+      for (uint8_t pos = 0; pos <= 6; pos++)
+      {
+        if (std::getline(ss, item, '|'))
+        {
+          switch (pos)
+          {
+            case 0:
+            {
+              m_width = std::stoi(item);
+              break;
+            }
+            case 1:
+            {
+              m_height = std::stoi(item);
+              break;
+            }
+            case 2:
+            {
+              strncpy(m_firmwareVersion, item.c_str(), sizeof(m_firmwareVersion) - 1);
+              break;
+            }
+            case 3:
+            {
+              m_s3 = (std::stoi(item) == 1);
+              break;
+            }
+            case 4:
+            {
+              if (strcmp("TCP", item.c_str()) == 0)
+              {
+                m_tcp = true;
+              }
+              break;
+            }
+            case 5:
+            {
+              port = std::stoi(item);
+              break;
+            }
+            case 6:
+            {
+              m_udpDelay = std::stoi(item);
+              break;
+            }
+          }
+        }
+      }
     }
   }
-  else
+
+  if (tries < 3)
   {
-    Log("ZeDMD port could not be detected");
-    return false;
+    Log("ZeDMD fast handshake failed ... fallback to single requests");
+
+    if (SendGetRequest("/get_version"))
+    {
+      strncpy(m_firmwareVersion, ReceiveCStringPayload(), sizeof(m_firmwareVersion) - 1);
+    }
+    else
+    {
+      Log("ZeDMD version could not be detected");
+      return false;
+    }
+
+    if (SendGetRequest("/get_width"))
+    {
+      m_width = (uint16_t)ReceiveIntegerPayload();
+    }
+    else
+    {
+      Log("ZeDMD width could not be detected");
+      return false;
+    }
+
+    if (SendGetRequest("/get_height"))
+    {
+      m_height = (uint16_t)ReceiveIntegerPayload();
+    }
+    else
+    {
+      Log("ZeDMD height could not be detected");
+      return false;
+    }
+
+    if (SendGetRequest("/get_s3"))
+    {
+      m_s3 = (ReceiveIntegerPayload() == 1);
+    }
+    else
+    {
+      Log("ZeDMD ESP32 generation could not be detected");
+      return false;
+    }
+
+    if (SendGetRequest("/get_protocol"))
+    {
+      if (strcmp("TCP", ReceiveCStringPayload()) == 0)
+      {
+        m_tcp = true;
+      }
+    }
+    else
+    {
+      Log("ZeDMD port could not be detected");
+      return false;
+    }
+
+    int port = 3333;
+    if (SendGetRequest("/get_port"))
+    {
+      port = (int)ReceiveIntegerPayload();
+    }
+    else
+    {
+      Log("ZeDMD port could not be detected");
+      return false;
+    }
   }
 
-  int port = 3333;
-  if (SendGetRequest("/get_port"))
-  {
-    port = (int)ReceiveIntegerPayload();
-  }
-  else
-  {
-    Log("ZeDMD port could not be detected");
-    return false;
-  }
-
-  if ((m_width != 128 && m_width != 256) || (m_height != 32 && m_height != 64))
+  if (!(128 == m_width && 32 == m_height) && !(256 == m_width && 64 == m_height))
   {
     Log("Invalid dimensions reported from ZeDMD: %dx%d", m_width, m_height);
     return false;
@@ -330,7 +399,7 @@ int ZeDMDWiFi::ReceiveIntegerPayload()
   }
 }
 
-const char* ZeDMDWiFi::ReceiveStringPayload()
+std::string ZeDMDWiFi::ReceiveStringPayload()
 {
   std::string response = ReceiveResponse();
 
@@ -342,10 +411,10 @@ const char* ZeDMDWiFi::ReceiveStringPayload()
   }
 
   // The payload starts after "\r\n\r\n"
-  std::string payload = response.substr(headerEnd + 4);
-
-  return payload.c_str();
+  return response.substr(headerEnd + 4);
 }
+
+const char* ZeDMDWiFi::ReceiveCStringPayload() { return ReceiveStringPayload().c_str(); }
 
 bool ZeDMDWiFi::IsConnected() { return m_connected; }
 
@@ -381,7 +450,7 @@ bool ZeDMDWiFi::SendChunks(uint8_t* pData, uint16_t size)
       // ESP32 crashes if too many packages arrive in a short time, mainly in FlexDMD tables.
       // Even if the firmware has some protections and should ignore some packages, it crashes.
       // It seems like a bug in AsyncUDP. At the moment, only that delay seems to avoid the crash.
-      std::this_thread::sleep_for(std::chrono::milliseconds(5));
+      std::this_thread::sleep_for(std::chrono::milliseconds(m_udpDelay));
     }
   }
 

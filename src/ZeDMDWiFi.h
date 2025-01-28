@@ -34,7 +34,8 @@ class ZeDMDWiFi : public ZeDMDComm
   bool SendPostRequest(const std::string& path, const std::string& data);
   std::string ReceiveResponse();
   int ReceiveIntegerPayload();
-  const char* ReceiveStringPayload();
+  const char* ReceiveCStringPayload();
+  std::string ReceiveStringPayload();
 
  private:
   int m_httpSocket = -1;
@@ -44,5 +45,6 @@ class ZeDMDWiFi : public ZeDMDComm
   sockpp::tcp_connector* m_tcpConnector = nullptr;
   bool m_connected = false;
   bool m_tcp = false;
+  uint8_t m_udpDelay = 5;
   bool m_wsaStarted = false;
 };
