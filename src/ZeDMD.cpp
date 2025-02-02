@@ -312,9 +312,13 @@ void ZeDMD::SaveSettings()
   if (m_usb)
   {
     m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SaveSettings);
-    // Avoid that client resets the device before settings are saved.
-    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
   }
+  else if (m_wifi)
+  {
+    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::SaveSettings);
+  }
+  // Avoid that client resets the device before settings are saved.
+  std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 }
 
 void ZeDMD::EnableUpscaling()
@@ -331,7 +335,14 @@ void ZeDMD::SetWiFiSSID(const char* const ssid)
   uint8_t data[33] = {0};
   data[0] = (uint8_t)size;
   memcpy(&data[1], (uint8_t*)ssid, size);
-  m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetWiFiSSID, data, size + 1);
+  if (m_usb)
+  {
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetWiFiSSID, data, size + 1);
+  }
+  else if (m_wifi)
+  {
+    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::SetWiFiSSID, data, size + 1);
+  }
 }
 
 void ZeDMD::SetWiFiPassword(const char* const password)
@@ -340,7 +351,14 @@ void ZeDMD::SetWiFiPassword(const char* const password)
   uint8_t data[33] = {0};
   data[0] = (uint8_t)size;
   memcpy(&data[1], (uint8_t*)password, size);
-  m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetWiFiPassword, data, size + 1);
+  if (m_usb)
+  {
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetWiFiPassword, data, size + 1);
+  }
+  else if (m_wifi)
+  {
+    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::SetWiFiPassword, data, size + 1);
+  }
 }
 
 void ZeDMD::SetWiFiPort(int port)
@@ -348,8 +366,14 @@ void ZeDMD::SetWiFiPort(int port)
   uint8_t data[2];
   data[0] = (uint8_t)(port >> 8 & 0xFF);
   data[1] = (uint8_t)(port & 0xFF);
-
-  m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetWiFiPort, data, 2);
+  if (m_usb)
+  {
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetWiFiPort, data, 2);
+  }
+  else if (m_wifi)
+  {
+    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::SetWiFiPort, data, 2);
+  }
 }
 
 bool ZeDMD::OpenWiFi(const char* ip)
