@@ -51,7 +51,14 @@ void ZeDMD::SetLogCallback(ZeDMD_LogCallback callback, const void* userData)
 
 void ZeDMD::Close()
 {
-  Reset();
+  if (m_usb)
+  {
+    m_pZeDMDComm->SoftReset();
+  }
+  else if (m_wifi)
+  {
+    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::ClearScreen);
+  }
 
   m_pZeDMDComm->Disconnect();
   m_pZeDMDWiFi->Disconnect();
