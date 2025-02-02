@@ -145,9 +145,10 @@ jobs:
               cp build/${{ matrix.type }}/*.lib tmp
               cp build/${{ matrix.type }}/*.dll tmp
             fi
-            cp build/${{ matrix.type }}/zedmd_static.lib tmp
-            cp build/${{ matrix.type }}/zedmd_test_s.exe tmp
-            cp build/${{ matrix.type }}/zedmd_test.exe tmp
+            cp build/${{ matrix.type }}/zedmd-client-portable.exe tmp
+            cp build/${{ matrix.type }}/zedmd-client.exe tmp
+            cp build/${{ matrix.type }}/zedmd-test-portable.exe tmp
+            cp build/${{ matrix.type }}/zedmd-test.exe tmp
             if [[ "${{ matrix.type }}" == "Debug" ]]; then
               cp build/${{ matrix.type }}/*.pdb tmp
             fi
@@ -157,13 +158,17 @@ jobs:
             if [[ "${{ matrix.platform }}" == "macos" ]]; then
                cp build/libzedmd.a tmp
                cp -a build/*.dylib tmp
-               cp build/zedmd_test_s tmp
-               cp build/zedmd_test tmp
+               cp build/zedmd-client-portable tmp
+               cp build/zedmd-client tmp
+               cp build/zedmd-test-portable tmp
+               cp build/zedmd-test tmp
             elif [[ "${{ matrix.platform }}" == "linux" ]]; then
                cp build/libzedmd.a tmp
                cp -a build/*.{so,so.*} tmp
-               cp build/zedmd_test_s tmp
-               cp build/zedmd_test tmp
+               cp build/zedmd-client-portable tmp
+               cp build/zedmd-client tmp
+               cp build/zedmd-test-portable tmp
+               cp build/zedmd-test tmp
             elif [[ "${{ matrix.platform }}" == "ios" || "${{ matrix.platform }}" == "ios-simulator" || "${{ matrix.platform }}" == "tvos" ]]; then
                cp build/libzedmd.a tmp
                cp -a build/*.dylib tmp
@@ -208,7 +213,7 @@ jobs:
                 "libzedmd-${{ needs.version.outputs.tag }}-macos-x64-Release/$filename"
             fi
           done
-          for filename in zedmd_test zedmd_test_s; do
+          for filename in zedmd-test zedmd-test-portable; do
             lipo -create -output "tmp/$filename" \
                "libzedmd-${{ needs.version.outputs.tag }}-macos-arm64-Release/$filename" \
                "libzedmd-${{ needs.version.outputs.tag }}-macos-x64-Release/$filename"
