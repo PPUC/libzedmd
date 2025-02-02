@@ -2,6 +2,7 @@
 
 set -e
 
+CARGS_SHA=5949a20a926e902931de4a32adaad9f19c76f251
 LIBSERIALPORT_SHA=21b3dfe5f68c205be4086469335fd2fc2ce11ed2
 LIBFRAMEUTIL_SHA=30048ca23d41ca0a8f7d5ab75d3f646a19a90182
 SOCKPP_SHA=e6c4688a576d95f42dd7628cefe68092f6c5cd0f
@@ -9,6 +10,7 @@ SOCKPP_SHA=e6c4688a576d95f42dd7628cefe68092f6c5cd0f
 NUM_PROCS=$(sysctl -n hw.ncpu)
 
 echo "Building libraries..."
+echo "  CARGS_SHA: ${CARGS_SHA}"
 echo "  LIBSERIALPORT_SHA: ${LIBSERIALPORT_SHA}"
 echo "  LIBFRAMEUTIL_SHA: ${LIBFRAMEUTIL_SHA}"
 echo "  SOCKPP_SHA: ${SOCKPP_SHA}"
@@ -22,6 +24,24 @@ fi
 rm -rf external
 mkdir external
 cd external
+
+#
+# build cargs and copy to external
+#
+
+curl -sL https://github.com/likle/cargs/archive/${CARGS_SHA}.zip -o cargs.zip
+unzip cargs.zip
+cd cargs-${CARGS_SHA}
+cmake \
+   -DBUILD_SHARED_LIBS=ON \
+   -DCMAKE_OSX_ARCHITECTURES=arm64 \
+   -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0 \
+   -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
+   -B build
+cmake --build build -- -j${NUM_PROCS}
+cp include/cargs.h ../../third-party/include/
+cp -a build/*.dylib ../../third-party/runtime-libs/macos/arm64/
+cd ..
 
 #
 # build libserialport and copy to platform/arch

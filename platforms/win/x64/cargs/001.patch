@@ -1,0 +1,38 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index b6f828f..6be0845 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -18,7 +18,7 @@
+ set(CMAKE_C_STANDARD 11)
+ 
+ # setup target and directory names
+-set(LIBRARY_TARGET "cargs")
++set(LIBRARY_TARGET "cargs64")
+ set(INCLUDE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include")
+ set(SOURCE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src")
+ 
+@@ -51,12 +51,12 @@
+   $<BUILD_INTERFACE:${INCLUDE_DIRECTORY}>
+   $<INSTALL_INTERFACE:include>
+ )
+-set_target_properties(cargs PROPERTIES PUBLIC_HEADER "${INCLUDE_DIRECTORY}/cargs.h")
+-set_target_properties(cargs PROPERTIES DEFINE_SYMBOL CAG_EXPORTS)
++set_target_properties(cargs64 PROPERTIES PUBLIC_HEADER "${INCLUDE_DIRECTORY}/cargs.h")
++set_target_properties(cargs64 PROPERTIES DEFINE_SYMBOL CAG_EXPORTS)
+ 
+ # add shared library macro
+ if(BUILD_SHARED_LIBS)
+-  target_compile_definitions(cargs PUBLIC CAG_SHARED)
++  target_compile_definitions(cargs64 PUBLIC CAG_SHARED)
+ endif()
+ 
+ # add tests
+@@ -104,7 +104,7 @@
+   COMPATIBILITY SameMajorVersion)
+ 
+ # installing
+-install(TARGETS cargs
++install(TARGETS cargs64
+   EXPORT CargsTargets)
+ 
+ install(FILES

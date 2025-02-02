@@ -497,7 +497,7 @@ bool ZeDMDComm::Handshake(char* pDevice)
   data[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 3] = 0;  // Compression flag
   int result =
       sp_blocking_write(m_pSerialPort, data, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE, ZEDMD_COMM_SERIAL_WRITE_TIMEOUT);
-  if (result == ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE)
+  if (result >= ZEDMD_COMM_MIN_SERIAL_WRITE_AT_ONCE)
   {
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
     memset(data, 0, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);

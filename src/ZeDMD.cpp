@@ -169,12 +169,135 @@ void ZeDMD::DisableDebug()
 
 void ZeDMD::SetRGBOrder(uint8_t rgbOrder)
 {
-  if (m_usb) m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGBOrder, rgbOrder);
+  if (m_usb)
+  {
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGBOrder, rgbOrder);
+  }
+  else if (m_wifi)
+  {
+    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::RGBOrder, rgbOrder);
+  }
 }
 
 void ZeDMD::SetBrightness(uint8_t brightness)
 {
-  if (m_usb) m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::Brightness, brightness);
+  if (m_usb)
+  {
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::Brightness, brightness);
+  }
+  else if (m_wifi)
+  {
+    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::Brightness, brightness);
+  }
+}
+
+void ZeDMD::SetPanelClockPhase(uint8_t clockPhase)
+{
+  if (m_usb)
+  {
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetClkphase, clockPhase);
+  }
+  else if (m_wifi)
+  {
+    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::SetClkphase, clockPhase);
+  }
+}
+
+void ZeDMD::SetPanelI2sSpeed(uint8_t i2sSpeed)
+{
+  if (m_usb)
+  {
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetI2sspeed, i2sSpeed);
+  }
+  else if (m_wifi)
+  {
+    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::SetI2sspeed, i2sSpeed);
+  }
+}
+
+void ZeDMD::SetPanelLatchBlanking(uint8_t latchBlanking)
+{
+  if (m_usb)
+  {
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetLatchBlanking, latchBlanking);
+  }
+  else if (m_wifi)
+  {
+    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::SetLatchBlanking, latchBlanking);
+  }
+}
+
+void ZeDMD::SetPanelMinRefreshRate(uint8_t minRefreshRate)
+{
+  if (m_usb)
+  {
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetMinRefreshRate, minRefreshRate);
+  }
+  else if (m_wifi)
+  {
+    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::SetMinRefreshRate, minRefreshRate);
+  }
+}
+
+void ZeDMD::SetPanelDriver(uint8_t driver)
+{
+  if (m_usb)
+  {
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetDriver, driver);
+  }
+  else if (m_wifi)
+  {
+    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::SetDriver, driver);
+  }
+}
+
+void ZeDMD::SetTransport(uint8_t transport)
+{
+  if (m_usb)
+  {
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetTransport, transport);
+  }
+  else if (m_wifi)
+  {
+    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::SetTransport, transport);
+  }
+}
+
+void ZeDMD::SetUdpDelay(uint8_t udpDelay)
+{
+  if (m_usb)
+  {
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetUdpDelay, udpDelay);
+  }
+  else if (m_wifi)
+  {
+    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::SetUdpDelay, udpDelay);
+  }
+}
+
+void ZeDMD::SetUsbPackageSize(uint16_t usbPackageSize)
+{
+  uint8_t multiplier = (uint8_t)(usbPackageSize / 32);
+  if (m_usb)
+  {
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetUsbPackageSizeMultiplier, multiplier);
+  }
+  else if (m_wifi)
+  {
+    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::SetUsbPackageSizeMultiplier, multiplier);
+  }
+}
+
+void ZeDMD::SetYOffset(uint8_t yOffset)
+{
+  if (m_usb)
+  {
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetYOffset, yOffset);
+  }
+  else if (m_wifi)
+  {
+    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::SetYOffset, yOffset);
+  }
 }
 
 void ZeDMD::SaveSettings()
@@ -508,6 +631,36 @@ ZEDMDAPI void ZeDMD_SetWiFiPassword(ZeDMD* pZeDMD, const char* const password)
 {
   return pZeDMD->SetWiFiPassword(password);
 }
+
+ZEDMDAPI void ZeDMD_SetPanelClockPhase(ZeDMD* pZeDMD, uint8_t clockPhase)
+{
+  return pZeDMD->SetPanelClockPhase(clockPhase);
+}
+
+ZEDMDAPI void ZeDMD_SetPanelI2sSpeed(ZeDMD* pZeDMD, uint8_t i2sSpeed) { return pZeDMD->SetPanelI2sSpeed(i2sSpeed); }
+
+ZEDMDAPI void ZeDMD_SetPanelLatchBlanking(ZeDMD* pZeDMD, uint8_t latchBlanking)
+{
+  return pZeDMD->SetPanelLatchBlanking(latchBlanking);
+}
+
+ZEDMDAPI void ZeDMD_SetPanelMinRefreshRate(ZeDMD* pZeDMD, uint8_t minRefreshRate)
+{
+  return pZeDMD->SetPanelMinRefreshRate(minRefreshRate);
+}
+
+ZEDMDAPI void ZeDMD_SetPanelDriver(ZeDMD* pZeDMD, uint8_t driver) { return pZeDMD->SetPanelDriver(driver); }
+
+ZEDMDAPI void ZeDMD_SetTransport(ZeDMD* pZeDMD, uint8_t transport) { return pZeDMD->SetTransport(transport); }
+
+ZEDMDAPI void ZeDMD_SetUdpDelay(ZeDMD* pZeDMD, uint8_t udpDelay) { return pZeDMD->SetUdpDelay(udpDelay); }
+
+ZEDMDAPI void ZeDMD_SetUsbPackageSize(ZeDMD* pZeDMD, uint16_t usbPackageSize)
+{
+  return pZeDMD->SetUsbPackageSize(usbPackageSize);
+}
+
+ZEDMDAPI void ZeDMD_SetYOffset(ZeDMD* pZeDMD, uint8_t yOffset) { return pZeDMD->SetYOffset(yOffset); }
 
 ZEDMDAPI void ZeDMD_SetWiFiPort(ZeDMD* pZeDMD, int port) { return pZeDMD->SetWiFiPort(port); }
 

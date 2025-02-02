@@ -29,6 +29,7 @@
 
 #define ZEDMD_COMM_BAUD_RATE 921600
 #define ZEDMD_S3_COMM_BAUD_RATE 2000000
+#define ZEDMD_COMM_MIN_SERIAL_WRITE_AT_ONCE 32
 #define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 1920
 
 #define ZEDMD_COMM_SERIAL_READ_TIMEOUT 16
@@ -59,6 +60,16 @@ typedef enum
   Reset = 0x1f,
   GetVersionBytes = 0x20,
   GetResolution = 0x21,
+
+  SetClkphase = 0x28,
+  SetI2sspeed = 0x29,
+  SetLatchBlanking = 0x2a,
+  SetMinRefreshRate = 0x2b,
+  SetDriver = 0x2c,
+  SetTransport = 0x2d,
+  SetUdpDelay = 0x2e,
+  SetUsbPackageSizeMultiplier = 0x2f,
+  SetYOffset = 0x30,
 
   RGB565ZonesStream = 0x05,
   RenderRGB565Frame = 0x06,

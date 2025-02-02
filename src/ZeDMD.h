@@ -265,6 +265,88 @@ class ZEDMDAPI ZeDMD
    */
   void SetWiFiPort(int port);
 
+  /** @brief Set the panel clock phase
+   *
+   *  Set the clock phase of the LED panels.
+   *  @see https://github.com/PPUC/ZeDMD
+   *
+   *  @param clockPhase a value between 0 and 1
+   */
+  void SetPanelClockPhase(uint8_t clockPhase);
+
+  /** @brief Set the panel i2s speed
+   *
+   *  Set the i2s speed of the LED panels.
+   *  @see https://github.com/PPUC/ZeDMD
+   *
+   *  @param i2sspeed a value of 8, 16 or 20
+   */
+  void SetPanelI2sSpeed(uint8_t i2sSpeed);
+
+  /** @brief Set the panel latch blanking
+   *
+   *  Set the latch blanking of the LED panels.
+   *  @see https://github.com/PPUC/ZeDMD
+   *
+   *  @param clkphase a value between 0 and 4
+   */
+  void SetPanelLatchBlanking(uint8_t latchBlanking);
+
+  /** @brief Set the panel minimla refresh rate
+   *
+   *  Set the minimal refresh rate of the LED panels.
+   *  @see https://github.com/PPUC/ZeDMD
+   *
+   *  @param minRefreshRate a value between 0 and 1
+   */
+  void SetPanelMinRefreshRate(uint8_t minRefreshRate);
+
+  /** @brief Set the panel driver
+   *
+   *  Set the driver of the LED panels.
+   *  @see https://github.com/PPUC/ZeDMD
+   *
+   *  @param driver a value between 0 and 6; 0(SHIFTREG), 1(FM6124), 2(FM6126A), 3(ICN2038S), 4(MBI5124), 5(SM5266P),
+   * 6(DP3246_SM5368)
+   */
+  void SetPanelDriver(uint8_t driver);
+
+  /** @brief Set the transport
+   *
+   *  Set the transport of ZeDMD. Note, this is just to change ZeDMD's settings, not for connecting.
+   *  @see https://github.com/PPUC/ZeDMD
+   *
+   *  @param transport a value between 0 and 3; 0(USB), 1(UDP), 2(TCP), 3(SPI)
+   */
+  void SetTransport(uint8_t transport);
+
+  /** @brief Set the UDP delay
+   *
+   *  Set the UDP Delay.
+   *  @see https://github.com/PPUC/ZeDMD
+   *
+   *  @param udpDelay a value between 0 and 9
+   */
+  void SetUdpDelay(uint8_t udpDelay);
+
+  /** @brief Set the USB package size
+   *
+   *  Set the USB package size.
+   *  @see https://github.com/PPUC/ZeDMD
+   *
+   *  @param usbPackageSize a value between 32 and 1920, but only multiple of 32
+   */
+  void SetUsbPackageSize(uint16_t usbPackageSize);
+
+  /** @brief Set the Y-offset of 128x64 panels
+   *
+   *  Set the Y-offset of 128x64 panels.
+   *  @see https://github.com/PPUC/ZeDMD
+   *
+   *  @param yOffset a value between 0 and 32
+   */
+  void SetYOffset(uint8_t yOffset);
+
   /** @brief Save the current setting
    *
    *  Saves all current setting within ZeDMD's EEPROM to be used
@@ -368,6 +450,15 @@ extern "C"
   extern ZEDMDAPI void ZeDMD_SetWiFiSSID(ZeDMD* pZeDMD, const char* const ssid);
   extern ZEDMDAPI void ZeDMD_SetWiFiPassword(ZeDMD* pZeDMD, const char* const password);
   extern ZEDMDAPI void ZeDMD_SetWiFiPort(ZeDMD* pZeDMD, int port);
+  extern ZEDMDAPI void ZeDMD_SetPanelClockPhase(ZeDMD* pZeDMD, uint8_t clockPhase);
+  extern ZEDMDAPI void ZeDMD_SetPanelI2sSpeed(ZeDMD* pZeDMD, uint8_t i2sSpeed);
+  extern ZEDMDAPI void ZeDMD_SetPanelLatchBlanking(ZeDMD* pZeDMD, uint8_t latchBlanking);
+  extern ZEDMDAPI void ZeDMD_SetPanelMinRefreshRate(ZeDMD* pZeDMD, uint8_t minRefreshRate);
+  extern ZEDMDAPI void ZeDMD_SetPanelDriver(ZeDMD* pZeDMD, uint8_t driver);
+  extern ZEDMDAPI void ZeDMD_SetTransport(ZeDMD* pZeDMD, uint8_t transport);
+  extern ZEDMDAPI void ZeDMD_SetUdpDelay(ZeDMD* pZeDMD, uint8_t udpDelay);
+  extern ZEDMDAPI void ZeDMD_SetUsbPackageSize(ZeDMD* pZeDMD, uint16_t usbPackageSize);
+  extern ZEDMDAPI void ZeDMD_SetYOffset(ZeDMD* pZeDMD, uint8_t yOffset);
 
   extern ZEDMDAPI void ZeDMD_ClearScreen(ZeDMD* pZeDMD);
   extern ZEDMDAPI void ZeDMD_RenderRgb888(ZeDMD* pZeDMD, uint8_t* frame);

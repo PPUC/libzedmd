@@ -141,37 +141,76 @@ if(BUILD_SHARED)
    install(FILES src/ZeDMD.h DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 
    if(PLATFORM STREQUAL "win" OR PLATFORM STREQUAL "macos" OR PLATFORM STREQUAL "linux")
-      add_executable(zedmd_test
+      add_executable(zedmd-test
          src/test.cpp
       )
 
-      target_link_libraries(zedmd_test PUBLIC zedmd_shared)
+      target_link_libraries(zedmd-test PUBLIC zedmd_shared)
 
       if(POST_BUILD_COPY_EXT_LIBS)
          if(PLATFORM STREQUAL "win")
             if(ARCH STREQUAL "x64")
-               add_custom_command(TARGET zedmd_test POST_BUILD
-                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/libserialport64.lib" "$<TARGET_FILE_DIR:zedmd_test>"
-                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport64.dll" "$<TARGET_FILE_DIR:zedmd_test>"
-                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/sockpp64.lib" "$<TARGET_FILE_DIR:zedmd_test>"
-                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/sockpp64.dll" "$<TARGET_FILE_DIR:zedmd_test>"
+               add_custom_command(TARGET zedmd-test POST_BUILD
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/libserialport64.lib" "$<TARGET_FILE_DIR:zedmd-test>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport64.dll" "$<TARGET_FILE_DIR:zedmd-test>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/sockpp64.lib" "$<TARGET_FILE_DIR:zedmd-test>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/sockpp64.dll" "$<TARGET_FILE_DIR:zedmd-test>"
                )
             else()
-               add_custom_command(TARGET zedmd_test POST_BUILD
-                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/libserialport.lib" "$<TARGET_FILE_DIR:zedmd_test>"
-                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport.dll" "$<TARGET_FILE_DIR:zedmd_test>"
-                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/sockpp.lib" "$<TARGET_FILE_DIR:zedmd_test>"
-                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/sockpp.dll" "$<TARGET_FILE_DIR:zedmd_test>"
+               add_custom_command(TARGET zedmd-test POST_BUILD
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/libserialport.lib" "$<TARGET_FILE_DIR:zedmd-test>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport.dll" "$<TARGET_FILE_DIR:zedmd-test>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/sockpp.lib" "$<TARGET_FILE_DIR:zedmd-test>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/sockpp.dll" "$<TARGET_FILE_DIR:zedmd-test>"
                )
             endif()
          elseif(PLATFORM STREQUAL "macos")
-            add_custom_command(TARGET zedmd_test POST_BUILD
-               COMMAND cp -a "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/*.dylib" "$<TARGET_FILE_DIR:zedmd_test>"
+            add_custom_command(TARGET zedmd-test POST_BUILD
+               COMMAND cp -a "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/*.dylib" "$<TARGET_FILE_DIR:zedmd-test>"
             )
          elseif(PLATFORM STREQUAL "linux")
-            add_custom_command(TARGET zedmd_test POST_BUILD
-               COMMAND cp -a "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/*.so" "$<TARGET_FILE_DIR:zedmd_test>"
-               COMMAND cp -a "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/*.so.*" "$<TARGET_FILE_DIR:zedmd_test>"
+            add_custom_command(TARGET zedmd-test POST_BUILD
+               COMMAND cp -a "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/*.so" "$<TARGET_FILE_DIR:zedmd-test>"
+               COMMAND cp -a "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/*.so.*" "$<TARGET_FILE_DIR:zedmd-test>"
+            )
+         endif()
+      endif()
+
+      add_executable(zedmd-client
+         src/client.cpp
+      )
+
+      target_link_libraries(zedmd-client PUBLIC zedmd_shared cargs)
+
+      if(POST_BUILD_COPY_EXT_LIBS)
+         if(PLATFORM STREQUAL "win")
+            if(ARCH STREQUAL "x64")
+               add_custom_command(TARGET zedmd-client POST_BUILD
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/cargs64.lib" "$<TARGET_FILE_DIR:zedmd-test>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/cargs64.dll" "$<TARGET_FILE_DIR:zedmd-test>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/libserialport64.lib" "$<TARGET_FILE_DIR:zedmd-client>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport64.dll" "$<TARGET_FILE_DIR:zedmd-client>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/sockpp64.lib" "$<TARGET_FILE_DIR:zedmd-client>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/sockpp64.dll" "$<TARGET_FILE_DIR:zedmd-client>"
+               )
+            else()
+               add_custom_command(TARGET zedmd-client POST_BUILD
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/cargs.lib" "$<TARGET_FILE_DIR:zedmd-test>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/cargs.dll" "$<TARGET_FILE_DIR:zedmd-test>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/libserialport.lib" "$<TARGET_FILE_DIR:zedmd-client>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport.dll" "$<TARGET_FILE_DIR:zedmd-client>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/sockpp.lib" "$<TARGET_FILE_DIR:zedmd-client>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/sockpp.dll" "$<TARGET_FILE_DIR:zedmd-client>"
+               )
+            endif()
+         elseif(PLATFORM STREQUAL "macos")
+            add_custom_command(TARGET zedmd-client POST_BUILD
+               COMMAND cp -a "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/*.dylib" "$<TARGET_FILE_DIR:zedmd-client>"
+            )
+         elseif(PLATFORM STREQUAL "linux")
+            add_custom_command(TARGET zedmd-client POST_BUILD
+               COMMAND cp -a "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/*.so" "$<TARGET_FILE_DIR:zedmd-client>"
+               COMMAND cp -a "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/*.so.*" "$<TARGET_FILE_DIR:zedmd-client>"
             )
          endif()
       endif()
@@ -199,58 +238,118 @@ if(BUILD_STATIC)
    install(FILES src/ZeDMD.h DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 
    if(PLATFORM STREQUAL "win" OR PLATFORM STREQUAL "macos" OR PLATFORM STREQUAL "linux")
-      add_executable(zedmd_test_s
+      add_executable(zedmd-test-portable
          src/test.cpp
       )
 
       if(PLATFORM STREQUAL "win")
-         target_link_directories(zedmd_test_s PUBLIC
+         target_link_directories(zedmd-test-portable PUBLIC
             third-party/build-libs/${PLATFORM}/${ARCH}
             third-party/runtime-libs/${PLATFORM}/${ARCH}
          )
 
          if(ARCH STREQUAL "x64")
-            target_link_libraries(zedmd_test_s PUBLIC zedmd_static libserialport64 sockpp64 ws2_32)
+            target_link_libraries(zedmd-test-portable PUBLIC zedmd_static cargs64 libserialport64 sockpp64 ws2_32)
          else()
-            target_link_libraries(zedmd_test_s PUBLIC zedmd_static libserialport sockpp ws2_32)
+            target_link_libraries(zedmd-test-portable PUBLIC zedmd_static cargs libserialport sockpp ws2_32)
          endif()
       elseif(PLATFORM STREQUAL "macos")
-         target_link_directories(zedmd_test_s PUBLIC
+         target_link_directories(zedmd-test-portable PUBLIC
             third-party/runtime-libs/${PLATFORM}/${ARCH}
          )
-         target_link_libraries(zedmd_test_s PUBLIC zedmd_static serialport sockpp)
+         target_link_libraries(zedmd-test-portable PUBLIC zedmd_static cargs serialport sockpp)
       elseif(PLATFORM STREQUAL "linux")
-         target_link_directories(zedmd_test_s PUBLIC
+         target_link_directories(zedmd-test-portable PUBLIC
             third-party/runtime-libs/${PLATFORM}/${ARCH}
          )
-         target_link_libraries(zedmd_test_s PUBLIC zedmd_static serialport sockpp)
+         target_link_libraries(zedmd-test-portable PUBLIC zedmd_static cargs serialport sockpp)
       endif()
 
       if(POST_BUILD_COPY_EXT_LIBS)
          if(PLATFORM STREQUAL "win")
             if(ARCH STREQUAL "x64")
-               add_custom_command(TARGET zedmd_test_s POST_BUILD
-                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/libserialport64.lib" "$<TARGET_FILE_DIR:zedmd_test_s>"
-                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport64.dll" "$<TARGET_FILE_DIR:zedmd_test_s>"
-                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/sockpp64.lib" "$<TARGET_FILE_DIR:zedmd_test_s>"
-                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/sockpp64.dll" "$<TARGET_FILE_DIR:zedmd_test_s>"
+               add_custom_command(TARGET zedmd-test-portable POST_BUILD
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/libserialport64.lib" "$<TARGET_FILE_DIR:zedmd-test-portable>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport64.dll" "$<TARGET_FILE_DIR:zedmd-test-portable>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/sockpp64.lib" "$<TARGET_FILE_DIR:zedmd-test-portable>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/sockpp64.dll" "$<TARGET_FILE_DIR:zedmd-test-portable>"
                )
             else()
-               add_custom_command(TARGET zedmd_test_s POST_BUILD
-                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/libserialport.lib" "$<TARGET_FILE_DIR:zedmd_test_s>"
-                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport.dll" "$<TARGET_FILE_DIR:zedmd_test_s>"
-                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/sockpp.lib" "$<TARGET_FILE_DIR:zedmd_test_s>"
-                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/sockpp.dll" "$<TARGET_FILE_DIR:zedmd_test_s>"
+               add_custom_command(TARGET zedmd-test-portable POST_BUILD
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/libserialport.lib" "$<TARGET_FILE_DIR:zedmd-test-portable>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport.dll" "$<TARGET_FILE_DIR:zedmd-test-portable>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/sockpp.lib" "$<TARGET_FILE_DIR:zedmd-test-portable>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/sockpp.dll" "$<TARGET_FILE_DIR:zedmd-test-portable>"
                )
             endif()
          elseif(PLATFORM STREQUAL "macos")
-            add_custom_command(TARGET zedmd_test_s POST_BUILD
-               COMMAND cp -a "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/*.dylib" "$<TARGET_FILE_DIR:zedmd_test_s>"
+            add_custom_command(TARGET zedmd-test-portable POST_BUILD
+               COMMAND cp -a "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/*.dylib" "$<TARGET_FILE_DIR:zedmd-test-portable>"
             )
          elseif(PLATFORM STREQUAL "linux")
-            add_custom_command(TARGET zedmd_test_s POST_BUILD
-               COMMAND cp -a "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/*.so" "$<TARGET_FILE_DIR:zedmd_test_s>"
-               COMMAND cp -a "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/*.so.*" "$<TARGET_FILE_DIR:zedmd_test_s>"
+            add_custom_command(TARGET zedmd-test-portable POST_BUILD
+               COMMAND cp -a "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/*.so" "$<TARGET_FILE_DIR:zedmd-test-portable>"
+               COMMAND cp -a "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/*.so.*" "$<TARGET_FILE_DIR:zedmd-test-portable>"
+            )
+         endif()
+      endif()
+
+      add_executable(zedmd-client-portable
+         src/client.cpp
+      )
+
+      if(PLATFORM STREQUAL "win")
+         target_link_directories(zedmd-client-portable PUBLIC
+            third-party/build-libs/${PLATFORM}/${ARCH}
+            third-party/runtime-libs/${PLATFORM}/${ARCH}
+         )
+
+         if(ARCH STREQUAL "x64")
+            target_link_libraries(zedmd-client-portable PUBLIC zedmd_static cargs64 libserialport64 sockpp64 ws2_32)
+         else()
+            target_link_libraries(zedmd-client-portable PUBLIC zedmd_static cargs libserialport sockpp ws2_32)
+         endif()
+      elseif(PLATFORM STREQUAL "macos")
+         target_link_directories(zedmd-client-portable PUBLIC
+            third-party/runtime-libs/${PLATFORM}/${ARCH}
+         )
+         target_link_libraries(zedmd-client-portable PUBLIC zedmd_static cargs serialport sockpp)
+      elseif(PLATFORM STREQUAL "linux")
+         target_link_directories(zedmd-client-portable PUBLIC
+            third-party/runtime-libs/${PLATFORM}/${ARCH}
+         )
+         target_link_libraries(zedmd-client-portable PUBLIC zedmd_static cargs serialport sockpp)
+      endif()
+
+      if(POST_BUILD_COPY_EXT_LIBS)
+         if(PLATFORM STREQUAL "win")
+            if(ARCH STREQUAL "x64")
+               add_custom_command(TARGET zedmd-client-portable POST_BUILD
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/cargs64.lib" "$<TARGET_FILE_DIR:zedmd-client-portable>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/cargs64.dll" "$<TARGET_FILE_DIR:zedmd-client-portable>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/libserialport64.lib" "$<TARGET_FILE_DIR:zedmd-client-portable>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport64.dll" "$<TARGET_FILE_DIR:zedmd-client-portable>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/sockpp64.lib" "$<TARGET_FILE_DIR:zedmd-client-portable>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/sockpp64.dll" "$<TARGET_FILE_DIR:zedmd-client-portable>"
+               )
+            else()
+               add_custom_command(TARGET zedmd-client-portable POST_BUILD
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/cargs.lib" "$<TARGET_FILE_DIR:zedmd-client-portable>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/cargs.dll" "$<TARGET_FILE_DIR:zedmd-client-portable>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/libserialport.lib" "$<TARGET_FILE_DIR:zedmd-client-portable>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport.dll" "$<TARGET_FILE_DIR:zedmd-client-portable>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/build-libs/${PLATFORM}/${ARCH}/sockpp.lib" "$<TARGET_FILE_DIR:zedmd-client-portable>"
+                  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/sockpp.dll" "$<TARGET_FILE_DIR:zedmd-client-portable>"
+               )
+            endif()
+         elseif(PLATFORM STREQUAL "macos")
+            add_custom_command(TARGET zedmd-client-portable POST_BUILD
+               COMMAND cp -a "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/*.dylib" "$<TARGET_FILE_DIR:zedmd-client-portable>"
+            )
+         elseif(PLATFORM STREQUAL "linux")
+            add_custom_command(TARGET zedmd-client-portable POST_BUILD
+               COMMAND cp -a "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/*.so" "$<TARGET_FILE_DIR:zedmd-client-portable>"
+               COMMAND cp -a "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/*.so.*" "$<TARGET_FILE_DIR:zedmd-client-portable>"
             )
          endif()
       endif()
