@@ -180,7 +180,15 @@ if(BUILD_SHARED)
          src/client.cpp
       )
 
-      target_link_libraries(zedmd-client PUBLIC zedmd_shared cargs)
+      if(PLATFORM STREQUAL "win")
+         if(ARCH STREQUAL "x64")
+            target_link_libraries(zedmd-client PUBLIC zedmd_shared cargs64)
+         else()
+            target_link_libraries(zedmd-client PUBLIC zedmd_shared cargs)
+         endif()
+      else()
+         target_link_libraries(zedmd-client PUBLIC zedmd_shared cargs)
+      endif()
 
       if(POST_BUILD_COPY_EXT_LIBS)
          if(PLATFORM STREQUAL "win")
