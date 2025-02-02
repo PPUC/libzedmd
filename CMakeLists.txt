@@ -249,20 +249,20 @@ if(BUILD_STATIC)
          )
 
          if(ARCH STREQUAL "x64")
-            target_link_libraries(zedmd-test-portable PUBLIC zedmd_static cargs64 libserialport64 sockpp64 ws2_32)
+            target_link_libraries(zedmd-test-portable PUBLIC zedmd_static libserialport64 sockpp64 ws2_32)
          else()
-            target_link_libraries(zedmd-test-portable PUBLIC zedmd_static cargs libserialport sockpp ws2_32)
+            target_link_libraries(zedmd-test-portable PUBLIC zedmd_static libserialport sockpp ws2_32)
          endif()
       elseif(PLATFORM STREQUAL "macos")
          target_link_directories(zedmd-test-portable PUBLIC
             third-party/runtime-libs/${PLATFORM}/${ARCH}
          )
-         target_link_libraries(zedmd-test-portable PUBLIC zedmd_static cargs serialport sockpp)
+         target_link_libraries(zedmd-test-portable PUBLIC zedmd_static serialport sockpp)
       elseif(PLATFORM STREQUAL "linux")
          target_link_directories(zedmd-test-portable PUBLIC
             third-party/runtime-libs/${PLATFORM}/${ARCH}
          )
-         target_link_libraries(zedmd-test-portable PUBLIC zedmd_static cargs serialport sockpp)
+         target_link_libraries(zedmd-test-portable PUBLIC zedmd_static serialport sockpp)
       endif()
 
       if(POST_BUILD_COPY_EXT_LIBS)
