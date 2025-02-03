@@ -67,7 +67,11 @@ static struct cag_option options[] = {
     {.identifier = '2', .access_name = "set-panel-i2sspeed", .value_name = "VALUE", .description = "8,16,20"},
     {.identifier = '3', .access_name = "set-panel-latch-blanking", .value_name = "VALUE", .description = "0,1,2,3,4"},
     {.identifier = '4', .access_name = "set-panel-min-refresh-rate", .value_name = "VALUE", .description = "30..120"},
-    {.identifier = '5', .access_name = "set-rgb-order", .value_name = "VALUE", .description = "0..5"},
+    {.identifier = 'o',
+     .access_letters = "o",
+     .access_name = "set-rgb-order",
+     .value_name = "VALUE",
+     .description = "0..5"},
     {.identifier = 't',
      .access_letters = "t",
      .access_name = "set-transport",
@@ -182,7 +186,7 @@ int main(int argc, char* argv[])
         opt_panel_min_refresh_rate = cag_option_get_value(&cag_context);
         has_other_options_than_h = true;
         break;
-      case '5':
+      case 'o':
         opt_rgb_order = cag_option_get_value(&cag_context);
         has_other_options_than_h = true;
         break;
@@ -414,6 +418,10 @@ int main(int argc, char* argv[])
   if (opt_info)
   {
     printf("Info\n");
+    pZeDMD->Close();
+    delete pZeDMD;
+    pZeDMD = nullptr;
+    return 0;
   }
 
   if (opt_brightness) pZeDMD->SetBrightness(brightness);
