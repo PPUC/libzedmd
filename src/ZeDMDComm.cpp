@@ -689,6 +689,12 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
   uint8_t ack[CTRL_CHARS_HEADER_SIZE + 1] = {0};
   int status = 0;
   uint16_t sent = 0;
+  uint8_t message[64];
+
+  while (sp_input_waiting(m_pSerialPort) > 0)
+  {
+    sp_nonblocking_read(m_pSerialPort, message, 64);
+  }
 
   while (sent < size && !m_stopFlag.load(std::memory_order_relaxed))
   {
@@ -729,9 +735,10 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
     }
     sent += status;
 
+    memset(ack, 0, CTRL_CHARS_HEADER_SIZE + 1);
     status = sp_blocking_read(m_pSerialPort, ack, CTRL_CHARS_HEADER_SIZE + 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
 
-    if (status < CTRL_CHARS_HEADER_SIZE + 1 || memcmp(ack, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE) != 0 ||
+    if (status < (CTRL_CHARS_HEADER_SIZE + 1) || memcmp(ack, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE) != 0 ||
         ack[CTRL_CHARS_HEADER_SIZE] == 'F')
     {
       if (memcmp(ack, guru, 4) == 0 || memcmp(&ack[1], guru, 4) == 0 || memcmp(&ack[2], guru, 4) == 0)

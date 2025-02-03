@@ -76,7 +76,7 @@ typedef enum
 
   ClearScreen = 0x0a,
 
-  KeepAlive = 0x0b,
+  KeepAlive = 0x0b, // 16
 
   DisableDebug = 0x62,
   EnableDebug = 0x63,

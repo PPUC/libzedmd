@@ -50,7 +50,7 @@
         "type": "cppdbg",
         "request": "launch",
         "program": "${workspaceFolder}/build/zedmd-client",
-        "args": [],
+        "args": ["-b", "5"],
         "stopAtEntry": false,
         "cwd": "${workspaceFolder}",
         "environment": [],

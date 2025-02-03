@@ -243,10 +243,10 @@ int main(int argc, char* argv[])
     }
   }
 
-  bool debug;
+  uint8_t debug;
   if (opt_debug)
   {
-    uint8_t debug = (uint8_t)std::stoi(std::string(opt_debug));
+    debug = (uint8_t)std::stoi(std::string(opt_debug));
     if (debug != 0 && debug != 1)
     {
       printf("Error: debug has to 0 or 1.\n");
@@ -353,6 +353,17 @@ int main(int argc, char* argv[])
     }
   }
 
+  uint16_t wifi_port;
+  if (opt_wifi_port)
+  {
+    wifi_port = (uint16_t)std::stoi(std::string(opt_wifi_port));
+    if (!(wifi_port >= 0 && wifi_port != 80))
+    {
+      printf("Error: WiFi port has to be greater than 0, but not 80.\n");
+      return -1;
+    }
+  }
+
   uint8_t y_offset;
   if (opt_y_offset)
   {
@@ -418,31 +429,92 @@ int main(int argc, char* argv[])
   if (opt_info)
   {
     printf("Info\n");
-    pZeDMD->Close();
-    delete pZeDMD;
-    pZeDMD = nullptr;
-    return 0;
   }
 
-  if (opt_brightness) pZeDMD->SetBrightness(brightness);
-  if (opt_debug)
-    pZeDMD->EnableDebug();
-  else
-    pZeDMD->DisableDebug();
-  if (opt_panel_clkphase) pZeDMD->SetBrightness(brightness);
-  if (opt_panel_driver) pZeDMD->SetBrightness(brightness);
-  if (opt_panel_i2sspeed) pZeDMD->SetBrightness(brightness);
-  if (opt_panel_latch_blanking) pZeDMD->SetBrightness(brightness);
-  if (opt_panel_min_refresh_rate) pZeDMD->SetBrightness(brightness);
-  if (opt_rgb_order) pZeDMD->SetRGBOrder(rgb_order);
-  if (opt_transport) pZeDMD->SetBrightness(brightness);
-  if (opt_udp_delay) pZeDMD->SetBrightness(brightness);
-  if (opt_usb_package_size) pZeDMD->SetBrightness(usb_package_size);
-  if (opt_wifi_ssid) pZeDMD->SetWiFiSSID(opt_wifi_ssid);
-  if (opt_wifi_password) pZeDMD->SetWiFiSSID(opt_wifi_password);
-  if (opt_wifi_port) pZeDMD->SetWiFiSSID(opt_wifi_port);
-  if (opt_y_offset) pZeDMD->SetBrightness(brightness);
-  pZeDMD->SaveSettings();
+  bool save = false;
+  if (opt_debug)  // debug should be first to debug commands below
+  {
+    if (1 == debug)
+      pZeDMD->EnableDebug();
+    else
+      pZeDMD->DisableDebug();
+    save = true;
+  }
+  if (opt_brightness)
+  {
+    pZeDMD->SetBrightness(brightness);
+    save = true;
+  }
+  if (opt_panel_clkphase)
+  {
+    pZeDMD->SetPanelClockPhase(panel_clkphase);
+    save = true;
+  }
+  if (opt_panel_driver)
+  {
+    pZeDMD->SetPanelDriver(panel_driver);
+    save = true;
+  }
+  if (opt_panel_i2sspeed)
+  {
+    pZeDMD->SetBrightness(brightness);
+    save = true;
+  }
+  if (opt_panel_latch_blanking)
+  {
+    pZeDMD->SetPanelLatchBlanking(panel_latch_blanking);
+    save = true;
+  }
+  if (opt_panel_min_refresh_rate)
+  {
+    pZeDMD->SetPanelMinRefreshRate(panel_min_refresh_rate);
+    save = true;
+  }
+  if (opt_rgb_order)
+  {
+    pZeDMD->SetRGBOrder(rgb_order);
+    save = true;
+  }
+  if (opt_transport)
+  {
+    pZeDMD->SetTransport(transport);
+    save = true;
+  }
+  if (opt_udp_delay)
+  {
+    pZeDMD->SetUdpDelay(udp_delay);
+    save = true;
+  }
+  if (opt_usb_package_size)
+  {
+    pZeDMD->SetUsbPackageSize(usb_package_size);
+    save = true;
+  }
+  if (opt_wifi_ssid)
+  {
+    pZeDMD->SetWiFiSSID(opt_wifi_ssid);
+    save = true;
+  }
+  if (opt_wifi_password)
+  {
+    pZeDMD->SetWiFiPassword(opt_wifi_password);
+    save = true;
+  }
+  if (opt_wifi_port)
+  {
+    pZeDMD->SetWiFiPort(wifi_port);
+    save = true;
+  }
+  if (opt_y_offset)
+  {
+    pZeDMD->SetBrightness(brightness);
+    save = true;
+  }
+
+  if (save)
+  {
+    pZeDMD->SaveSettings();
+  }
 
   pZeDMD->Close();
   delete pZeDMD;

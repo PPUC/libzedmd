@@ -318,7 +318,7 @@ void ZeDMD::SaveSettings()
     m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::SaveSettings);
   }
   // Avoid that client resets the device before settings are saved.
-  std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+  std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 }
 
 void ZeDMD::EnableUpscaling()
@@ -332,32 +332,36 @@ void ZeDMD::DisableUpscaling() { m_upscaling = false; }
 void ZeDMD::SetWiFiSSID(const char* const ssid)
 {
   int size = strlen(ssid);
-  uint8_t data[33] = {0};
-  data[0] = (uint8_t)size;
-  memcpy(&data[1], (uint8_t*)ssid, size);
-  if (m_usb)
+  if (size <= 32)
   {
-    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetWiFiSSID, data, size + 1);
-  }
-  else if (m_wifi)
-  {
-    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::SetWiFiSSID, data, size + 1);
+    uint8_t data[32] = {0};
+    memcpy(data, (uint8_t*)ssid, size);
+    if (m_usb)
+    {
+      m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetWiFiSSID, data, size);
+    }
+    else if (m_wifi)
+    {
+      m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::SetWiFiSSID, data, size);
+    }
   }
 }
 
 void ZeDMD::SetWiFiPassword(const char* const password)
 {
   int size = strlen(password);
-  uint8_t data[33] = {0};
-  data[0] = (uint8_t)size;
-  memcpy(&data[1], (uint8_t*)password, size);
-  if (m_usb)
+  if (size <= 32)
   {
-    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetWiFiPassword, data, size + 1);
-  }
-  else if (m_wifi)
-  {
-    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::SetWiFiPassword, data, size + 1);
+    uint8_t data[32] = {0};
+    memcpy(data, (uint8_t*)password, size);
+    if (m_usb)
+    {
+      m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetWiFiPassword, data, size);
+    }
+    else if (m_wifi)
+    {
+      m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::SetWiFiPassword, data, size);
+    }
   }
 }
 
