@@ -345,8 +345,8 @@ int main(int argc, char* argv[])
   uint16_t usb_package_size;
   if (opt_usb_package_size)
   {
-    usb_package_size = (uint8_t)std::stoi(std::string(opt_usb_package_size));
-    if (!(usb_package_size >= 32 && usb_package_size <= 1920 && (usb_package_size % 32 == 0)))
+    usb_package_size = (uint16_t)std::stoi(std::string(opt_usb_package_size));
+    if (!(usb_package_size >= 32 && usb_package_size <= 1920 && ((usb_package_size % 32) == 0)))
     {
       printf("Error: usb-package-size has to be betwen 32 and 1920, using steps of 32, so 32, 64, 96, 128, ...\n");
       return -1;
