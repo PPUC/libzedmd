@@ -280,7 +280,7 @@ int main(int argc, char* argv[])
   if (opt_panel_i2sspeed)
   {
     panel_i2sspeed = (uint8_t)std::stoi(std::string(opt_panel_i2sspeed));
-    if (panel_i2sspeed != 8 && panel_clkphase != 16 && panel_clkphase != 20)
+    if (panel_i2sspeed != 8 && panel_i2sspeed != 16 && panel_i2sspeed != 20)
     {
       printf("Error: panel-i2sspeed has to be 8, 16 or 20.\n");
       return -1;
@@ -457,7 +457,7 @@ int main(int argc, char* argv[])
   }
   if (opt_panel_i2sspeed)
   {
-    pZeDMD->SetBrightness(brightness);
+    pZeDMD->SetPanelI2sSpeed(panel_i2sspeed);
     save = true;
   }
   if (opt_panel_latch_blanking)
