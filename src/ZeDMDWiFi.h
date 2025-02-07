@@ -24,6 +24,10 @@ class ZeDMDWiFi : public ZeDMDComm
   virtual bool Connect(const char* name_or_ip);
   virtual void Disconnect();
   virtual bool IsConnected();
+  virtual uint8_t GetTransport();
+  virtual const char* GetWiFiSSID();
+  virtual void StoreWiFiPassword();
+  virtual int GetWiFiPort();
 
  protected:
   bool DoConnect(const char* ip);
@@ -38,13 +42,14 @@ class ZeDMDWiFi : public ZeDMDComm
   std::string ReceiveStringPayload();
 
  private:
+  char m_ssid[32] = {0};
   int m_httpSocket = -1;
+  int m_port = -1;
   struct sockaddr_in m_httpServer;
   sockpp::udp_socket* m_udpSocket = nullptr;
   sockpp::inet_address* m_udpServer = nullptr;
   sockpp::tcp_connector* m_tcpConnector = nullptr;
   bool m_connected = false;
   bool m_tcp = false;
-  uint8_t m_udpDelay = 5;
   bool m_wsaStarted = false;
 };

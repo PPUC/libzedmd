@@ -121,8 +121,133 @@ const char* ZeDMD::GetFirmwareVersion()
   {
     return m_pZeDMDComm->GetFirmwareVersion();
   }
-
   return m_pZeDMDWiFi->GetFirmwareVersion();
+}
+
+const char* ZeDMD::GetWiFiSSID()
+{
+  if (m_usb)
+  {
+    return m_pZeDMDComm->GetWiFiSSID();
+  }
+  return m_pZeDMDWiFi->GetWiFiSSID();
+}
+
+int ZeDMD::GetWiFiPort()
+{
+  if (m_usb)
+  {
+    return m_pZeDMDComm->GetWiFiPort();
+  }
+  return m_pZeDMDWiFi->GetWiFiPort();
+}
+
+void ZeDMD::StoreWiFiPassword()
+{
+  if (m_usb)
+  {
+    return m_pZeDMDComm->StoreWiFiPassword();
+  }
+  return m_pZeDMDWiFi->StoreWiFiPassword();
+}
+
+uint8_t ZeDMD::GetRGBOrder()
+{
+  if (m_usb)
+  {
+    return m_pZeDMDComm->GetRGBOrder();
+  }
+  return m_pZeDMDWiFi->GetRGBOrder();
+}
+
+uint8_t ZeDMD::GetBrightness()
+{
+  if (m_usb)
+  {
+    return m_pZeDMDComm->GetBrightness();
+  }
+  return m_pZeDMDWiFi->GetBrightness();
+}
+
+uint8_t ZeDMD::GetPanelClockPhase()
+{
+  if (m_usb)
+  {
+    return m_pZeDMDComm->GetPanelClockPhase();
+  }
+  return m_pZeDMDWiFi->GetPanelClockPhase();
+}
+
+uint8_t ZeDMD::GetPanelI2sSpeed()
+{
+  if (m_usb)
+  {
+    return m_pZeDMDComm->GetPanelI2sSpeed();
+  }
+  return m_pZeDMDWiFi->GetPanelI2sSpeed();
+}
+
+uint8_t ZeDMD::GetPanelLatchBlanking()
+{
+  if (m_usb)
+  {
+    return m_pZeDMDComm->GetPanelLatchBlanking();
+  }
+  return m_pZeDMDWiFi->GetPanelLatchBlanking();
+}
+
+uint8_t ZeDMD::GetPanelMinRefreshRate()
+{
+  if (m_usb)
+  {
+    return m_pZeDMDComm->GetPanelMinRefreshRate();
+  }
+  return m_pZeDMDWiFi->GetPanelMinRefreshRate();
+}
+
+uint8_t ZeDMD::GetPanelDriver()
+{
+  if (m_usb)
+  {
+    return m_pZeDMDComm->GetPanelDriver();
+  }
+  return m_pZeDMDWiFi->GetPanelDriver();
+}
+
+uint8_t ZeDMD::GetTransport()
+{
+  if (m_usb)
+  {
+    return m_pZeDMDComm->GetTransport();
+  }
+  return m_pZeDMDWiFi->GetTransport();
+}
+
+uint8_t ZeDMD::GetUdpDelay()
+{
+  if (m_usb)
+  {
+    return m_pZeDMDComm->GetUdpDelay();
+  }
+  return m_pZeDMDWiFi->GetUdpDelay();
+}
+
+uint16_t ZeDMD::GetUsbPackageSize()
+{
+  if (m_usb)
+  {
+    return m_pZeDMDComm->GetUsbPackageSize();
+  }
+  return m_pZeDMDWiFi->GetUsbPackageSize();
+}
+
+uint8_t ZeDMD::GetYOffset()
+{
+  if (m_usb)
+  {
+    return m_pZeDMDComm->GetYOffset();
+  }
+  return m_pZeDMDWiFi->GetYOffset();
 }
 
 void ZeDMD::LedTest()
@@ -623,6 +748,34 @@ ZEDMDAPI ZeDMD* ZeDMD_GetInstance() { return new ZeDMD(); }
 ZEDMDAPI const char* ZeDMD_GetVersion() { return ZEDMD_VERSION; };
 
 ZEDMDAPI const char* ZeDMD_GetFirmwareVersion(ZeDMD* pZeDMD) { return pZeDMD->GetFirmwareVersion(); };
+
+ZEDMDAPI uint8_t ZeDMD_GetRGBOrder(ZeDMD* pZeDMD) { return pZeDMD->GetRGBOrder(); };
+
+ZEDMDAPI uint8_t ZeDMD_GetBrightness(ZeDMD* pZeDMD) { return pZeDMD->GetBrightness(); };
+
+ZEDMDAPI const char* ZeDMD_GetWiFiSSID(ZeDMD* pZeDMD) { return pZeDMD->GetWiFiSSID(); };
+
+ZEDMDAPI void ZeDMD_StoreWiFiPassword(ZeDMD* pZeDMD) { return pZeDMD->StoreWiFiPassword(); };
+
+ZEDMDAPI int ZeDMD_GetWiFiPort(ZeDMD* pZeDMD) { return pZeDMD->GetWiFiPort(); };
+
+ZEDMDAPI uint8_t ZeDMD_GetPanelClockPhase(ZeDMD* pZeDMD) { return pZeDMD->GetPanelClockPhase(); };
+
+ZEDMDAPI uint8_t ZeDMD_GetPanelI2sSpeed(ZeDMD* pZeDMD) { return pZeDMD->GetPanelI2sSpeed(); };
+
+ZEDMDAPI uint8_t ZeDMD_GetPanelLatchBlanking(ZeDMD* pZeDMD) { return pZeDMD->GetPanelLatchBlanking(); };
+
+ZEDMDAPI uint8_t ZeDMD_GetPanelMinRefreshRate(ZeDMD* pZeDMD) { return pZeDMD->GetPanelMinRefreshRate(); };
+
+ZEDMDAPI uint8_t ZeDMD_GetPanelDriver(ZeDMD* pZeDMD) { return pZeDMD->GetPanelDriver(); };
+
+ZEDMDAPI uint8_t ZeDMD_GetTransport(ZeDMD* pZeDMD) { return pZeDMD->GetTransport(); };
+
+ZEDMDAPI uint8_t ZeDMD_GetUdpDelay(ZeDMD* pZeDMD) { return pZeDMD->GetUdpDelay(); };
+
+ZEDMDAPI uint16_t ZeDMD_GetUsbPackageSize(ZeDMD* pZeDMD) { return pZeDMD->GetUsbPackageSize(); };
+
+ZEDMDAPI uint8_t ZeDMD_GetYOffset(ZeDMD* pZeDMD) { return pZeDMD->GetYOffset(); };
 
 ZEDMDAPI void ZeDMD_IgnoreDevice(ZeDMD* pZeDMD, const char* const ignore_device)
 {

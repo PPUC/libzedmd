@@ -51,15 +51,11 @@ typedef enum
   DisableUpscaling = 0x14,
   Brightness = 0x16,
   RGBOrder = 0x17,
-  GetBrightness = 0x18,
-  GetRGBOrder = 0x19,
   SetWiFiSSID = 0x1b,
   SetWiFiPassword = 0x1c,
   SetWiFiPort = 0x1d,
   SaveSettings = 0x1e,
   Reset = 0x1f,
-  GetVersionBytes = 0x20,
-  GetResolution = 0x21,
 
   SetClkphase = 0x28,
   SetI2sspeed = 0x29,
@@ -76,7 +72,7 @@ typedef enum
 
   ClearScreen = 0x0a,
 
-  KeepAlive = 0x0b, // 16
+  KeepAlive = 0x0b,  // 16
 
   DisableDebug = 0x62,
   EnableDebug = 0x63,
@@ -205,6 +201,10 @@ class ZeDMDComm
   virtual bool Connect();
   virtual void Disconnect();
   virtual bool IsConnected();
+  virtual uint8_t GetTransport();
+  virtual const char* GetWiFiSSID();
+  virtual void StoreWiFiPassword();
+  virtual int GetWiFiPort();
 
   void Run();
   void QueueFrame(uint8_t* buffer, int size);
@@ -220,6 +220,16 @@ class ZeDMDComm
   uint16_t const GetHeight();
   bool const IsS3();
   const char* GetFirmwareVersion() { return (const char*)m_firmwareVersion; }
+  uint8_t GetBrightness() { return m_brightness; }
+  uint8_t GetRGBOrder() { return m_rgbMode; }
+  uint8_t GetYOffset() { return m_yOffset; }
+  uint8_t GetPanelClockPhase() { return m_panelClkphase; }
+  uint8_t GetPanelDriver() { return m_panelDriver; }
+  uint8_t GetPanelI2sSpeed() { return m_panelI2sspeed; }
+  uint8_t GetPanelLatchBlanking() { return m_panelLatchBlanking; }
+  uint8_t GetPanelMinRefreshRate() { return m_panelMinRefreshRate; }
+  uint8_t GetUdpDelay() { return m_udpDelay; }
+  uint16_t GetUsbPackageSize() { return m_writeAtOnce; }
 
  protected:
   virtual bool SendChunks(uint8_t* pData, uint16_t size);
@@ -237,6 +247,16 @@ class ZeDMDComm
   std::atomic<bool> m_stopFlag;
   std::atomic<bool> m_fullFrameFlag;
   std::chrono::milliseconds m_keepAliveInterval;
+
+  uint8_t m_brightness = 2;
+  uint8_t m_rgbMode = 0;
+  uint8_t m_yOffset = 0;
+  uint8_t m_panelClkphase = 0;
+  uint8_t m_panelDriver = 0;
+  uint8_t m_panelI2sspeed = 8;
+  uint8_t m_panelLatchBlanking = 2;
+  uint8_t m_panelMinRefreshRate = 30;
+  uint8_t m_udpDelay = 5;
 
  private:
   bool Connect(char* pName);
@@ -256,7 +276,6 @@ class ZeDMDComm
     (defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \
     defined(__ANDROID__))
   struct sp_port* m_pSerialPort;
-  struct sp_port_config* m_pSerialPortConfig;
 #endif
   std::queue<ZeDMDFrame> m_frames;
   std::thread* m_pThread;

@@ -15,7 +15,6 @@ ZeDMDComm::ZeDMDComm()
     (defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \
     defined(__ANDROID__))
   m_pSerialPort = nullptr;
-  m_pSerialPortConfig = nullptr;
 #endif
 }
 
@@ -317,38 +316,49 @@ bool ZeDMDComm::Connect()
   {
     Log("Searching for ZeDMD...");
 
-    struct sp_port** ppPorts;
-    sp_return result = sp_list_ports(&ppPorts);
-    if (result == SP_OK)
+    // Probe USB devices first, before native devices.
+    for (uint8_t usb = 1; usb >= 0; usb--)
     {
-      for (int i = 0; ppPorts[i]; i++)
+      struct sp_port** ppPorts;
+      sp_return result = sp_list_ports(&ppPorts);
+      if (result == SP_OK)
       {
-        sp_transport transport = sp_get_port_transport(ppPorts[i]);
-        // Ignore SP_TRANSPORT_BLUETOOTH.
-        if (SP_TRANSPORT_USB != transport && SP_TRANSPORT_NATIVE != transport) continue;
-
-        char* pDevice = sp_get_port_name(ppPorts[i]);
-
-        bool ignored = false;
-        for (int j = 0; j < m_ignoredDevicesCounter; j++)
+        for (int i = 0; ppPorts[i]; i++)
         {
-          ignored = (strcmp(pDevice, m_ignoredDevices[j]) == 0);
-          if (ignored)
+          sp_transport transport = sp_get_port_transport(ppPorts[i]);
+          // Ignore SP_TRANSPORT_BLUETOOTH.
+          if (SP_TRANSPORT_USB != transport && SP_TRANSPORT_NATIVE != transport) continue;
+
+          if (usb == 1 && SP_TRANSPORT_USB != transport) continue;
+          if (usb == 0 && SP_TRANSPORT_NATIVE != transport) continue;
+
+          char* pDevice = sp_get_port_name(ppPorts[i]);
+
+          bool ignored = false;
+          for (int j = 0; j < m_ignoredDevicesCounter; j++)
+          {
+            ignored = (strcmp(pDevice, m_ignoredDevices[j]) == 0);
+            if (ignored)
+            {
+              break;
+            }
+          }
+          // Ignore Bluetooth and debug on macOS.
+          if (!ignored && !strstr(pDevice, "tooth") && !strstr(pDevice, "debug"))
+          {
+            success = Connect(pDevice);
+          }
+          if (success)
           {
             break;
           }
         }
-        // Ignore Bluetooth and debug on macOS.
-        if (!ignored && !strstr(pDevice, "tooth") && !strstr(pDevice, "debug"))
-        {
-          success = Connect(pDevice);
-        }
-        if (success)
-        {
-          break;
-        }
+        sp_free_port_list(ppPorts);
       }
-      sp_free_port_list(ppPorts);
+      if (success)
+      {
+        break;
+      }
     }
 
     if (!success)
@@ -371,9 +381,6 @@ void ZeDMDComm::Disconnect()
 #if !(                                                                                                                \
     (defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \
     defined(__ANDROID__))
-  sp_free_config(m_pSerialPortConfig);
-  m_pSerialPortConfig = nullptr;
-
   sp_close(m_pSerialPort);
   sp_free_port(m_pSerialPort);
   m_pSerialPort = nullptr;
@@ -392,19 +399,6 @@ bool ZeDMDComm::Connect(char* pDevice)
   {
     return false;
   }
-
-  result = sp_open(m_pSerialPort, SP_MODE_READ_WRITE);
-  if (result != SP_OK)
-  {
-    Log("Unable to open device %s, error code %d", pDevice, result);
-    sp_free_port(m_pSerialPort);
-    m_pSerialPort = nullptr;
-
-    return false;
-  }
-
-  sp_new_config(&m_pSerialPortConfig);
-  sp_get_config(m_pSerialPort, m_pSerialPortConfig);
 
   if (SP_TRANSPORT_USB == transport)
   {
@@ -454,12 +448,63 @@ bool ZeDMDComm::Connect(char* pDevice)
 
   Log("ZeDMD candidate: device=%s", pDevice);
 
-  sp_set_baudrate(m_pSerialPort, m_cdc ? 115200 : (m_s3 ? ZEDMD_S3_COMM_BAUD_RATE : ZEDMD_COMM_BAUD_RATE));
-  sp_set_bits(m_pSerialPort, 8);
-  sp_set_parity(m_pSerialPort, SP_PARITY_NONE);
-  sp_set_stopbits(m_pSerialPort, 1);
-  sp_set_xon_xoff(m_pSerialPort, SP_XONXOFF_DISABLED);
-  sp_set_flowcontrol(m_pSerialPort, SP_FLOWCONTROL_NONE);
+  result = sp_open(m_pSerialPort, SP_MODE_READ_WRITE);
+  if (result != SP_OK)
+  {
+    Log("Unable to open device %s, error code %d", pDevice, result);
+    sp_free_port(m_pSerialPort);
+    m_pSerialPort = nullptr;
+
+    return false;
+  }
+  if (SP_OK != sp_set_baudrate(m_pSerialPort, m_cdc ? 115200 : (m_s3 ? ZEDMD_S3_COMM_BAUD_RATE : ZEDMD_COMM_BAUD_RATE)))
+  {
+    Log("Unable to set baudrate on device %s, error code %d", pDevice, result);
+    sp_free_port(m_pSerialPort);
+    m_pSerialPort = nullptr;
+
+    return false;
+  }
+  if (SP_OK != sp_set_bits(m_pSerialPort, 8))
+  {
+    Log("Unable to set bits on device %s, error code %d", pDevice, result);
+    sp_free_port(m_pSerialPort);
+    m_pSerialPort = nullptr;
+
+    return false;
+  }
+  if (SP_OK != sp_set_parity(m_pSerialPort, SP_PARITY_NONE))
+  {
+    Log("Unable to set parity on device %s, error code %d", pDevice, result);
+    sp_free_port(m_pSerialPort);
+    m_pSerialPort = nullptr;
+
+    return false;
+  }
+  if (SP_OK != sp_set_stopbits(m_pSerialPort, 1))
+  {
+    Log("Unable to to set stopbits on device %s, error code %d", pDevice, result);
+    sp_free_port(m_pSerialPort);
+    m_pSerialPort = nullptr;
+
+    return false;
+  }
+  if (SP_OK != sp_set_xon_xoff(m_pSerialPort, SP_XONXOFF_DISABLED))
+  {
+    Log("Unable to set xon xoff on device %s, error code %d", pDevice, result);
+    sp_free_port(m_pSerialPort);
+    m_pSerialPort = nullptr;
+
+    return false;
+  }
+  if (SP_OK != sp_set_flowcontrol(m_pSerialPort, SP_FLOWCONTROL_NONE))
+  {
+    Log("Unable to set flowcontrol on device %s, error code %d", pDevice, result);
+    sp_free_port(m_pSerialPort);
+    m_pSerialPort = nullptr;
+
+    return false;
+  }
 
   Reset();
 
@@ -513,6 +558,16 @@ bool ZeDMDComm::Handshake(char* pDevice)
         m_zoneHeight = m_height / 8;
         snprintf(m_firmwareVersion, 12, "%d.%d.%d", data[8], data[9], data[10]);
         m_writeAtOnce = data[11] + data[12] * 256;
+
+        m_brightness = data[13];
+        m_rgbMode = data[14];
+        m_yOffset = data[15];
+        m_panelClkphase = data[16];
+        m_panelDriver = data[17];
+        m_panelI2sspeed = data[18];
+        m_panelLatchBlanking = data[19];
+        m_panelMinRefreshRate = data[20];
+        m_udpDelay = data[21];
 
         // Store the device name for reconnects.
         SetDevice(pDevice);
@@ -807,3 +862,11 @@ uint16_t const ZeDMDComm::GetWidth() { return m_width; }
 uint16_t const ZeDMDComm::GetHeight() { return m_height; }
 
 bool const ZeDMDComm::IsS3() { return m_s3; }
+
+uint8_t ZeDMDComm::GetTransport() { return 0; }
+
+const char* ZeDMDComm::GetWiFiSSID() { return ""; }
+
+void ZeDMDComm::StoreWiFiPassword() {}
+
+int ZeDMDComm::GetWiFiPort() { return 3333; };

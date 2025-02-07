@@ -7,7 +7,7 @@
 
 #define ZEDMD_VERSION_MAJOR 0  // X Digits
 #define ZEDMD_VERSION_MINOR 9  // Max 2 Digits
-#define ZEDMD_VERSION_PATCH 1  // Max 2 Digits
+#define ZEDMD_VERSION_PATCH 2  // Max 2 Digits
 
 #define _ZEDMD_STR(x) #x
 #define ZEDMD_STR(x) _ZEDMD_STR(x)
@@ -199,6 +199,132 @@ class ZEDMDAPI ZeDMD
    */
   const char* GetFirmwareVersion();
 
+  /** @brief Get the RGB order
+   *
+   *  ZeDMD supports different LED panels.
+   *  Depending on the panel, the RGB order needs to be adjusted.
+   *  @see https://github.com/PPUC/ZeDMD
+   *
+   *  @return a value between 0 and 5
+   */
+  uint8_t GetRGBOrder();
+
+  /** @brief Get the brightness
+   *
+   *  Get the brightness of the LED panels.
+   *  @see https://github.com/PPUC/ZeDMD
+   *
+   *  @return a value between 0 and 15
+   */
+  uint8_t GetBrightness();
+
+  /** @brief Get the WiFi SSID
+   *
+   *  The WiFi SSID ZeDMD should connect with.
+   *  @see https://github.com/PPUC/ZeDMD
+   *
+   *  @return the SSID
+   */
+  const char* GetWiFiSSID();
+
+  /** @brief Get the WiFi Password
+   *
+   *  Get the WiFi Password ZeDMD should use to connect and store it internally.
+   *  @see SetStoredWifiPassword()
+   */
+  void StoreWiFiPassword();
+
+  /** @brief Get the WiFi Port
+   *
+   *  Get the Port ZeDMD should listen at over WiFi.
+   *  @see https://github.com/PPUC/ZeDMD
+   *
+   *  @return the port
+   */
+  int GetWiFiPort();
+
+  /** @brief Get the panel clock phase
+   *
+   *  Get the clock phase of the LED panels.
+   *  @see https://github.com/PPUC/ZeDMD
+   *
+   *  @return a value between 0 and 1
+   */
+  uint8_t GetPanelClockPhase();
+
+  /** @brief Get the panel i2s speed
+   *
+   *  Get the i2s speed of the LED panels.
+   *  @see https://github.com/PPUC/ZeDMD
+   *
+   *  @return a value of 8, 16 or 20
+   */
+  uint8_t GetPanelI2sSpeed();
+
+  /** @brief Get the panel latch blanking
+   *
+   *  Get the latch blanking of the LED panels.
+   *  @see https://github.com/PPUC/ZeDMD
+   *
+   *  @return a value between 0 and 4
+   */
+  uint8_t GetPanelLatchBlanking();
+
+  /** @brief Get the panel minimal refresh rate
+   *
+   *  Get the minimal refresh rate of the LED panels.
+   *  @see https://github.com/PPUC/ZeDMD
+   *
+   *  @return a value between 0 and 1
+   */
+  uint8_t GetPanelMinRefreshRate();
+
+  /** @brief Get the panel driver
+   *
+   *  Get the driver of the LED panels.
+   *  @see https://github.com/PPUC/ZeDMD
+   *
+   *  @return  a value between 0 and 6; 0(SHIFTREG), 1(FM6124), 2(FM6126A), 3(ICN2038S), 4(MBI5124), 5(SM5266P),
+   * 6(DP3246_SM5368)
+   */
+  uint8_t GetPanelDriver();
+
+  /** @brief Get the transport
+   *
+   *  Get the transport of ZeDMD.
+   *  @see https://github.com/PPUC/ZeDMD
+   *
+   *  @return a value between 0 and 3; 0(USB), 1(UDP), 2(TCP), 3(SPI)
+   */
+  uint8_t GetTransport();
+
+  /** @brief Get the UDP delay
+   *
+   *  Get the UDP Delay.
+   *  @see https://github.com/PPUC/ZeDMD
+   *
+   *  @return a value between 0 and 9
+   */
+  uint8_t GetUdpDelay();
+
+  /** @brief Get the USB package size
+   *
+   *  Get the USB package size.
+   *  @see https://github.com/PPUC/ZeDMD
+   *
+   *  @return a value between 32 and 1920
+   */
+  uint16_t GetUsbPackageSize();
+
+  /** @brief Get the Y-offset of 128x64 panels
+   *
+   *  Get the Y-offset of 128x64 panels.
+   *  @see https://github.com/PPUC/ZeDMD
+   *
+   *  @return a value between 0 and 32
+   */
+  uint8_t GetYOffset();
+
   /** @brief Test the panels attached to ZeDMD
    *
    *  Renders a sequence of full red, full green and full blue frames.
@@ -243,7 +369,7 @@ class ZEDMDAPI ZeDMD
    *  Set the WiFi SSID ZeDMD should connect with.
    *  @see https://github.com/PPUC/ZeDMD
    *
-   *  @param brightness a value between 0 and 15
+   *  @param ssid the SSID
    */
   void SetWiFiSSID(const char* const ssid);
 
@@ -255,6 +381,15 @@ class ZEDMDAPI ZeDMD
    *  @param password the password
    */
   void SetWiFiPassword(const char* const password);
+
+  /** @brief Set the stored WiFi Password
+   *
+   *  Set the WiFi Password ZeDMD should use to connect form internal storage.
+   *  @see StoreWiFiPassword()
+   *
+   *  @param password the password
+   */
+  void SetStoredWiFiPassword();
 
   /** @brief Set the WiFi Port
    *
@@ -288,11 +423,11 @@ class ZEDMDAPI ZeDMD
    *  Set the latch blanking of the LED panels.
    *  @see https://github.com/PPUC/ZeDMD
    *
-   *  @param clkphase a value between 0 and 4
+   *  @param latchBlanking a value between 0 and 4
    */
   void SetPanelLatchBlanking(uint8_t latchBlanking);
 
-  /** @brief Set the panel minimla refresh rate
+  /** @brief Set the panel minimal refresh rate
    *
    *  Set the minimal refresh rate of the LED panels.
    *  @see https://github.com/PPUC/ZeDMD
@@ -430,6 +565,20 @@ extern "C"
   extern ZEDMDAPI ZeDMD* ZeDMD_GetInstance();
   extern ZEDMDAPI const char* ZeDMD_GetVersion();
   extern ZEDMDAPI const char* ZeDMD_GetFirmwareVersion(ZeDMD* pZeDMD);
+  extern ZEDMDAPI uint8_t ZeDMD_GetRGBOrder(ZeDMD* pZeDMD);
+  extern ZEDMDAPI uint8_t ZeDMD_GetBrightness(ZeDMD* pZeDMD);
+  extern ZEDMDAPI const char* ZeDMD_GetWiFiSSID(ZeDMD* pZeDMD);
+  extern ZEDMDAPI void ZeDMD_StoreWiFiPassword(ZeDMD* pZeDMD);
+  extern ZEDMDAPI int ZeDMD_GetWiFiPort(ZeDMD* pZeDMD);
+  extern ZEDMDAPI uint8_t ZeDMD_GetPanelClockPhase(ZeDMD* pZeDMD);
+  extern ZEDMDAPI uint8_t ZeDMD_GetPanelI2sSpeed(ZeDMD* pZeDMD);
+  extern ZEDMDAPI uint8_t ZeDMD_GetPanelLatchBlanking(ZeDMD* pZeDMD);
+  extern ZEDMDAPI uint8_t ZeDMD_GetPanelMinRefreshRate(ZeDMD* pZeDMD);
+  extern ZEDMDAPI uint8_t ZeDMD_GetPanelDriver(ZeDMD* pZeDMD);
+  extern ZEDMDAPI uint8_t ZeDMD_GetTransport(ZeDMD* pZeDMD);
+  extern ZEDMDAPI uint8_t ZeDMD_GetUdpDelay(ZeDMD* pZeDMD);
+  extern ZEDMDAPI uint16_t ZeDMD_GetUsbPackageSize(ZeDMD* pZeDMD);
+  extern ZEDMDAPI uint8_t ZeDMD_GetYOffset(ZeDMD* pZeDMD);
   extern ZEDMDAPI void ZeDMD_IgnoreDevice(ZeDMD* pZeDMD, const char* const ignore_device);
   extern ZEDMDAPI void ZeDMD_SetDevice(ZeDMD* pZeDMD, const char* const device);
   extern ZEDMDAPI bool ZeDMD_Open(ZeDMD* pZeDMD);

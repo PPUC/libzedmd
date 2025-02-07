@@ -53,7 +53,7 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
   m_httpServer.sin_port = htons(80);
   m_httpServer.sin_addr.s_addr = inet_addr(ip);
 
-  int port = 3333;
+  m_port = 3333;
   m_udpDelay = 5;
   uint8_t tries;
   for (tries = 0; tries < 2; tries++)
@@ -102,12 +102,17 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
             }
             case 5:
             {
-              port = std::stoi(item);
+              m_port = std::stoi(item);
               break;
             }
             case 6:
             {
               m_udpDelay = std::stoi(item);
+              break;
+            }
+            case 7:
+            {
+              strncpy(m_ssid, item.c_str(), sizeof(m_ssid) - 1);
               break;
             }
           }
@@ -173,15 +178,24 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
       return false;
     }
 
-    int port = 3333;
+    m_port = 3333;
     if (SendGetRequest("/get_port"))
     {
-      port = (int)ReceiveIntegerPayload();
+      m_port = (int)ReceiveIntegerPayload();
     }
     else
     {
       Log("ZeDMD port could not be detected");
       return false;
+    }
+
+    if (SendGetRequest("/get_ssid"))
+    {
+      strncpy(m_ssid, ReceiveCStringPayload(), sizeof(m_ssid) - 1);
+    }
+    else
+    {
+      // Log("ZeDMD SSID could not be detected, maybe the firmware needs to be updated.");
     }
   }
 
@@ -199,10 +213,10 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
 
   if (m_tcp)
   {
-    m_tcpConnector = new sockpp::tcp_connector({ip, (in_port_t)port});
+    m_tcpConnector = new sockpp::tcp_connector({ip, (in_port_t)m_port});
     if (!m_tcpConnector)
     {
-      Log("Unable to connect ZeDMD TCP streaming port %s:%d", ip, port);
+      Log("Unable to connect ZeDMD TCP streaming port %s:%d", ip, m_port);
       return false;
     }
 
@@ -222,7 +236,7 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
   else
   {
     m_udpSocket = new sockpp::udp_socket();
-    m_udpServer = new sockpp::inet_address(ip, (in_port_t)port);
+    m_udpServer = new sockpp::inet_address(ip, (in_port_t)m_port);
     m_keepAliveInterval = std::chrono::milliseconds(ZEDMD_WIFI_UDP_KEEP_ALIVE_INTERVAL);
   }
 
@@ -456,3 +470,11 @@ bool ZeDMDWiFi::SendChunks(uint8_t* pData, uint16_t size)
 
   return true;
 }
+
+uint8_t ZeDMDWiFi::GetTransport() { return m_tcp ? 2 : 1; }
+
+const char* ZeDMDWiFi::GetWiFiSSID() { return (const char*)m_ssid; }
+
+void ZeDMDWiFi::StoreWiFiPassword() {}
+
+int ZeDMDWiFi::GetWiFiPort() { return m_port; };
