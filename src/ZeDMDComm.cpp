@@ -317,7 +317,7 @@ bool ZeDMDComm::Connect()
     Log("Searching for ZeDMD...");
 
     // Probe USB devices first, before native devices.
-    for (uint8_t usb = 1; usb >= 0; usb--)
+    for (int usb = 1; usb >= 0; usb--)
     {
       struct sp_port** ppPorts;
       sp_return result = sp_list_ports(&ppPorts);
