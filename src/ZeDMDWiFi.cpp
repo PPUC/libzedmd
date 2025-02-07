@@ -66,7 +66,9 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
       std::stringstream ss(handshake);
       std::string item;
 
-      for (uint8_t pos = 0; pos <= 6; pos++)
+      // Log("Handshake: %s", handshake.c_str());
+
+      for (uint8_t pos = 0; pos <= 16; pos++)
       {
         if (std::getline(ss, item, '|'))
         {
@@ -112,6 +114,51 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
             }
             case 7:
             {
+              m_writeAtOnce = std::stoi(item);
+              break;
+            }
+            case 8:
+            {
+              m_brightness = std::stoi(item);
+              break;
+            }
+            case 9:
+            {
+              m_rgbMode = std::stoi(item);
+              break;
+            }
+            case 10:
+            {
+              m_panelClkphase = std::stoi(item);
+              break;
+            }
+            case 11:
+            {
+              m_panelDriver = std::stoi(item);
+              break;
+            }
+            case 12:
+            {
+              m_panelI2sspeed = std::stoi(item);
+              break;
+            }
+            case 13:
+            {
+              m_panelLatchBlanking = std::stoi(item);
+              break;
+            }
+            case 14:
+            {
+              m_panelMinRefreshRate = std::stoi(item);
+              break;
+            }
+            case 15:
+            {
+              m_yOffset = std::stoi(item);
+              break;
+            }
+            case 16:
+            {
               strncpy(m_ssid, item.c_str(), sizeof(m_ssid) - 1);
               break;
             }
@@ -124,6 +171,8 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
   if (tries < 3)
   {
     Log("ZeDMD fast handshake failed ... fallback to single requests");
+
+    // Just get the essential things now for normal usage, not for the zedmd-client info.
 
     if (SendGetRequest("/get_version"))
     {
@@ -187,15 +236,6 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
     {
       Log("ZeDMD port could not be detected");
       return false;
-    }
-
-    if (SendGetRequest("/get_ssid"))
-    {
-      strncpy(m_ssid, ReceiveCStringPayload(), sizeof(m_ssid) - 1);
-    }
-    else
-    {
-      // Log("ZeDMD SSID could not be detected, maybe the firmware needs to be updated.");
     }
   }
 

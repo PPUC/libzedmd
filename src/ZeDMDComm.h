@@ -257,6 +257,7 @@ class ZeDMDComm
   uint8_t m_panelLatchBlanking = 2;
   uint8_t m_panelMinRefreshRate = 30;
   uint8_t m_udpDelay = 5;
+  uint16_t m_writeAtOnce = ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE;
 
  private:
   bool Connect(char* pName);
@@ -283,7 +284,6 @@ class ZeDMDComm
   ZeDMDFrame m_delayedFrame = {0};
   std::mutex m_delayedFrameMutex;
   bool m_delayedFrameReady = false;
-  uint16_t m_writeAtOnce = ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE;
   bool m_keepAlive = true;
   std::chrono::steady_clock::time_point m_lastKeepAlive;
 };
