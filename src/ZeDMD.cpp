@@ -53,8 +53,8 @@ void ZeDMD::Close()
 {
   if (m_usb)
   {
-    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::ClearScreen);
-    //m_pZeDMDComm->SoftReset();
+    //m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::ClearScreen);
+    m_pZeDMDComm->SoftReset();
   }
   else if (m_wifi)
   {
