@@ -53,7 +53,8 @@ void ZeDMD::Close()
 {
   if (m_usb)
   {
-    m_pZeDMDComm->SoftReset();
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::ClearScreen);
+    //m_pZeDMDComm->SoftReset();
   }
   else if (m_wifi)
   {
@@ -750,6 +751,10 @@ ZEDMDAPI const char* ZeDMD_GetVersion() { return ZEDMD_VERSION; };
 ZEDMDAPI const char* ZeDMD_GetFirmwareVersion(ZeDMD* pZeDMD) { return pZeDMD->GetFirmwareVersion(); };
 
 ZEDMDAPI uint8_t ZeDMD_GetRGBOrder(ZeDMD* pZeDMD) { return pZeDMD->GetRGBOrder(); };
+
+ZEDMDAPI uint8_t ZeDMD_GetWidth(ZeDMD* pZeDMD) { return pZeDMD->GetWidth(); };
+
+ZEDMDAPI uint8_t ZeDMD_GetHeight(ZeDMD* pZeDMD) { return pZeDMD->GetHeight(); };
 
 ZEDMDAPI uint8_t ZeDMD_GetBrightness(ZeDMD* pZeDMD) { return pZeDMD->GetBrightness(); };
 

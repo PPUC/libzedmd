@@ -536,6 +536,7 @@ int main(int argc, char* argv[])
   if (save)
   {
     pZeDMD->SaveSettings();
+    pZeDMD->Reset();
   }
 
   pZeDMD->Close();

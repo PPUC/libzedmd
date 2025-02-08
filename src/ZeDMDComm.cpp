@@ -506,7 +506,7 @@ bool ZeDMDComm::Connect(char* pDevice)
     return false;
   }
 
-  Reset();
+  // Reset();
 
   if (Handshake(pDevice)) return true;
 

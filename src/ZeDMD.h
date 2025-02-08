@@ -565,6 +565,8 @@ extern "C"
   extern ZEDMDAPI ZeDMD* ZeDMD_GetInstance();
   extern ZEDMDAPI const char* ZeDMD_GetVersion();
   extern ZEDMDAPI const char* ZeDMD_GetFirmwareVersion(ZeDMD* pZeDMD);
+  extern ZEDMDAPI uint8_t ZeDMD_GetWidth(ZeDMD* pZeDMD);
+  extern ZEDMDAPI uint8_t ZeDMD_GetHeight(ZeDMD* pZeDMD);
   extern ZEDMDAPI uint8_t ZeDMD_GetRGBOrder(ZeDMD* pZeDMD);
   extern ZEDMDAPI uint8_t ZeDMD_GetBrightness(ZeDMD* pZeDMD);
   extern ZEDMDAPI const char* ZeDMD_GetWiFiSSID(ZeDMD* pZeDMD);
