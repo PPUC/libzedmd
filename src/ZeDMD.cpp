@@ -53,7 +53,7 @@ void ZeDMD::Close()
 {
   if (m_usb)
   {
-    //m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::ClearScreen);
+    // m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::ClearScreen);
     m_pZeDMDComm->SoftReset();
   }
   else if (m_wifi)
@@ -748,7 +748,18 @@ ZEDMDAPI ZeDMD* ZeDMD_GetInstance() { return new ZeDMD(); }
 
 ZEDMDAPI const char* ZeDMD_GetVersion() { return ZEDMD_VERSION; };
 
-ZEDMDAPI void ZeDMD_SetLogCallback(ZeDMD* pZeDMD, ZeDMD_LogCallback callback, const void* userData) { pZeDMD->SetLogCallback(callback, userData); }
+ZEDMDAPI void ZeDMD_SetLogCallback(ZeDMD* pZeDMD, ZeDMD_LogCallback callback, const void* pUserData)
+{
+  pZeDMD->SetLogCallback(callback, pUserData);
+}
+
+ZEDMDAPI const char* ZeDMD_FormatLogMessage(const char* format, va_list args, const void* pUserData)
+{
+  char buffer[1024];
+  vsnprintf(buffer, sizeof(buffer), format, args);
+
+  return buffer;
+}
 
 ZEDMDAPI const char* ZeDMD_GetFirmwareVersion(ZeDMD* pZeDMD) { return pZeDMD->GetFirmwareVersion(); };
 
