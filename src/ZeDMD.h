@@ -564,6 +564,7 @@ extern "C"
 
   extern ZEDMDAPI ZeDMD* ZeDMD_GetInstance();
   extern ZEDMDAPI const char* ZeDMD_GetVersion();
+  extern ZEDMDAPI void SetLogCallback(ZeDMD* pZeDMD, ZeDMD_LogCallback callback, const void* userData);
   extern ZEDMDAPI const char* ZeDMD_GetFirmwareVersion(ZeDMD* pZeDMD);
   extern ZEDMDAPI uint8_t ZeDMD_GetWidth(ZeDMD* pZeDMD);
   extern ZEDMDAPI uint8_t ZeDMD_GetHeight(ZeDMD* pZeDMD);
@@ -610,7 +611,6 @@ extern "C"
   extern ZEDMDAPI void ZeDMD_SetUdpDelay(ZeDMD* pZeDMD, uint8_t udpDelay);
   extern ZEDMDAPI void ZeDMD_SetUsbPackageSize(ZeDMD* pZeDMD, uint16_t usbPackageSize);
   extern ZEDMDAPI void ZeDMD_SetYOffset(ZeDMD* pZeDMD, uint8_t yOffset);
-
   extern ZEDMDAPI void ZeDMD_ClearScreen(ZeDMD* pZeDMD);
   extern ZEDMDAPI void ZeDMD_RenderRgb888(ZeDMD* pZeDMD, uint8_t* frame);
   extern ZEDMDAPI void ZeDMD_RenderRgb565(ZeDMD* pZeDMD, uint16_t* frame);
