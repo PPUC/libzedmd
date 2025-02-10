@@ -748,7 +748,7 @@ ZEDMDAPI ZeDMD* ZeDMD_GetInstance() { return new ZeDMD(); }
 
 ZEDMDAPI const char* ZeDMD_GetVersion() { return ZEDMD_VERSION; };
 
-ZEDMDAPI void SetLogCallback(ZeDMD* pZeDMD, ZeDMD_LogCallback callback, const void* userData) { pZeDMD->SetLogCallback(callback, userData); }
+ZEDMDAPI void ZeDMD_SetLogCallback(ZeDMD* pZeDMD, ZeDMD_LogCallback callback, const void* userData) { pZeDMD->SetLogCallback(callback, userData); }
 
 ZEDMDAPI const char* ZeDMD_GetFirmwareVersion(ZeDMD* pZeDMD) { return pZeDMD->GetFirmwareVersion(); };
 
