@@ -7,7 +7,7 @@
 
 #define ZEDMD_VERSION_MAJOR 0  // X Digits
 #define ZEDMD_VERSION_MINOR 9  // Max 2 Digits
-#define ZEDMD_VERSION_PATCH 2  // Max 2 Digits
+#define ZEDMD_VERSION_PATCH 3  // Max 2 Digits
 
 #define _ZEDMD_STR(x) #x
 #define ZEDMD_STR(x) _ZEDMD_STR(x)
