@@ -600,7 +600,8 @@ bool ZeDMDComm::Handshake(char* pDevice)
       }
       else
       {
-        Log("ZeDMD handshake response error, received: %s", result);
+        Log("ZeDMD handshake response error, first 8 bytes of response: %c %c %c %c %c %c %c %c", data[0], data[1],
+            data[2], data[3], data[4], data[5], data[6], data[7]);
       }
     }
     else
