@@ -158,13 +158,29 @@ class ZEDMDAPI ZeDMD
    */
   void SetFrameSize(uint16_t width, uint16_t height);
 
+  /** @brief Get the configured DMD width
+   *
+   *  Get the configured width of the DMD.
+   *
+   *  @return width
+   */
+  uint16_t const GetWidth();
+
+  /** @brief Get the configured DMD height
+   *
+   *  Get the configured height of the DMD.
+   *
+   *  @return height
+   */
+  uint16_t const GetHeight();
+
   /** @brief Get the physical panel width
    *
    *  Get the width of the physical dimensions of the LED panels.
    *
    *  @return width
    */
-  uint16_t const GetWidth();
+  uint16_t const GetPanelWidth();
 
   /** @brief Get the physical panel height
    *
@@ -172,7 +188,7 @@ class ZEDMDAPI ZeDMD
    *
    *  @return height
    */
-  uint16_t const GetHeight();
+  uint16_t const GetPanelHeight();
 
   /** @brief Does ZeDMD run on an ESP32 S3?
    *
@@ -275,7 +291,7 @@ class ZEDMDAPI ZeDMD
    *  Get the minimal refresh rate of the LED panels.
    *  @see https://github.com/PPUC/ZeDMD
    *
-   *  @return a value between 0 and 1
+   *  @return a value between 30..120
    */
   uint8_t GetPanelMinRefreshRate();
 
@@ -568,8 +584,8 @@ extern "C"
   extern ZEDMDAPI const char* ZeDMD_FormatLogMessage(const char* format, va_list args, const void* pUserData);
   extern ZEDMDAPI const char* ZeDMD_GetFirmwareVersion(ZeDMD* pZeDMD);
   extern ZEDMDAPI bool ZeDMD_IsS3(ZeDMD* pZeDMD);
-  extern ZEDMDAPI uint8_t ZeDMD_GetWidth(ZeDMD* pZeDMD);
-  extern ZEDMDAPI uint8_t ZeDMD_GetHeight(ZeDMD* pZeDMD);
+  extern ZEDMDAPI uint16_t ZeDMD_GetWidth(ZeDMD* pZeDMD);
+  extern ZEDMDAPI uint16_t ZeDMD_GetHeight(ZeDMD* pZeDMD);
   extern ZEDMDAPI uint8_t ZeDMD_GetRGBOrder(ZeDMD* pZeDMD);
   extern ZEDMDAPI uint8_t ZeDMD_GetBrightness(ZeDMD* pZeDMD);
   extern ZEDMDAPI const char* ZeDMD_GetWiFiSSID(ZeDMD* pZeDMD);

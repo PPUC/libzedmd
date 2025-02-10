@@ -68,7 +68,7 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
 
       // Log("Handshake: %s", handshake.c_str());
 
-      for (uint8_t pos = 0; pos <= 16; pos++)
+      for (uint8_t pos = 0; pos <= 17; pos++)
       {
         if (std::getline(ss, item, '|'))
         {
@@ -160,6 +160,11 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
             case 16:
             {
               strncpy(m_ssid, item.c_str(), sizeof(m_ssid) - 1);
+              break;
+            }
+            case 17:
+            {
+              m_half = (std::stoi(item) == 1);
               break;
             }
           }

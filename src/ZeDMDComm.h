@@ -219,6 +219,7 @@ class ZeDMDComm
   uint16_t const GetWidth();
   uint16_t const GetHeight();
   bool const IsS3();
+  bool const IsHalf();
   const char* GetFirmwareVersion() { return (const char*)m_firmwareVersion; }
   uint8_t GetBrightness() { return m_brightness; }
   uint8_t GetRGBOrder() { return m_rgbMode; }
@@ -242,6 +243,7 @@ class ZeDMDComm
   uint16_t m_height = 32;
   bool m_s3 = false;
   bool m_cdc = false;
+  bool m_half = false;
   uint8_t m_zoneWidth = 8;
   uint8_t m_zoneHeight = 4;
   std::atomic<bool> m_stopFlag;

@@ -105,6 +105,26 @@ uint16_t const ZeDMD::GetHeight()
   return m_pZeDMDComm->GetHeight();
 }
 
+uint16_t const ZeDMD::GetPanelWidth()
+{
+  return GetWidth();
+}
+
+uint16_t const ZeDMD::GetPanelHeight()
+{
+  bool half= false;
+
+  if (m_wifi)
+  {
+    half =  m_pZeDMDWiFi->IsHalf();
+  }
+  else {
+    half =  m_pZeDMDComm->IsHalf();
+  }
+
+  return (half ? (GetHeight() * 2) : GetHeight());
+}
+
 bool const ZeDMD::IsS3()
 {
   if (m_wifi)
@@ -767,9 +787,9 @@ ZEDMDAPI bool ZeDMD_IsS3(ZeDMD* pZeDMD) { return pZeDMD->IsS3(); };
 
 ZEDMDAPI uint8_t ZeDMD_GetRGBOrder(ZeDMD* pZeDMD) { return pZeDMD->GetRGBOrder(); };
 
-ZEDMDAPI uint8_t ZeDMD_GetWidth(ZeDMD* pZeDMD) { return pZeDMD->GetWidth(); };
+ZEDMDAPI uint16_t ZeDMD_GetWidth(ZeDMD* pZeDMD) { return pZeDMD->GetWidth(); };
 
-ZEDMDAPI uint8_t ZeDMD_GetHeight(ZeDMD* pZeDMD) { return pZeDMD->GetHeight(); };
+ZEDMDAPI uint16_t ZeDMD_GetHeight(ZeDMD* pZeDMD) { return pZeDMD->GetHeight(); };
 
 ZEDMDAPI uint8_t ZeDMD_GetBrightness(ZeDMD* pZeDMD) { return pZeDMD->GetBrightness(); };
 

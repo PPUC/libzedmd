@@ -437,7 +437,7 @@ bool ZeDMDComm::Connect(char* pDevice)
       return false;
     }
 
-    Log("ZeDMD candidate: device=%s, vid=%04X, pid=%04X", pDevice, usb_vid, usb_pid);
+    Log("ZeDMD candidate: device=%s, vid=0x%04X, pid=0x%04X", pDevice, usb_vid, usb_pid);
   }
   else if (SP_TRANSPORT_NATIVE != transport)
   {
@@ -511,7 +511,7 @@ bool ZeDMDComm::Connect(char* pDevice)
   }
 
   // On Windows, sometimes the connect fails. That reset before the handshake seems to avoid that.
-  if (m_cdc) Reset();
+  // if (m_cdc) Reset();
 
   if (Handshake(pDevice)) return true;
 
@@ -528,90 +528,95 @@ bool ZeDMDComm::Handshake(char* pDevice)
     defined(__ANDROID__))
   uint8_t* data = (uint8_t*)malloc(ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
 
-  if (m_cdc) std::this_thread::sleep_for(std::chrono::milliseconds(200));
-
-  // Sometimes, the ESP sends some debug output after reset which is still in the buffer.
-  sp_flush(m_pSerialPort, SP_BUF_BOTH);
-  while (sp_input_waiting(m_pSerialPort) > 0)
-  {
-    sp_nonblocking_read(m_pSerialPort, data, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
-  }
-
-  // For Linux and macOS, 200ms seem to be sufficient. But some Windows installations require a longer sleep here.
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-  memset(data, 0, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
-  memcpy(data, FRAME_HEADER, FRAME_HEADER_SIZE);
-  memcpy(&data[FRAME_HEADER_SIZE], CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
-  data[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE] = ZEDMD_COMM_COMMAND::Handshake;
-  data[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 1] = 0;  // Size high byte
-  data[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 2] = 0;  // Size low byte
-  data[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 3] = 0;  // Compression flag
-  int result = sp_blocking_write(m_pSerialPort, data, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE, 500);
-  if (result >= ZEDMD_COMM_MIN_SERIAL_WRITE_AT_ONCE)
+  for (uint8_t attempt = 0; attempt < 2; attempt++)
   {
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    memset(data, 0, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
-    result = sp_blocking_read(m_pSerialPort, data, 64, 500);
 
-    if (result == 64)
+    // Sometimes, the ESP sends some debug output after reset which is still in the buffer.
+    sp_flush(m_pSerialPort, SP_BUF_BOTH);
+    while (sp_input_waiting(m_pSerialPort) > 0)
     {
-      if (memcmp(data, CTRL_CHARS_HEADER, 4) == 0)
+      sp_nonblocking_read(m_pSerialPort, data, 64);
+      std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    }
+
+    // For Linux and macOS, 200ms seem to be sufficient. But some Windows installations require a longer sleep here.
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+    memset(data, 0, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
+    memcpy(data, FRAME_HEADER, FRAME_HEADER_SIZE);
+    memcpy(&data[FRAME_HEADER_SIZE], CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
+    data[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE] = ZEDMD_COMM_COMMAND::Handshake;
+    data[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 1] = 0;  // Size high byte
+    data[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 2] = 0;  // Size low byte
+    data[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 3] = 0;  // Compression flag
+    int result = sp_blocking_write(m_pSerialPort, data, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE, 500);
+    if (result >= ZEDMD_COMM_MIN_SERIAL_WRITE_AT_ONCE)
+    {
+      std::this_thread::sleep_for(std::chrono::milliseconds(200));
+      memset(data, 0, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
+      result = sp_blocking_read(m_pSerialPort, data, 64, 500);
+
+      if (result == 64)
       {
-        if (data[57] == 'R')
+        if (memcmp(data, CTRL_CHARS_HEADER, 4) == 0)
         {
-          m_width = data[4] + data[5] * 256;
-          m_height = data[6] + data[7] * 256;
-          m_zoneWidth = m_width / 16;
-          m_zoneHeight = m_height / 8;
-          snprintf(m_firmwareVersion, 12, "%d.%d.%d", data[8], data[9], data[10]);
-          m_writeAtOnce = data[11] + data[12] * 256;
-
-          m_brightness = data[13];
-          m_rgbMode = data[14];
-          m_yOffset = data[15];
-          m_panelClkphase = data[16];
-          m_panelDriver = data[17];
-          m_panelI2sspeed = data[18];
-          m_panelLatchBlanking = data[19];
-          m_panelMinRefreshRate = data[20];
-          m_udpDelay = data[21];
-
-          // Store the device name for reconnects.
-          SetDevice(pDevice);
-          Log("ZeDMD %s found: %sdevice=%s, width=%d, height=%d", m_firmwareVersion, m_s3 ? "S3 " : "", pDevice,
-              m_width, m_height);
-
-          // Next streaming needs to be complete.
-          memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
-
-          while (sp_input_waiting(m_pSerialPort) > 0)
+          if (data[57] == 'R')
           {
-            sp_nonblocking_read(m_pSerialPort, data, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
-          }
+            m_width = data[4] + data[5] * 256;
+            m_height = data[6] + data[7] * 256;
+            m_zoneWidth = m_width / 16;
+            m_zoneHeight = m_height / 8;
+            snprintf(m_firmwareVersion, 12, "%d.%d.%d", data[8], data[9], data[10]);
+            m_writeAtOnce = data[11] + data[12] * 256;
 
-          free(data);
-          return true;
+            m_brightness = data[13];
+            m_rgbMode = data[14];
+            m_yOffset = data[15];
+            m_panelClkphase = data[16];
+            m_panelDriver = data[17];
+            m_panelI2sspeed = data[18] < 8 ? 8 : data[18];
+            m_panelLatchBlanking = data[19];
+            m_panelMinRefreshRate = data[20] < 30 ? 30 : data[20];
+            m_udpDelay = data[21];
+            m_half = (1 == data[22]);
+
+            // Store the device name for reconnects.
+            SetDevice(pDevice);
+            Log("ZeDMD %s found: %sdevice=%s, width=%d, height=%d", m_firmwareVersion, m_s3 ? "S3 " : "", pDevice,
+                m_width, m_height);
+
+            // Next streaming needs to be complete.
+            memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
+
+            while (sp_input_waiting(m_pSerialPort) > 0)
+            {
+              sp_nonblocking_read(m_pSerialPort, data, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
+            }
+
+            free(data);
+            return true;
+          }
+          else
+          {
+            Log("ZeDMD found but ready signal is missing.");
+          }
         }
         else
         {
-          Log("ZeDMD found but ready signal is missing.");
+          Log("ZeDMD handshake response error, first 8 bytes of response: %c %c %c %c %c %c %c %c", data[0], data[1],
+              data[2], data[3], data[4], data[5], data[6], data[7]);
         }
       }
       else
       {
-        Log("ZeDMD handshake response error, first 8 bytes of response: %c %c %c %c %c %c %c %c", data[0], data[1],
-            data[2], data[3], data[4], data[5], data[6], data[7]);
+        Log("ZeDMD handshake response error, result: %d", result);
       }
     }
     else
     {
-      Log("ZeDMD handshake response error, result: %d", result);
+      Log("ZeDMD handshake error, result: %d", result);
     }
-  }
-  else
-  {
-    Log("ZeDMD handshake error, result: %d", result);
   }
 
   free(data);
@@ -885,6 +890,8 @@ uint16_t const ZeDMDComm::GetWidth() { return m_width; }
 uint16_t const ZeDMDComm::GetHeight() { return m_height; }
 
 bool const ZeDMDComm::IsS3() { return m_s3; }
+
+bool const ZeDMDComm::IsHalf() { return m_half; }
 
 uint8_t ZeDMDComm::GetTransport() { return 0; }
 
