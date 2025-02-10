@@ -799,6 +799,10 @@ ZEDMDAPI void ZeDMD_StoreWiFiPassword(ZeDMD* pZeDMD) { return pZeDMD->StoreWiFiP
 
 ZEDMDAPI int ZeDMD_GetWiFiPort(ZeDMD* pZeDMD) { return pZeDMD->GetWiFiPort(); };
 
+ZEDMDAPI uint16_t ZeDMD_GetPanelWidth(ZeDMD* pZeDMD) { return pZeDMD->GetPanelWidth(); };
+
+ZEDMDAPI uint16_t ZeDMD_GetPanelHeight(ZeDMD* pZeDMD) { return pZeDMD->GetPanelHeight(); };
+
 ZEDMDAPI uint8_t ZeDMD_GetPanelClockPhase(ZeDMD* pZeDMD) { return pZeDMD->GetPanelClockPhase(); };
 
 ZEDMDAPI uint8_t ZeDMD_GetPanelI2sSpeed(ZeDMD* pZeDMD) { return pZeDMD->GetPanelI2sSpeed(); };

@@ -591,6 +591,8 @@ extern "C"
   extern ZEDMDAPI const char* ZeDMD_GetWiFiSSID(ZeDMD* pZeDMD);
   extern ZEDMDAPI void ZeDMD_StoreWiFiPassword(ZeDMD* pZeDMD);
   extern ZEDMDAPI int ZeDMD_GetWiFiPort(ZeDMD* pZeDMD);
+  extern ZEDMDAPI uint16_t ZeDMD_GetPanelWidth(ZeDMD* pZeDMD);
+  extern ZEDMDAPI uint16_t ZeDMD_GetPanelHeight(ZeDMD* pZeDMD);
   extern ZEDMDAPI uint8_t ZeDMD_GetPanelClockPhase(ZeDMD* pZeDMD);
   extern ZEDMDAPI uint8_t ZeDMD_GetPanelI2sSpeed(ZeDMD* pZeDMD);
   extern ZEDMDAPI uint8_t ZeDMD_GetPanelLatchBlanking(ZeDMD* pZeDMD);
