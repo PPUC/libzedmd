@@ -437,7 +437,7 @@ bool ZeDMDComm::Connect(char* pDevice)
       return false;
     }
 
-    Log("ZeDMD candidate: device=%s, vid=%d, pid=%d", pDevice, usb_vid, usb_pid);
+    Log("ZeDMD candidate: device=%s, vid=%04X, pid=%04X", pDevice, usb_vid, usb_pid);
   }
   else if (SP_TRANSPORT_NATIVE != transport)
   {
@@ -511,7 +511,7 @@ bool ZeDMDComm::Connect(char* pDevice)
   }
 
   // On Windows, sometimes the connect fails. That reset before the handshake seems to avoid that.
-  // if (m_cdc) Reset();
+  if (m_cdc) Reset();
 
   if (Handshake(pDevice)) return true;
 
@@ -527,6 +527,8 @@ bool ZeDMDComm::Handshake(char* pDevice)
     (defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \
     defined(__ANDROID__))
   uint8_t* data = (uint8_t*)malloc(ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
+
+  if (m_cdc) std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
   // Sometimes, the ESP sends some debug output after reset which is still in the buffer.
   sp_flush(m_pSerialPort, SP_BUF_BOTH);
@@ -552,46 +554,53 @@ bool ZeDMDComm::Handshake(char* pDevice)
     memset(data, 0, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
     result = sp_blocking_read(m_pSerialPort, data, 64, 500);
 
-    if (result == 64 && memcmp(data, CTRL_CHARS_HEADER, 4) == 0)
+    if (result == 64)
     {
-      if (data[57] == 'R')
+      if (memcmp(data, CTRL_CHARS_HEADER, 4) == 0)
       {
-        m_width = data[4] + data[5] * 256;
-        m_height = data[6] + data[7] * 256;
-        m_zoneWidth = m_width / 16;
-        m_zoneHeight = m_height / 8;
-        snprintf(m_firmwareVersion, 12, "%d.%d.%d", data[8], data[9], data[10]);
-        m_writeAtOnce = data[11] + data[12] * 256;
-
-        m_brightness = data[13];
-        m_rgbMode = data[14];
-        m_yOffset = data[15];
-        m_panelClkphase = data[16];
-        m_panelDriver = data[17];
-        m_panelI2sspeed = data[18];
-        m_panelLatchBlanking = data[19];
-        m_panelMinRefreshRate = data[20];
-        m_udpDelay = data[21];
-
-        // Store the device name for reconnects.
-        SetDevice(pDevice);
-        Log("ZeDMD %s found: %sdevice=%s, width=%d, height=%d", m_firmwareVersion, m_s3 ? "S3 " : "", pDevice, m_width,
-            m_height);
-
-        // Next streaming needs to be complete.
-        memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
-
-        while (sp_input_waiting(m_pSerialPort) > 0)
+        if (data[57] == 'R')
         {
-          sp_nonblocking_read(m_pSerialPort, data, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
-        }
+          m_width = data[4] + data[5] * 256;
+          m_height = data[6] + data[7] * 256;
+          m_zoneWidth = m_width / 16;
+          m_zoneHeight = m_height / 8;
+          snprintf(m_firmwareVersion, 12, "%d.%d.%d", data[8], data[9], data[10]);
+          m_writeAtOnce = data[11] + data[12] * 256;
 
-        free(data);
-        return true;
+          m_brightness = data[13];
+          m_rgbMode = data[14];
+          m_yOffset = data[15];
+          m_panelClkphase = data[16];
+          m_panelDriver = data[17];
+          m_panelI2sspeed = data[18];
+          m_panelLatchBlanking = data[19];
+          m_panelMinRefreshRate = data[20];
+          m_udpDelay = data[21];
+
+          // Store the device name for reconnects.
+          SetDevice(pDevice);
+          Log("ZeDMD %s found: %sdevice=%s, width=%d, height=%d", m_firmwareVersion, m_s3 ? "S3 " : "", pDevice,
+              m_width, m_height);
+
+          // Next streaming needs to be complete.
+          memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
+
+          while (sp_input_waiting(m_pSerialPort) > 0)
+          {
+            sp_nonblocking_read(m_pSerialPort, data, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
+          }
+
+          free(data);
+          return true;
+        }
+        else
+        {
+          Log("ZeDMD found but ready signal is missing.");
+        }
       }
       else
       {
-        Log("ZeDMD found but ready signal is missing.");
+        Log("ZeDMD handshake response error, received: %s", result);
       }
     }
     else
@@ -599,8 +608,10 @@ bool ZeDMDComm::Handshake(char* pDevice)
       Log("ZeDMD handshake response error, result: %d", result);
     }
   }
-
-  Log("ZeDMD handshake error, result: %d", result);
+  else
+  {
+    Log("ZeDMD handshake error, result: %d", result);
+  }
 
   free(data);
 #endif
