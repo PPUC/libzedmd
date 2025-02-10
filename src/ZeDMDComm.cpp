@@ -436,6 +436,8 @@ bool ZeDMDComm::Connect(char* pDevice)
 
       return false;
     }
+
+    Log("ZeDMD candidate: device=%s, vid=%d, pid=%d", pDevice, usb_vid, usb_pid);
   }
   else if (SP_TRANSPORT_NATIVE != transport)
   {
@@ -445,8 +447,10 @@ bool ZeDMDComm::Connect(char* pDevice)
 
     return false;
   }
-
-  Log("ZeDMD candidate: device=%s", pDevice);
+  else
+  {
+    Log("ZeDMD candidate: device=%s", pDevice);
+  }
 
   result = sp_open(m_pSerialPort, SP_MODE_READ_WRITE);
   if (result != SP_OK)
@@ -507,7 +511,7 @@ bool ZeDMDComm::Connect(char* pDevice)
   }
 
   // On Windows, sometimes the connect fails. That reset before the handshake seems to avoid that.
-  if (m_cdc) Reset();
+  // if (m_cdc) Reset();
 
   if (Handshake(pDevice)) return true;
 
@@ -590,7 +594,14 @@ bool ZeDMDComm::Handshake(char* pDevice)
         Log("ZeDMD found but ready signal is missing.");
       }
     }
+    else
+    {
+      Log("ZeDMD handshake response error, result: %d", result);
+    }
   }
+
+  Log("ZeDMD handshake error, result: %d", result);
+
   free(data);
 #endif
 
