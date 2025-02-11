@@ -355,6 +355,15 @@ bool ZeDMDComm::Connect()
         }
         sp_free_port_list(ppPorts);
       }
+      else if (result < 0)
+      {
+        const char* error_msg = sp_last_error_message();
+        if (error_msg)
+        {
+          Log("libserialport error: %s\n", error_msg);
+        }
+      }
+
       if (success)
       {
         break;
@@ -393,6 +402,15 @@ bool ZeDMDComm::Connect(char* pDevice)
     (defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \
     defined(__ANDROID__))
   sp_return result = sp_get_port_by_name(pDevice, &m_pSerialPort);
+  if (result < 0)
+  {
+    const char* error_msg = sp_last_error_message();
+    if (error_msg)
+    {
+      Log("libserialport error: %s\n", error_msg);
+    }
+  }
+
   sp_transport transport = sp_get_port_transport(m_pSerialPort);
   // Ignore SP_TRANSPORT_BLUETOOTH.
   if (result != SP_OK || SP_TRANSPORT_BLUETOOTH == transport)
@@ -406,6 +424,15 @@ bool ZeDMDComm::Connect(char* pDevice)
     result = sp_get_port_usb_vid_pid(m_pSerialPort, &usb_vid, &usb_pid);
     if (result != SP_OK)
     {
+      if (result < 0)
+      {
+        const char* error_msg = sp_last_error_message();
+        if (error_msg)
+        {
+          Log("libserialport error: %s\n", error_msg);
+        }
+      }
+
       sp_free_port(m_pSerialPort);
       m_pSerialPort = nullptr;
 
@@ -455,6 +482,11 @@ bool ZeDMDComm::Connect(char* pDevice)
   result = sp_open(m_pSerialPort, SP_MODE_READ_WRITE);
   if (result != SP_OK)
   {
+    const char* error_msg = sp_last_error_message();
+    if (error_msg)
+    {
+      Log("libserialport error: %s\n", error_msg);
+    }
     Log("Unable to open device %s, error code %d", pDevice, result);
     sp_free_port(m_pSerialPort);
     m_pSerialPort = nullptr;
@@ -463,6 +495,11 @@ bool ZeDMDComm::Connect(char* pDevice)
   }
   if (SP_OK != sp_set_baudrate(m_pSerialPort, m_cdc ? 115200 : (m_s3 ? ZEDMD_S3_COMM_BAUD_RATE : ZEDMD_COMM_BAUD_RATE)))
   {
+    const char* error_msg = sp_last_error_message();
+    if (error_msg)
+    {
+      Log("libserialport error: %s\n", error_msg);
+    }
     Log("Unable to set baudrate on device %s, error code %d", pDevice, result);
     sp_free_port(m_pSerialPort);
     m_pSerialPort = nullptr;
@@ -471,6 +508,11 @@ bool ZeDMDComm::Connect(char* pDevice)
   }
   if (SP_OK != sp_set_bits(m_pSerialPort, 8))
   {
+    const char* error_msg = sp_last_error_message();
+    if (error_msg)
+    {
+      Log("libserialport error: %s\n", error_msg);
+    }
     Log("Unable to set bits on device %s, error code %d", pDevice, result);
     sp_free_port(m_pSerialPort);
     m_pSerialPort = nullptr;
@@ -479,6 +521,11 @@ bool ZeDMDComm::Connect(char* pDevice)
   }
   if (SP_OK != sp_set_parity(m_pSerialPort, SP_PARITY_NONE))
   {
+    const char* error_msg = sp_last_error_message();
+    if (error_msg)
+    {
+      Log("libserialport error: %s\n", error_msg);
+    }
     Log("Unable to set parity on device %s, error code %d", pDevice, result);
     sp_free_port(m_pSerialPort);
     m_pSerialPort = nullptr;
@@ -487,6 +534,11 @@ bool ZeDMDComm::Connect(char* pDevice)
   }
   if (SP_OK != sp_set_stopbits(m_pSerialPort, 1))
   {
+    const char* error_msg = sp_last_error_message();
+    if (error_msg)
+    {
+      Log("libserialport error: %s\n", error_msg);
+    }
     Log("Unable to to set stopbits on device %s, error code %d", pDevice, result);
     sp_free_port(m_pSerialPort);
     m_pSerialPort = nullptr;
@@ -495,6 +547,11 @@ bool ZeDMDComm::Connect(char* pDevice)
   }
   if (SP_OK != sp_set_xon_xoff(m_pSerialPort, SP_XONXOFF_DISABLED))
   {
+    const char* error_msg = sp_last_error_message();
+    if (error_msg)
+    {
+      Log("libserialport error: %s\n", error_msg);
+    }
     Log("Unable to set xon xoff on device %s, error code %d", pDevice, result);
     sp_free_port(m_pSerialPort);
     m_pSerialPort = nullptr;
@@ -503,6 +560,11 @@ bool ZeDMDComm::Connect(char* pDevice)
   }
   if (SP_OK != sp_set_flowcontrol(m_pSerialPort, SP_FLOWCONTROL_NONE))
   {
+    const char* error_msg = sp_last_error_message();
+    if (error_msg)
+    {
+      Log("libserialport error: %s\n", error_msg);
+    }
     Log("Unable to set flowcontrol on device %s, error code %d", pDevice, result);
     sp_free_port(m_pSerialPort);
     m_pSerialPort = nullptr;
@@ -533,10 +595,25 @@ bool ZeDMDComm::Handshake(char* pDevice)
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
     // Sometimes, the ESP sends some debug output after reset which is still in the buffer.
-    sp_flush(m_pSerialPort, SP_BUF_BOTH);
+    if (sp_flush(m_pSerialPort, SP_BUF_BOTH) < 0)
+    {
+      const char* error_msg = sp_last_error_message();
+      if (error_msg)
+      {
+        Log("libserialport error: %s\n", error_msg);
+      }
+    }
+
     while (sp_input_waiting(m_pSerialPort) > 0)
     {
-      sp_nonblocking_read(m_pSerialPort, data, 64);
+      if (sp_nonblocking_read(m_pSerialPort, data, 64) < 0)
+      {
+        const char* error_msg = sp_last_error_message();
+        if (error_msg)
+        {
+          Log("libserialport error: %s\n", error_msg);
+        }
+      }
       std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
 
@@ -550,7 +627,7 @@ bool ZeDMDComm::Handshake(char* pDevice)
     data[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 1] = 0;  // Size high byte
     data[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 2] = 0;  // Size low byte
     data[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 3] = 0;  // Compression flag
-    int result = sp_blocking_write(m_pSerialPort, data, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE, 500);
+    sp_return result = sp_blocking_write(m_pSerialPort, data, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE, 500);
     if (result >= ZEDMD_COMM_MIN_SERIAL_WRITE_AT_ONCE)
     {
       std::this_thread::sleep_for(std::chrono::milliseconds(200));
@@ -610,11 +687,29 @@ bool ZeDMDComm::Handshake(char* pDevice)
       }
       else
       {
+        if (result < 0)
+        {
+          const char* error_msg = sp_last_error_message();
+          if (error_msg)
+          {
+            Log("libserialport error: %s\n", error_msg);
+          }
+        }
+
         Log("ZeDMD handshake response error, result: %d", result);
       }
     }
     else
     {
+      if (result < 0)
+      {
+        const char* error_msg = sp_last_error_message();
+        if (error_msg)
+        {
+          Log("libserialport error: %s\n", error_msg);
+        }
+      }
+
       Log("ZeDMD handshake error, result: %d", result);
     }
   }
@@ -776,7 +871,14 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
 
   while (sp_input_waiting(m_pSerialPort) > 0)
   {
-    sp_nonblocking_read(m_pSerialPort, message, 64);
+    if (sp_nonblocking_read(m_pSerialPort, message, 64) < 0)
+    {
+      const char* error_msg = sp_last_error_message();
+      if (error_msg)
+      {
+        Log("libserialport error: %s\n", error_msg);
+      }
+    }
   }
 
   while (sent < size && !m_stopFlag.load(std::memory_order_relaxed))
@@ -812,6 +914,15 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
 
     if (status < toSend)
     {
+      if (status < 0)
+      {
+        const char* error_msg = sp_last_error_message();
+        if (error_msg)
+        {
+          Log("libserialport error: %s\n", error_msg);
+        }
+      }
+
       m_fullFrameFlag.store(true, std::memory_order_release);
       Log("Full frame forced, error %d", status);
       return false;
@@ -831,12 +942,23 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
         while (sp_input_waiting(m_pSerialPort) > 0)
         {
           memset(message, ' ', 64);
-          sp_nonblocking_read(m_pSerialPort, message, 64);
-          Log("%s", message);
+          if (sp_nonblocking_read(m_pSerialPort, message, 64) > 0)
+          {
+            Log("%s", message);
+          }
         }
       }
       else
       {
+        if (status < 0)
+        {
+          const char* error_msg = sp_last_error_message();
+          if (error_msg)
+          {
+            Log("libserialport error: %s\n", error_msg);
+          }
+        }
+
         Log("Full frame forced, error %d", status);
       }
 
