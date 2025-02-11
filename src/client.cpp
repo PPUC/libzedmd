@@ -435,6 +435,7 @@ int main(int argc, char* argv[])
     printf("\nZeDMD Info\n");
     printf("==========\n");
     printf("ZeDMD firmware version: %s\n", pZeDMD->GetFirmwareVersion());
+    printf("CPU: %s\n", pZeDMD->IsS3() ? "ESP32 S3" : "ESP32");
     printf("libzedmd version: %s\n", pZeDMD->GetVersion());
     printf("transport: %d\n", pZeDMD->GetTransport());
     printf("USB package size: %d\n", pZeDMD->GetUsbPackageSize());
