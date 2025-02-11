@@ -237,6 +237,7 @@ class ZeDMDComm
   virtual void Reset();
   void Log(const char* format, ...);
   void ClearFrames();
+  bool IsQueueEmpty();
 
   char m_firmwareVersion[12] = "0.0.0";
   uint16_t m_width = 128;

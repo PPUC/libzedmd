@@ -132,7 +132,18 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size)
     return;
   }
 
-  if (FillDelayed())
+  // It must be ensured that no command is lost.
+  // Losing frames is ok.
+  if (ZEDMD_COMM_COMMAND::ClearScreen != command)
+  {
+    uint8_t timeout = 0;
+    while (!IsQueueEmpty() && timeout < 10)
+    {
+      std::this_thread::sleep_for(std::chrono::milliseconds(200));
+      timeout++;
+    }
+  }
+  else if (FillDelayed())
   {
     ClearFrames();
   }
@@ -276,6 +287,14 @@ bool ZeDMDComm::FillDelayed()
   m_frameQueueMutex.unlock();
   if (delayed) Log("ZeDMD, next frame will be delayed");
   return delayed;
+}
+
+bool ZeDMDComm::IsQueueEmpty()
+{
+  m_frameQueueMutex.lock();
+  bool empty = m_frames.empty();
+  m_frameQueueMutex.unlock();
+  return empty;
 }
 
 void ZeDMDComm::IgnoreDevice(const char* ignore_device)
