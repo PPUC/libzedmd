@@ -360,7 +360,7 @@ bool ZeDMDComm::Connect()
         const char* error_msg = sp_last_error_message();
         if (error_msg)
         {
-          Log("libserialport error: %s\n", error_msg);
+          Log("libserialport error: %s", error_msg);
         }
       }
 
@@ -407,7 +407,7 @@ bool ZeDMDComm::Connect(char* pDevice)
     const char* error_msg = sp_last_error_message();
     if (error_msg)
     {
-      Log("libserialport error: %s\n", error_msg);
+      Log("libserialport error: %s", error_msg);
     }
   }
 
@@ -429,7 +429,7 @@ bool ZeDMDComm::Connect(char* pDevice)
         const char* error_msg = sp_last_error_message();
         if (error_msg)
         {
-          Log("libserialport error: %s\n", error_msg);
+          Log("libserialport error: %s", error_msg);
         }
       }
 
@@ -485,7 +485,7 @@ bool ZeDMDComm::Connect(char* pDevice)
     const char* error_msg = sp_last_error_message();
     if (error_msg)
     {
-      Log("libserialport error: %s\n", error_msg);
+      Log("libserialport error: %s", error_msg);
     }
     Log("Unable to open device %s, error code %d", pDevice, result);
     sp_free_port(m_pSerialPort);
@@ -498,7 +498,7 @@ bool ZeDMDComm::Connect(char* pDevice)
     const char* error_msg = sp_last_error_message();
     if (error_msg)
     {
-      Log("libserialport error: %s\n", error_msg);
+      Log("libserialport error: %s", error_msg);
     }
     Log("Unable to set baudrate on device %s, error code %d", pDevice, result);
     sp_free_port(m_pSerialPort);
@@ -511,7 +511,7 @@ bool ZeDMDComm::Connect(char* pDevice)
     const char* error_msg = sp_last_error_message();
     if (error_msg)
     {
-      Log("libserialport error: %s\n", error_msg);
+      Log("libserialport error: %s", error_msg);
     }
     Log("Unable to set bits on device %s, error code %d", pDevice, result);
     sp_free_port(m_pSerialPort);
@@ -524,7 +524,7 @@ bool ZeDMDComm::Connect(char* pDevice)
     const char* error_msg = sp_last_error_message();
     if (error_msg)
     {
-      Log("libserialport error: %s\n", error_msg);
+      Log("libserialport error: %s", error_msg);
     }
     Log("Unable to set parity on device %s, error code %d", pDevice, result);
     sp_free_port(m_pSerialPort);
@@ -537,7 +537,7 @@ bool ZeDMDComm::Connect(char* pDevice)
     const char* error_msg = sp_last_error_message();
     if (error_msg)
     {
-      Log("libserialport error: %s\n", error_msg);
+      Log("libserialport error: %s", error_msg);
     }
     Log("Unable to to set stopbits on device %s, error code %d", pDevice, result);
     sp_free_port(m_pSerialPort);
@@ -550,7 +550,7 @@ bool ZeDMDComm::Connect(char* pDevice)
     const char* error_msg = sp_last_error_message();
     if (error_msg)
     {
-      Log("libserialport error: %s\n", error_msg);
+      Log("libserialport error: %s", error_msg);
     }
     Log("Unable to set xon xoff on device %s, error code %d", pDevice, result);
     sp_free_port(m_pSerialPort);
@@ -563,7 +563,7 @@ bool ZeDMDComm::Connect(char* pDevice)
     const char* error_msg = sp_last_error_message();
     if (error_msg)
     {
-      Log("libserialport error: %s\n", error_msg);
+      Log("libserialport error: %s", error_msg);
     }
     Log("Unable to set flowcontrol on device %s, error code %d", pDevice, result);
     sp_free_port(m_pSerialPort);
@@ -600,7 +600,7 @@ bool ZeDMDComm::Handshake(char* pDevice)
       const char* error_msg = sp_last_error_message();
       if (error_msg)
       {
-        Log("libserialport error: %s\n", error_msg);
+        Log("libserialport error: %s", error_msg);
       }
     }
 
@@ -611,7 +611,7 @@ bool ZeDMDComm::Handshake(char* pDevice)
         const char* error_msg = sp_last_error_message();
         if (error_msg)
         {
-          Log("libserialport error: %s\n", error_msg);
+          Log("libserialport error: %s", error_msg);
         }
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(2));
@@ -692,7 +692,7 @@ bool ZeDMDComm::Handshake(char* pDevice)
           const char* error_msg = sp_last_error_message();
           if (error_msg)
           {
-            Log("libserialport error: %s\n", error_msg);
+            Log("libserialport error: %s", error_msg);
           }
         }
 
@@ -706,7 +706,7 @@ bool ZeDMDComm::Handshake(char* pDevice)
         const char* error_msg = sp_last_error_message();
         if (error_msg)
         {
-          Log("libserialport error: %s\n", error_msg);
+          Log("libserialport error: %s", error_msg);
         }
       }
 
@@ -876,7 +876,7 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
       const char* error_msg = sp_last_error_message();
       if (error_msg)
       {
-        Log("libserialport error: %s\n", error_msg);
+        Log("libserialport error: %s", error_msg);
       }
     }
   }
@@ -919,7 +919,7 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
         const char* error_msg = sp_last_error_message();
         if (error_msg)
         {
-          Log("libserialport error: %s\n", error_msg);
+          Log("libserialport error: %s", error_msg);
         }
       }
 
@@ -955,7 +955,7 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
           const char* error_msg = sp_last_error_message();
           if (error_msg)
           {
-            Log("libserialport error: %s\n", error_msg);
+            Log("libserialport error: %s", error_msg);
           }
         }
 
