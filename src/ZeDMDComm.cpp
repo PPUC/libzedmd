@@ -647,17 +647,17 @@ bool ZeDMDComm::Handshake(char* pDevice)
     data[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 2] = 0;  // Size low byte
     data[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 3] = 0;  // Compression flag
     sp_return result = sp_blocking_write(m_pSerialPort, data, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE, 500);
-    if (result >= ZEDMD_COMM_MIN_SERIAL_WRITE_AT_ONCE)
+    if (((int)result) >= ZEDMD_COMM_MIN_SERIAL_WRITE_AT_ONCE)
     {
       std::this_thread::sleep_for(std::chrono::milliseconds(200));
       memset(data, 0, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
       result = sp_blocking_read(m_pSerialPort, data, 64, 500);
 
-      if (result == 64)
+      if (((int)result) == 64)
       {
         if (memcmp(data, CTRL_CHARS_HEADER, 4) == 0)
         {
-          if (data[57] == 'R')
+          if (data[57] == 'R' && data[8] != 0)
           {
             m_width = data[4] + data[5] * 256;
             m_height = data[6] + data[7] * 256;
@@ -695,7 +695,8 @@ bool ZeDMDComm::Handshake(char* pDevice)
           }
           else
           {
-            Log("ZeDMD found but ready signal is missing.");
+            Log("ZeDMD handshake response error, first 8 bytes of response: %c %c %c %c %c %c %c %c", data[0], data[1],
+                data[2], data[3], data[4], data[5], data[6], data[7]);
           }
         }
         else

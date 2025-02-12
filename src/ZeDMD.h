@@ -144,6 +144,12 @@ class ZEDMDAPI ZeDMD
    */
   void Reset();
 
+  /** @brief Reset ZeDMD hard via USB using RTS/DTS
+   *
+   *  Reset ZeDMD hard via USB using RTS/DTS.
+   */
+  void UsbHardReset();
+
   /** @brief Set the frame size
    *
    *  Set the frame size of the content that will be displayed
