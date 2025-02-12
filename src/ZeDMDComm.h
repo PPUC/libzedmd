@@ -30,7 +30,8 @@
 #define ZEDMD_COMM_BAUD_RATE 921600
 #define ZEDMD_S3_COMM_BAUD_RATE 2000000
 #define ZEDMD_COMM_MIN_SERIAL_WRITE_AT_ONCE 32
-#define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 1024
+#define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 1920
+#define ZEDMD_COMM_DEFAULT_SERIAL_WRITE_AT_ONCE 64
 
 #define ZEDMD_COMM_SERIAL_READ_TIMEOUT 16
 #define ZEDMD_COMM_SERIAL_WRITE_TIMEOUT 8
@@ -260,7 +261,7 @@ class ZeDMDComm
   uint8_t m_panelLatchBlanking = 2;
   uint8_t m_panelMinRefreshRate = 30;
   uint8_t m_udpDelay = 5;
-  uint16_t m_writeAtOnce = ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE;
+  uint16_t m_writeAtOnce = ZEDMD_COMM_DEFAULT_SERIAL_WRITE_AT_ONCE;
 
  private:
   bool Connect(char* pName);

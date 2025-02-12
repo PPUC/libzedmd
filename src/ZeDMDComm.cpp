@@ -607,7 +607,8 @@ bool ZeDMDComm::Handshake(char* pDevice)
 #if !(                                                                                                                \
     (defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \
     defined(__ANDROID__))
-  uint8_t* data = (uint8_t*)malloc(ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
+  uint8_t* data =
+      (uint8_t*)malloc(ZEDMD_COMM_DEFAULT_SERIAL_WRITE_AT_ONCE > 64 ? ZEDMD_COMM_DEFAULT_SERIAL_WRITE_AT_ONCE : 64);
 
   for (uint8_t attempt = 0; attempt < 2; attempt++)
   {
@@ -625,7 +626,7 @@ bool ZeDMDComm::Handshake(char* pDevice)
 
     while (sp_input_waiting(m_pSerialPort) > 0)
     {
-      if (sp_nonblocking_read(m_pSerialPort, data, 64) < 0)
+      if (sp_nonblocking_read(m_pSerialPort, data, ZEDMD_COMM_DEFAULT_SERIAL_WRITE_AT_ONCE) < 0)
       {
         const char* error_msg = sp_last_error_message();
         if (error_msg)
@@ -639,18 +640,26 @@ bool ZeDMDComm::Handshake(char* pDevice)
     // For Linux and macOS, 200ms seem to be sufficient. But some Windows installations require a longer sleep here.
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
-    memset(data, 0, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
+    memset(data, 0, ZEDMD_COMM_DEFAULT_SERIAL_WRITE_AT_ONCE);
     memcpy(data, FRAME_HEADER, FRAME_HEADER_SIZE);
     memcpy(&data[FRAME_HEADER_SIZE], CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
     data[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE] = ZEDMD_COMM_COMMAND::Handshake;
     data[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 1] = 0;  // Size high byte
     data[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 2] = 0;  // Size low byte
     data[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 3] = 0;  // Compression flag
-    sp_return result = sp_blocking_write(m_pSerialPort, data, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE, 500);
+    sp_return result = sp_blocking_write(m_pSerialPort, data, ZEDMD_COMM_DEFAULT_SERIAL_WRITE_AT_ONCE, 500);
+
     if (((int)result) >= ZEDMD_COMM_MIN_SERIAL_WRITE_AT_ONCE)
     {
+      memset(data, 0, ZEDMD_COMM_DEFAULT_SERIAL_WRITE_AT_ONCE);
+      for (uint8_t i = (ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE / ZEDMD_COMM_DEFAULT_SERIAL_WRITE_AT_ONCE); i > 1; i--)
+      {
+        sp_nonblocking_write(m_pSerialPort, data, ZEDMD_COMM_DEFAULT_SERIAL_WRITE_AT_ONCE);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      }
+
       std::this_thread::sleep_for(std::chrono::milliseconds(200));
-      memset(data, 0, ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE);
+      memset(data, 0, 64);
       result = sp_blocking_read(m_pSerialPort, data, 64, 500);
 
       if (((int)result) == 64)
