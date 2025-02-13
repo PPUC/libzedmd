@@ -242,6 +242,15 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
       Log("ZeDMD port could not be detected");
       return false;
     }
+
+    if (SendGetRequest("/get_udp_delay"))
+    {
+      m_udpDelay = (ReceiveIntegerPayload() == 1);
+    }
+    else
+    {
+      Log("ZeDMD UDP delay could not be detected, falling back to 5ms deafult");
+    }
   }
 
   if (!(128 == m_width && 32 == m_height) && !(256 == m_width && 64 == m_height))
