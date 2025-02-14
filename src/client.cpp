@@ -35,6 +35,7 @@
 
 #include "ZeDMD.h"
 #include "cargs.h"
+#include "libserialport.h"
 
 static struct cag_option options[] = {
     {.identifier = 'h', .access_letters = "h", .access_name = "help", .description = "Show zedmd-client help"},
@@ -386,7 +387,9 @@ int main(int argc, char* argv[])
 
   if (opt_version)
   {
-    printf("zedmd-client version %s.\n", pZeDMD->GetVersion());
+    printf("zedmd-client version:  %s\n", pZeDMD->GetVersion());
+    printf("libzedmd version:      %s\n", pZeDMD->GetVersion());
+    printf("libserialport version: %s\n", sp_get_package_version_string());
     delete pZeDMD;
     pZeDMD = nullptr;
     return -1;
