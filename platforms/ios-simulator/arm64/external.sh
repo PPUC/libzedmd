@@ -25,9 +25,10 @@ cd external
 # copy libframeutil
 #
 
-curl -sL https://github.com/ppuc/libframeutil/archive/${LIBFRAMEUTIL_SHA}.zip -o libframeutil.zip
-unzip libframeutil.zip
-cd libframeutil-$LIBFRAMEUTIL_SHA
+curl -sL https://github.com/ppuc/libframeutil/archive/${LIBFRAMEUTIL_SHA}.tar.gz -o libframeutil-${LIBFRAMEUTIL_SHA}.tar.gz
+tar xzf libframeutil-${LIBFRAMEUTIL_SHA}.tar.gz
+mv libframeutil-${LIBFRAMEUTIL_SHA} libframeutil
+cd libframeutil
 cp include/* ../../third-party/include
 cd ..
 
@@ -35,9 +36,10 @@ cd ..
 # build sockpp and copy to external
 #
 
-curl -sL https://github.com/fpagliughi/sockpp/archive/${SOCKPP_SHA}.zip -o sockpp.zip
-unzip sockpp.zip
-cd sockpp-$SOCKPP_SHA
+curl -sL https://github.com/fpagliughi/sockpp/archive/${SOCKPP_SHA}.tar.gz -o sockpp-${SOCKPP_SHA}.tar.gz
+tar xzf sockpp-${SOCKPP_SHA}.tar.gz
+mv sockpp-${SOCKPP_SHA} sockpp
+cd sockpp
 cmake \
    -DSOCKPP_BUILD_SHARED=OFF \
    -DSOCKPP_BUILD_STATIC=ON \
