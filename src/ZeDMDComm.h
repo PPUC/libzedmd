@@ -27,8 +27,9 @@
 #define ZEDMDCALLBACK
 #endif
 
+// The maximum baud rate supported by CP210x. CH340 and others might be able to run higher baudrates, but on the ESP32
+// we don't know which USB-to-serial converter is in use.
 #define ZEDMD_COMM_BAUD_RATE 921600
-#define ZEDMD_S3_COMM_BAUD_RATE 2000000
 #define ZEDMD_COMM_MIN_SERIAL_WRITE_AT_ONCE 32
 #define ZEDMD_COMM_MAX_SERIAL_WRITE_AT_ONCE 1920
 #define ZEDMD_COMM_DEFAULT_SERIAL_WRITE_AT_ONCE 64
@@ -290,4 +291,5 @@ class ZeDMDComm
   bool m_delayedFrameReady = false;
   bool m_keepAlive = true;
   std::chrono::steady_clock::time_point m_lastKeepAlive;
+  bool m_autoDetect = true;
 };

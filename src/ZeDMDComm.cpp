@@ -310,6 +310,7 @@ void ZeDMDComm::SetDevice(const char* device)
   if (sizeof(device) < 32)
   {
     strcpy(m_device, device);
+    m_autoDetect = false;
   }
 }
 
@@ -460,14 +461,14 @@ bool ZeDMDComm::Connect(char* pDevice)
 
     if (0x303a == usb_vid && 0x1001 == usb_pid)
     {
-      // USB JTAG/serial debug unit, hopefully an ESP32 S3.
-      m_s3 = true;
+      // USB JTAG/serial debug unit
       m_cdc = true;
+      // Backward compatibility. S3 is in the handshake reponse now.
+      m_s3 = true;
     }
     else if (0x1a86 == usb_vid && 0x55d3 == usb_pid)
     {
-      // QinHeng Electronics USB Single Serial, hopefully an ESP32 S3.
-      m_s3 = true;
+      // QinHeng Electronics USB Single Serial, hopefully an ESP32.
     }
     else if (0x10c4 == usb_vid && 0xea60 == usb_pid)
     {
@@ -475,8 +476,9 @@ bool ZeDMDComm::Connect(char* pDevice)
       // On Windows, libserialport reports SP_TRANSPORT_USB, on Linux and macOS SP_TRANSPORT_NATIVE is reported and
       // handled below. Newer versions of libserialport seem to report SP_TRANSPORT_USB on macOS as well.
     }
-    else
+    else if (m_autoDetect)
     {
+      // In case of auto detection, ignore every device that doesn't match the criteria above.
       sp_free_port(m_pSerialPort);
       m_pSerialPort = nullptr;
 
@@ -512,7 +514,7 @@ bool ZeDMDComm::Connect(char* pDevice)
 
     return false;
   }
-  if (SP_OK != sp_set_baudrate(m_pSerialPort, m_cdc ? 115200 : (m_s3 ? ZEDMD_S3_COMM_BAUD_RATE : ZEDMD_COMM_BAUD_RATE)))
+  if (SP_OK != sp_set_baudrate(m_pSerialPort, m_cdc ? 115200 : ZEDMD_COMM_BAUD_RATE))
   {
     const char* error_msg = sp_last_error_message();
     if (error_msg)
@@ -684,7 +686,8 @@ bool ZeDMDComm::Handshake(char* pDevice)
             m_panelLatchBlanking = data[19];
             m_panelMinRefreshRate = data[20] < 30 ? 30 : data[20];
             m_udpDelay = data[21];
-            m_half = (1 == data[22]);
+            m_half = (bool)(data[22] & 0b00000001);
+            if (!m_s3) m_s3 = (bool)(data[22] & 0b00000010);
 
             // Store the device name for reconnects.
             SetDevice(pDevice);
