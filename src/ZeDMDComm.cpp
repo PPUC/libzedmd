@@ -468,11 +468,15 @@ bool ZeDMDComm::Connect(char* pDevice)
     }
     else if (0x1a86 == usb_vid && 0x55d3 == usb_pid)
     {
-      // QinHeng Electronics USB Single Serial, hopefully an ESP32.
+      // QinHeng Electronics USB Single Serial, could be the UART of an ESP32 S3.
+    }
+    else if (0x1a86 == usb_vid && 0x7523 == usb_pid)
+    {
+      // QinHeng Electronics CH340 serial converter, used by ESP32 with USB 3 connector.
     }
     else if (0x10c4 == usb_vid && 0xea60 == usb_pid)
     {
-      // CP210x, could be an ESP32.
+      // CP210x, most likely an ESP32.
       // On Windows, libserialport reports SP_TRANSPORT_USB, on Linux and macOS SP_TRANSPORT_NATIVE is reported and
       // handled below. Newer versions of libserialport seem to report SP_TRANSPORT_USB on macOS as well.
     }
@@ -703,6 +707,20 @@ bool ZeDMDComm::Handshake(char* pDevice)
             }
 
             free(data);
+
+            if (m_writeAtOnce <= 64)
+            {
+              Log("The ZeDMD USB package size of %d is a very low value. Try to increase it to get smoother "
+                  "animations.",
+                  m_writeAtOnce);
+            }
+            if (m_panelMinRefreshRate <= 30)
+            {
+              Log("The ZeDMD panel minimal refresh rate of %d is a very low value. Try to increase it to get smoother "
+                  "animations.",
+                  m_panelMinRefreshRate);
+            }
+
             return true;
           }
           else
