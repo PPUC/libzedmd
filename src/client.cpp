@@ -98,11 +98,11 @@ static struct cag_option options[] = {
      .access_name = "set-wifi-port",
      .value_name = "VALUE",
      .description = "WiFi network port (default is 3333)"},
-    {.identifier = 'y',
-     .access_letters = "y",
-     .access_name = "set-y-offset",
+    {.identifier = 'l',
+     .access_letters = "l",
+     .access_name = "led-test",
      .value_name = "VALUE",
-     .description = "0..32"}};
+     .description = "run LED test"}};
 
 void ZEDMDCALLBACK LogCallback(const char* format, va_list args, const void* pUserData)
 {
@@ -136,6 +136,7 @@ int main(int argc, char* argv[])
   const char* opt_wifi_password = NULL;
   const char* opt_wifi_port = NULL;
   const char* opt_y_offset = NULL;
+  bool opt_led_test = false;
 
   bool has_other_options_than_h = false;
   cag_option_init(&cag_context, options, CAG_ARRAY_SIZE(options), argc, argv);
@@ -218,6 +219,10 @@ int main(int argc, char* argv[])
         break;
       case 'y':
         opt_y_offset = cag_option_get_value(&cag_context);
+        has_other_options_than_h = true;
+        break;
+      case 'l':
+        opt_led_test = true;
         has_other_options_than_h = true;
         break;
     }
@@ -540,7 +545,11 @@ int main(int argc, char* argv[])
   if (save)
   {
     pZeDMD->SaveSettings();
-    pZeDMD->Reset();
+  }
+
+  if (opt_led_test)
+  {
+    pZeDMD->LedTest();
   }
 
   pZeDMD->Close();
