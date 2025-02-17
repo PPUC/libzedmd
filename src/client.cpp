@@ -545,6 +545,7 @@ int main(int argc, char* argv[])
   if (save)
   {
     pZeDMD->SaveSettings();
+    pZeDMD->Reset();
   }
 
   if (opt_led_test)
