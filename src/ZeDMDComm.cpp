@@ -102,7 +102,7 @@ void ZeDMDComm::Run()
             Log("ZeDMD StreamBytes failed");
 
             // Allow ZeDMD to empty its buffers.
-            std::this_thread::sleep_for(std::chrono::milliseconds(16));
+            std::this_thread::sleep_for(std::chrono::milliseconds(8));
           }
         }
 

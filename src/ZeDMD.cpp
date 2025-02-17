@@ -643,17 +643,18 @@ bool ZeDMD::UpdateFrameBuffer888(uint8_t* pFrame)
 
   auto currentTime = std::chrono::steady_clock::now();
 
-  // 8ms means 125Hz. Drop frames of that and higher frame rates because ZeDMD HD can't handle them.
-  if (std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastExecutionTime).count() < 8) {
+  if (0 == memcmp(m_pFrameBuffer, pFrame, m_romWidth * m_romHeight * 3))
+  {
+    lastExecutionTime = currentTime;
+    return false;
+  }
+
+  // 12ms means 83Hz. Drop frames of that and higher frame rates because ZeDMD HD can't handle them.
+  if (std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastExecutionTime).count() < 12) {
     return false;
   }
 
   lastExecutionTime = currentTime;
-
-  if (0 == memcmp(m_pFrameBuffer, pFrame, m_romWidth * m_romHeight * 3))
-  {
-    return false;
-  }
 
   memcpy(m_pFrameBuffer, pFrame, m_romWidth * m_romHeight * 3);
   return true;
