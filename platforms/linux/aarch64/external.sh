@@ -7,19 +7,22 @@ LIBSERIALPORT_SHA=21b3dfe5f68c205be4086469335fd2fc2ce11ed2
 LIBFRAMEUTIL_SHA=30048ca23d41ca0a8f7d5ab75d3f646a19a90182
 SOCKPP_SHA=e6c4688a576d95f42dd7628cefe68092f6c5cd0f
 
-NUM_PROCS=$(nproc)
-
 echo "Building libraries..."
 echo "  CARGS_SHA: ${CARGS_SHA}"
 echo "  LIBSERIALPORT_SHA: ${LIBSERIALPORT_SHA}"
 echo "  LIBFRAMEUTIL_SHA: ${LIBFRAMEUTIL_SHA}"
 echo "  SOCKPP_SHA: ${SOCKPP_SHA}"
-echo "  NUM_PROCS: ${NUM_PROCS}"
 echo ""
 
 if [ -z "${BUILD_TYPE}" ]; then
    BUILD_TYPE="Release"
 fi
+
+NUM_PROCS=$(nproc)
+
+echo "Build type: ${BUILD_TYPE}"
+echo "Procs: ${NUM_PROCS}"
+echo ""
 
 rm -rf external
 mkdir external
@@ -39,7 +42,7 @@ cmake \
    -B build
 cmake --build build -- -j${NUM_PROCS}
 cp include/cargs.h ../../third-party/include/
-cp -a build/*.so ../../third-party/runtime-libs/linux/aarch64/
+cp build/libcargs.so ../../third-party/runtime-libs/linux/aarch64/
 cd ..
 
 #
@@ -55,7 +58,7 @@ cp libserialport.h ../../third-party/include
 ./configure
 make -j${NUM_PROCS}
 cp .libs/libserialport.a ../../third-party/build-libs/linux/aarch64
-cp -a .libs/*.{so,so.*} ../../third-party/runtime-libs/linux/aarch64
+cp -a .libs/libserialport.{so,so.*} ../../third-party/runtime-libs/linux/aarch64
 cd ..
 
 #
