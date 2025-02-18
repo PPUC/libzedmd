@@ -7,8 +7,6 @@ LIBSERIALPORT_SHA=21b3dfe5f68c205be4086469335fd2fc2ce11ed2
 LIBFRAMEUTIL_SHA=30048ca23d41ca0a8f7d5ab75d3f646a19a90182
 SOCKPP_SHA=e6c4688a576d95f42dd7628cefe68092f6c5cd0f
 
-NUM_PROCS=$(sysctl -n hw.ncpu)
-
 echo "Building libraries..."
 echo "  CARGS_SHA: ${CARGS_SHA}"
 echo "  LIBSERIALPORT_SHA: ${LIBSERIALPORT_SHA}"
@@ -20,6 +18,12 @@ echo ""
 if [ -z "${BUILD_TYPE}" ]; then
    BUILD_TYPE="Release"
 fi
+
+NUM_PROCS=$(sysctl -n hw.ncpu)
+
+echo "Build type: ${BUILD_TYPE}"
+echo "Procs: ${NUM_PROCS}"
+echo ""
 
 rm -rf external
 mkdir external
@@ -41,7 +45,7 @@ cmake \
    -B build
 cmake --build build -- -j${NUM_PROCS}
 cp include/cargs.h ../../third-party/include/
-cp -a build/*.dylib ../../third-party/runtime-libs/macos/arm64/
+cp build/libcargs.dylib ../../third-party/runtime-libs/macos/arm64/
 cd ..
 
 #
@@ -57,7 +61,7 @@ cp libserialport.h ../../third-party/include
 ./configure --host=aarch64-apple-darwin CFLAGS="-arch arm64" LDFLAGS="-Wl,-install_name,@rpath/libserialport.dylib"
 make -j${NUM_PROCS}
 cp .libs/libserialport.a ../../third-party/build-libs/macos/arm64
-cp .libs/libserialport.dylib ../../third-party/runtime-libs/macos/arm64
+cp -a .libs/libserialport.{dylib,*.dylib} ../../third-party/runtime-libs/macos/arm64
 cd ..
 
 #
@@ -88,5 +92,5 @@ cmake \
    -B build
 cmake --build build -- -j${NUM_PROCS}
 cp -r include/sockpp ../../third-party/include/
-cp -a build/*.dylib ../../third-party/runtime-libs/macos/arm64/
+cp -a build/libsockpp.{dylib,*.dylib} ../../third-party/runtime-libs/macos/arm64/
 cd ..
