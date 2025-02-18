@@ -311,7 +311,6 @@ void ZeDMDWiFi::Disconnect()
 
   if (m_tcpConnector)
   {
-    m_tcpConnector->close();
     delete m_tcpConnector;
   }
   m_tcpConnector = nullptr;
