@@ -33,7 +33,7 @@ class ZeDMDWiFi : public ZeDMDComm
   bool DoConnect(const char* ip);
   virtual bool SendChunks(uint8_t* pData, uint16_t size);
   virtual void Reset();
-  bool openTcpConnection(int sock, sockaddr_in server, int16_t timeout);
+  bool openTcpConnection();
   bool SendGetRequest(const std::string& path);
   bool SendPostRequest(const std::string& path, const std::string& data);
   std::string ReceiveResponse();

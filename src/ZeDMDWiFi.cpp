@@ -7,6 +7,8 @@
 #include <netinet/tcp.h>
 #include <unistd.h>
 #endif
+#include <fcntl.h>
+
 #include <sstream>
 
 #include "komihash/komihash.h"
@@ -24,16 +26,24 @@ bool ZeDMDWiFi::Connect(const char* name_or_ip)
   if (!m_wsaStarted) return false;
 #endif
 
+  struct sockaddr_in sa;
+  struct sockaddr_in6 sa6;
   struct addrinfo hints, *res = nullptr;
   memset(&hints, 0, sizeof(hints));
   hints.ai_family = AF_INET;        // Use IPv4
   hints.ai_socktype = SOCK_STREAM;  // Use TCP for hostname resolution
 
-  // Resolve the hostname to an IP address
+  // Check if IPv4 or IPv6
+  if (inet_pton(AF_INET, name_or_ip, &(sa.sin_addr)) == 1 || inet_pton(AF_INET6, name_or_ip, &(sa6.sin6_addr)) == 1)
+  {
+    // We got an IP address. Use it.
+    return DoConnect(name_or_ip);
+  }
+
+  // We have a hostname, resolve it to an IP address
   if (0 != getaddrinfo(name_or_ip, nullptr, &hints, &res))
   {
-    // Try to use the IP directly if resolution fails
-    return DoConnect(name_or_ip);
+    return false;
   }
 
   struct sockaddr_in* ipv4 = (struct sockaddr_in*)res->ai_addr;
@@ -45,9 +55,7 @@ bool ZeDMDWiFi::Connect(const char* name_or_ip)
 
 bool ZeDMDWiFi::DoConnect(const char* ip)
 {
-  Log("Attempting to connect to IP: %s", ip);
-
-  m_httpSocket = socket(AF_INET, SOCK_STREAM, 0);  // TCP
+  Log("Attempting to connect to IP address: %s", ip);
 
   m_httpServer.sin_family = AF_INET;
   m_httpServer.sin_port = htons(80);
@@ -55,125 +63,123 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
 
   m_port = 3333;
   m_udpDelay = 5;
-  uint8_t tries;
-  for (tries = 0; tries < 2; tries++)
+
+  bool handshakeReceived = false;
+  if (SendGetRequest("/handshake"))
   {
-    if (SendGetRequest("/handshake"))
+    handshakeReceived = true;
+
+    std::string handshake = ReceiveStringPayload();
+    std::stringstream ss(handshake);
+    std::string item;
+
+    // Log("Handshake: %s", handshake.c_str());
+
+    for (uint8_t pos = 0; pos <= 17; pos++)
     {
-      tries = 3;
-
-      std::string handshake = ReceiveStringPayload();
-      std::stringstream ss(handshake);
-      std::string item;
-
-      // Log("Handshake: %s", handshake.c_str());
-
-      for (uint8_t pos = 0; pos <= 17; pos++)
+      if (std::getline(ss, item, '|'))
       {
-        if (std::getline(ss, item, '|'))
+        switch (pos)
         {
-          switch (pos)
+          case 0:
           {
-            case 0:
+            m_width = std::stoi(item);
+            break;
+          }
+          case 1:
+          {
+            m_height = std::stoi(item);
+            break;
+          }
+          case 2:
+          {
+            strncpy(m_firmwareVersion, item.c_str(), sizeof(m_firmwareVersion) - 1);
+            break;
+          }
+          case 3:
+          {
+            m_s3 = (std::stoi(item) == 1);
+            break;
+          }
+          case 4:
+          {
+            if (strcmp("TCP", item.c_str()) == 0)
             {
-              m_width = std::stoi(item);
-              break;
+              m_tcp = true;
             }
-            case 1:
-            {
-              m_height = std::stoi(item);
-              break;
-            }
-            case 2:
-            {
-              strncpy(m_firmwareVersion, item.c_str(), sizeof(m_firmwareVersion) - 1);
-              break;
-            }
-            case 3:
-            {
-              m_s3 = (std::stoi(item) == 1);
-              break;
-            }
-            case 4:
-            {
-              if (strcmp("TCP", item.c_str()) == 0)
-              {
-                m_tcp = true;
-              }
-              break;
-            }
-            case 5:
-            {
-              m_port = std::stoi(item);
-              break;
-            }
-            case 6:
-            {
-              m_udpDelay = std::stoi(item);
-              break;
-            }
-            case 7:
-            {
-              m_writeAtOnce = std::stoi(item);
-              break;
-            }
-            case 8:
-            {
-              m_brightness = std::stoi(item);
-              break;
-            }
-            case 9:
-            {
-              m_rgbMode = std::stoi(item);
-              break;
-            }
-            case 10:
-            {
-              m_panelClkphase = std::stoi(item);
-              break;
-            }
-            case 11:
-            {
-              m_panelDriver = std::stoi(item);
-              break;
-            }
-            case 12:
-            {
-              m_panelI2sspeed = std::stoi(item);
-              break;
-            }
-            case 13:
-            {
-              m_panelLatchBlanking = std::stoi(item);
-              break;
-            }
-            case 14:
-            {
-              m_panelMinRefreshRate = std::stoi(item);
-              break;
-            }
-            case 15:
-            {
-              m_yOffset = std::stoi(item);
-              break;
-            }
-            case 16:
-            {
-              strncpy(m_ssid, item.c_str(), sizeof(m_ssid) - 1);
-              break;
-            }
-            case 17:
-            {
-              m_half = (std::stoi(item) == 1);
-              break;
-            }
+            break;
+          }
+          case 5:
+          {
+            m_port = std::stoi(item);
+            break;
+          }
+          case 6:
+          {
+            m_udpDelay = std::stoi(item);
+            break;
+          }
+          case 7:
+          {
+            m_writeAtOnce = std::stoi(item);
+            break;
+          }
+          case 8:
+          {
+            m_brightness = std::stoi(item);
+            break;
+          }
+          case 9:
+          {
+            m_rgbMode = std::stoi(item);
+            break;
+          }
+          case 10:
+          {
+            m_panelClkphase = std::stoi(item);
+            break;
+          }
+          case 11:
+          {
+            m_panelDriver = std::stoi(item);
+            break;
+          }
+          case 12:
+          {
+            m_panelI2sspeed = std::stoi(item);
+            break;
+          }
+          case 13:
+          {
+            m_panelLatchBlanking = std::stoi(item);
+            break;
+          }
+          case 14:
+          {
+            m_panelMinRefreshRate = std::stoi(item);
+            break;
+          }
+          case 15:
+          {
+            m_yOffset = std::stoi(item);
+            break;
+          }
+          case 16:
+          {
+            strncpy(m_ssid, item.c_str(), sizeof(m_ssid) - 1);
+            break;
+          }
+          case 17:
+          {
+            m_half = (std::stoi(item) == 1);
+            break;
           }
         }
       }
     }
   }
 
-  if (tries < 3)
+  if (!handshakeReceived)
   {
     Log("ZeDMD fast handshake failed ... fallback to single requests");
 
@@ -330,41 +336,123 @@ void ZeDMDWiFi::Disconnect()
   m_connected = false;
 }
 
-bool ZeDMDWiFi::openTcpConnection(int sock, sockaddr_in server, int16_t timeout)
+bool ZeDMDWiFi::openTcpConnection()
 {
+  // The timeout of the operating system could be very long, like one minute or more.
+  // Unfortunately, connect() ignores the shorter timeout we configure on the socket and uses the one from the operating
+  // system if in blocking mode. So we need that complicated code to turn the socket in a non-blocking mode first and
+  // perform a connect() with a short timout to see if ZeDMD WiFi is "online". If the connection could be established,
+  // the socket will be closed and established again in a blocking mode. This way we get the information if ZeDMD is
+  // "offline" within 3 seconds.
+
+  if (m_httpSocket >= 0)
+  {
 #if defined(_WIN32) || defined(_WIN64)
-  if (sock >= 0) closesocket(sock);
+    closesocket(m_httpSocket);
 #else
-  if (sock >= 0) close(sock);
+    close(m_httpSocket);
+#endif
+  }
+  else
+  {
+    m_httpSocket = socket(AF_INET, SOCK_STREAM, 0);  // TCP
+    if (m_httpSocket < 0) return false;
+
+    // Set socket to non-blocking mode
+#if defined(_WIN32) || defined(_WIN64)
+    u_long mode = 1;
+    ioctlsocket(m_httpSocket, FIONBIO, &mode);
+#else
+    int flags = fcntl(m_httpSocket, F_GETFL, 0);
+    fcntl(m_httpSocket, F_SETFL, flags | O_NONBLOCK);
 #endif
 
-  sock = socket(AF_INET, SOCK_STREAM, 0);  // TCP
-  if (sock < 0) return false;
+    // Start connect
+    int result = connect(m_httpSocket, (struct sockaddr*)&m_httpServer, sizeof(m_httpServer));
+    if (result != 0)
+    {
+      // Not connected immediately
+#if defined(_WIN32) || defined(_WIN64)
+      if (WSAGetLastError() != WSAEWOULDBLOCK)
+      {
+        if (m_httpSocket >= 0) closesocket(m_httpSocket);
+        m_httpSocket = -1;
+        return false;  // Immediate error
+      }
+#else
+      if (errno != EINPROGRESS)
+      {
+        Log("Socket error: %d, %s", errno, strerror(errno));
+        if (m_httpSocket >= 0) close(m_httpSocket);
+        m_httpSocket = -1;
+        return false;  // Immediate error
+      }
+#endif
+
+      // Wait for the socket to become writable
+      fd_set writefds;
+      FD_ZERO(&writefds);
+      FD_SET(m_httpSocket, &writefds);
+
+      struct timeval tv;
+      tv.tv_sec = 3;
+      tv.tv_usec = 0;
+
+      if (select(m_httpSocket + 1, nullptr, &writefds, nullptr, &tv) < 1)
+      {
+#if defined(_WIN32) || defined(_WIN64)
+        if (m_httpSocket >= 0) closesocket(m_httpSocket);
+#else
+        if (m_httpSocket >= 0) close(m_httpSocket);
+#endif
+        m_httpSocket = -1;
+        return false;  // Timeout or error
+      }
+    }
+
+// Restore blocking mode
+#if defined(_WIN32) || defined(_WIN64)
+    mode = 0;
+    ioctlsocket(m_httpSocket, FIONBIO, &mode);
+    closesocket(m_httpSocket);
+#else
+    fcntl(m_httpSocket, F_SETFL, flags);
+    close(m_httpSocket);
+#endif
+  }
+
+  m_httpSocket = socket(AF_INET, SOCK_STREAM, 0);  // TCP
+  if (m_httpSocket < 0) return false;
 
 #if defined(_WIN32) || defined(_WIN64)
-  DWORD to = timeout;
-  setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&to, sizeof(to));
-  setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (const char*)&to, sizeof(to));
+  DWORD to = 3000;
+  setsockopt(m_httpSocket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&to, sizeof(to));
+  setsockopt(m_httpSocket, SOL_SOCKET, SO_SNDTIMEO, (const char*)&to, sizeof(to));
 #else
   struct timeval to;
-  to.tv_sec = timeout / 1000;
+  to.tv_sec = 3;
   to.tv_usec = 0;  // 0 microseconds
-  if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &to, sizeof(to)) != 0)
+  if (setsockopt(m_httpSocket, SOL_SOCKET, SO_RCVTIMEO, &to, sizeof(to)) != 0)
   {
-    Log("Socket error: %s", strerror(errno));
+    Log("Socket error: %d, %s", errno, strerror(errno));
+  }
+  if (setsockopt(m_httpSocket, SOL_SOCKET, SO_SNDTIMEO, &to, sizeof(to)) != 0)
+  {
+    Log("Socket error: %d, %s", errno, strerror(errno));
   }
 #endif
 
-  if (server.sin_addr.s_addr == INADDR_NONE || connect(sock, (struct sockaddr*)&server, sizeof(server)) < 0)
+  if (m_httpServer.sin_addr.s_addr == INADDR_NONE ||
+      connect(m_httpSocket, (struct sockaddr*)&m_httpServer, sizeof(m_httpServer)) < 0)
   {
     Log("Failed to connect: %s", strerror(errno));
 
 #if defined(_WIN32) || defined(_WIN64)
-    if (sock >= 0) closesocket(sock);
+    if (m_httpSocket >= 0) closesocket(sm_httpSocketock);
 #else
-    if (sock >= 0) close(sock);
+    if (m_httpSocket >= 0) close(m_httpSocket);
 #endif
-    sock = -1;
+    m_httpSocket = -1;
 
     return false;
   }
@@ -374,7 +462,7 @@ bool ZeDMDWiFi::openTcpConnection(int sock, sockaddr_in server, int16_t timeout)
 
 bool ZeDMDWiFi::SendGetRequest(const std::string& path)
 {
-  if (!openTcpConnection(m_httpSocket, m_httpServer, 3000)) return false;
+  if (!openTcpConnection()) return false;
 
   std::string request = "GET " + path + " HTTP/1.1\r\n";
   request += "Host: " + std::string(inet_ntoa(m_httpServer.sin_addr)) + "\r\n";
@@ -386,7 +474,7 @@ bool ZeDMDWiFi::SendGetRequest(const std::string& path)
 
 bool ZeDMDWiFi::SendPostRequest(const std::string& path, const std::string& data)
 {
-  if (!openTcpConnection(m_httpSocket, m_httpServer, 3000)) return false;
+  if (!openTcpConnection()) return false;
 
   std::string request = "POST " + path + " HTTP/1.1\r\n";
   request += "Host: " + std::string(inet_ntoa(m_httpServer.sin_addr)) + "\r\n";
@@ -408,7 +496,6 @@ std::string ZeDMDWiFi::ReceiveResponse()
   while (true)
   {
     bytesReceived = recv(m_httpSocket, buffer, sizeof(buffer), 0);
-
     if (bytesReceived > 0)
     {
       response.append(buffer, bytesReceived);

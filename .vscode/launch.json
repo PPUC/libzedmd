@@ -38,7 +38,7 @@
         "type": "cppdbg",
         "request": "launch",
         "program": "${workspaceFolder}/build/zedmd-client",
-        "args": ["-b", "5"],
+        "args": ["-i"],
         "stopAtEntry": false,
         "cwd": "${workspaceFolder}",
         "environment": [],
