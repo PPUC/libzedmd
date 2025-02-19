@@ -448,7 +448,7 @@ bool ZeDMDWiFi::openTcpConnection()
     Log("Failed to connect: %s", strerror(errno));
 
 #if defined(_WIN32) || defined(_WIN64)
-    if (m_httpSocket >= 0) closesocket(sm_httpSocketock);
+    if (m_httpSocket >= 0) closesocket(m_httpSocket);
 #else
     if (m_httpSocket >= 0) close(m_httpSocket);
 #endif
