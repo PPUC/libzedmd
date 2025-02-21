@@ -298,9 +298,18 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
   }
   else
   {
-    m_udpSocket = new sockpp::udp_socket();
-    m_udpServer = new sockpp::inet_address(ip, (in_port_t)m_port);
-    m_keepAliveInterval = std::chrono::milliseconds(ZEDMD_WIFI_UDP_KEEP_ALIVE_INTERVAL);
+    // Converting the ip to an uint32_t before calling inet_address() avoid the DNS lookup.
+    struct in_addr addr;
+    if (inet_pton(AF_INET, ip, &addr) == 1)
+    {
+      m_udpSocket = new sockpp::udp_socket();
+      m_udpServer = new sockpp::inet_address(addr.s_addr, (in_port_t)m_port);
+      m_keepAliveInterval = std::chrono::milliseconds(ZEDMD_WIFI_UDP_KEEP_ALIVE_INTERVAL);
+    }
+    else {
+      Log("IP address %s could not be used", ip);
+      return false;
+    }
   }
 
   strcpy(m_ip, ip);
