@@ -223,6 +223,7 @@ class ZeDMDComm
   bool const IsS3();
   bool const IsHalf();
   const char* GetFirmwareVersion() { return (const char*)m_firmwareVersion; }
+  const char* GetDevice() { return (const char*)m_device; }
   uint16_t GetId() { return m_id; }
   uint8_t GetBrightness() { return m_brightness; }
   uint8_t GetRGBOrder() { return m_rgbMode; }

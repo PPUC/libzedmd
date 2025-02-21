@@ -28,6 +28,7 @@ class ZeDMDWiFi : public ZeDMDComm
   virtual const char* GetWiFiSSID();
   virtual void StoreWiFiPassword();
   virtual int GetWiFiPort();
+  const char* GetIp() { return (const char*)m_ip; }
 
  protected:
   bool DoConnect(const char* ip);
@@ -43,6 +44,7 @@ class ZeDMDWiFi : public ZeDMDComm
 
  private:
   char m_ssid[32] = {0};
+  char m_ip[16] = {0};
   int m_httpSocket = -1;
   int m_port = -1;
   struct sockaddr_in m_httpServer;

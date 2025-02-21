@@ -168,6 +168,24 @@ const char* ZeDMD::GetWiFiSSID()
   return m_pZeDMDWiFi->GetWiFiSSID();
 }
 
+const char* ZeDMD::GetIp()
+{
+  if (m_wifi)
+  {
+    return m_pZeDMDWiFi->GetIp();
+  }
+  return "";
+}
+
+const char* ZeDMD::GetDevice()
+{
+  if (m_usb)
+  {
+    return m_pZeDMDComm->GetDevice();
+  }
+  return "";
+}
+
 int ZeDMD::GetWiFiPort()
 {
   if (m_usb)
@@ -813,6 +831,10 @@ ZEDMDAPI const char* ZeDMD_GetFirmwareVersion(ZeDMD* pZeDMD) { return pZeDMD->Ge
 ZEDMDAPI uint16_t ZeDMD_GetId(ZeDMD* pZeDMD) { return pZeDMD->GetId(); };
 
 ZEDMDAPI const char* ZeDMD_GetIdString(ZeDMD* pZeDMD) { return pZeDMD->GetIdString(); };
+
+ZEDMDAPI const char* ZeDMD_GetIp(ZeDMD* pZeDMD) { return pZeDMD->GetIp(); };
+
+ZEDMDAPI const char* ZeDMD_GetDevice(ZeDMD* pZeDMD) { return pZeDMD->GetDevice(); };
 
 ZEDMDAPI bool ZeDMD_IsS3(ZeDMD* pZeDMD) { return pZeDMD->IsS3(); };
 

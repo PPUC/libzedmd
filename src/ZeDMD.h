@@ -144,6 +144,26 @@ class ZEDMDAPI ZeDMD
    */
   void Reset();
 
+  /** @brief Get the IP address in case of a WiFi connection
+   *
+   *  Get the IP address in case of a WiFi connection.
+   *  @see OpenWiFi()
+   *  @see OpenDefaultWiFi()
+   *
+   *  @return IP address string
+   */
+  const char* GetIp();
+
+  /** @brief Get the device in case of a serial connection
+   *
+   *  Instead of serching through all serial devices for a ZeDMD,
+   *  just use this device.
+   *  @see Open()
+   *
+   *  @return the device string
+   */
+  const char* GetDevice();
+
   /** @brief Set the frame size
    *
    *  Set the frame size of the content that will be displayed
@@ -626,6 +646,8 @@ extern "C"
   extern ZEDMDAPI bool ZeDMD_OpenWiFi(ZeDMD* pZeDMD, const char* ip);
   extern ZEDMDAPI bool ZeDMD_OpenDefaultWiFi(ZeDMD* pZeDMD);
   extern ZEDMDAPI void ZeDMD_Close(ZeDMD* pZeDMD);
+  extern ZEDMDAPI const char* ZeDMD_GetIp(ZeDMD* pZeDMD);
+  extern ZEDMDAPI const char* ZeDMD_GetDevice(ZeDMD* pZeDMD);
   extern ZEDMDAPI void ZeDMD_SetLogCallback(ZeDMD* pZeDMD, ZeDMD_LogCallback callback, const void* userData);
   extern ZEDMDAPI void ZeDMD_SetFrameSize(ZeDMD* pZeDMD, uint16_t width, uint16_t height);
   extern ZEDMDAPI void ZeDMD_SetDefaultPalette(ZeDMD* pZeDMD, uint8_t bitDepth);

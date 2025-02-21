@@ -446,9 +446,19 @@ int main(int argc, char* argv[])
     printf("firmware version:           %s\n", pZeDMD->GetFirmwareVersion());
     printf("CPU:                        %s\n", pZeDMD->IsS3() ? "ESP32 S3" : "ESP32");
     printf("libzedmd version:           %s\n", pZeDMD->GetVersion());
-    printf("transport:                  %d (%s)\n", pZeDMD->GetTransport(), pZeDMD->GetTransport() == 0 ? "USB" : (pZeDMD->GetTransport() == 1 ? "UDP" : "TCP"));
+    printf("transport:                  %d (%s)\n", pZeDMD->GetTransport(),
+           pZeDMD->GetTransport() == 0 ? "USB" : (pZeDMD->GetTransport() == 1 ? "UDP" : "TCP"));
+    if (pZeDMD->GetTransport() == 0)
+    {
+      printf("device:                     %s\n", pZeDMD->GetDevice());
+    }
+    else
+    {
+      printf("IP address:                 %s\n", pZeDMD->GetIp());
+    }
     printf("USB package size:           %d\n", pZeDMD->GetUsbPackageSize());
-    printf("WiFi SSID:                  %s\n", pZeDMD->GetTransport() == 0 ? "could only be retrieved via WiFi" : pZeDMD->GetWiFiSSID());
+    printf("WiFi SSID:                  %s\n",
+           pZeDMD->GetTransport() == 0 ? "could only be retrieved via WiFi" : pZeDMD->GetWiFiSSID());
     printf("WiFi port:                  %d\n", pZeDMD->GetWiFiPort());
     printf("WiFi UDP delay:             %d\n", pZeDMD->GetUdpDelay());
     printf("panel width:                %d\n", pZeDMD->GetWidth());

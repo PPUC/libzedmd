@@ -303,6 +303,7 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
     m_keepAliveInterval = std::chrono::milliseconds(ZEDMD_WIFI_UDP_KEEP_ALIVE_INTERVAL);
   }
 
+  strcpy(m_ip, ip);
   m_connected = true;
 
   return true;
