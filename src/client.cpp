@@ -441,25 +441,26 @@ int main(int argc, char* argv[])
   if (opt_info)
   {
     printf("\nZeDMD Info\n");
-    printf("==========\n");
-    printf("ZeDMD firmware version: %s\n", pZeDMD->GetFirmwareVersion());
-    printf("CPU: %s\n", pZeDMD->IsS3() ? "ESP32 S3" : "ESP32");
-    printf("libzedmd version: %s\n", pZeDMD->GetVersion());
-    printf("transport: %d\n", pZeDMD->GetTransport());
-    printf("USB package size: %d\n", pZeDMD->GetUsbPackageSize());
-    printf("WiFi SSID: %s\n", pZeDMD->GetWiFiSSID());
-    printf("WiFi port: %d\n", pZeDMD->GetWiFiPort());
-    printf("WiFi UDP delay: %d\n", pZeDMD->GetUdpDelay());
-    printf("panel width: %d\n", pZeDMD->GetWidth());
-    printf("panel height: %d\n", pZeDMD->GetHeight());
-    printf("panel RGB order: %d\n", pZeDMD->GetRGBOrder());
-    printf("panel brightness: %d\n", pZeDMD->GetBrightness());
-    printf("panel clock phase: %d\n", pZeDMD->GetPanelClockPhase());
-    printf("panel i2s speed: %d\n", pZeDMD->GetPanelI2sSpeed());
-    printf("panel latch blanking: %d\n", pZeDMD->GetPanelLatchBlanking());
+    printf("=============================================================\n");
+    printf("ID:                         %s\n", pZeDMD->GetIdString());
+    printf("firmware version:           %s\n", pZeDMD->GetFirmwareVersion());
+    printf("CPU:                        %s\n", pZeDMD->IsS3() ? "ESP32 S3" : "ESP32");
+    printf("libzedmd version:           %s\n", pZeDMD->GetVersion());
+    printf("transport:                  %d (%s)\n", pZeDMD->GetTransport(), pZeDMD->GetTransport() == 0 ? "USB" : (pZeDMD->GetTransport() == 1 ? "UDP" : "TCP"));
+    printf("USB package size:           %d\n", pZeDMD->GetUsbPackageSize());
+    printf("WiFi SSID:                  %s\n", pZeDMD->GetTransport() == 0 ? "could only be retrieved via WiFi" : pZeDMD->GetWiFiSSID());
+    printf("WiFi port:                  %d\n", pZeDMD->GetWiFiPort());
+    printf("WiFi UDP delay:             %d\n", pZeDMD->GetUdpDelay());
+    printf("panel width:                %d\n", pZeDMD->GetWidth());
+    printf("panel height:               %d\n", pZeDMD->GetHeight());
+    printf("panel RGB order:            %d\n", pZeDMD->GetRGBOrder());
+    printf("panel brightness:           %d\n", pZeDMD->GetBrightness());
+    printf("panel clock phase:          %d\n", pZeDMD->GetPanelClockPhase());
+    printf("panel i2s speed:            %d\n", pZeDMD->GetPanelI2sSpeed());
+    printf("panel latch blanking:       %d\n", pZeDMD->GetPanelLatchBlanking());
     printf("panel minimal refresh rate: %d\n", pZeDMD->GetPanelMinRefreshRate());
-    printf("panel driver: %d\n", pZeDMD->GetPanelDriver());
-    printf("Y-offset: %d\n\n", pZeDMD->GetYOffset());
+    printf("panel driver:               %d\n", pZeDMD->GetPanelDriver());
+    printf("Y-offset:                   %d\n\n", pZeDMD->GetYOffset());
   }
 
   bool save = false;

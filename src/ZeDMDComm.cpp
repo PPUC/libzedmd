@@ -692,6 +692,7 @@ bool ZeDMDComm::Handshake(char* pDevice)
             m_udpDelay = data[21];
             m_half = (bool)(data[22] & 0b00000001);
             if (!m_s3) m_s3 = (bool)(data[22] & 0b00000010);
+            m_id = data[23] + data[24] * 256;
 
             // Store the device name for reconnects.
             SetDevice(pDevice);

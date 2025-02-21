@@ -215,6 +215,22 @@ class ZEDMDAPI ZeDMD
    */
   const char* GetFirmwareVersion();
 
+  /** @brief Get the ZeDMD ID
+   *
+   *  Get the ID of the ZeDMD.
+   *
+   *  @return ID
+   */
+  uint16_t const GetId();
+
+  /** @brief Get the ZeDMD ID as string
+   *
+   *  Get the ID of the ZeDMD as string.
+   *
+   *  @return ID string
+   */
+  const char* GetIdString();
+
   /** @brief Get the RGB order
    *
    *  ZeDMD supports different LED panels.
@@ -583,6 +599,8 @@ extern "C"
   extern ZEDMDAPI void ZeDMD_SetLogCallback(ZeDMD* pZeDMD, ZeDMD_LogCallback callback, const void* pUserData);
   extern ZEDMDAPI const char* ZeDMD_FormatLogMessage(const char* format, va_list args, const void* pUserData);
   extern ZEDMDAPI const char* ZeDMD_GetFirmwareVersion(ZeDMD* pZeDMD);
+  extern ZEDMDAPI uint16_t ZeDMD_GetId(ZeDMD* pZeDMD);
+  extern ZEDMDAPI const char* ZeDMD_GetIdString(ZeDMD* pZeDMD);
   extern ZEDMDAPI bool ZeDMD_IsS3(ZeDMD* pZeDMD);
   extern ZEDMDAPI uint16_t ZeDMD_GetWidth(ZeDMD* pZeDMD);
   extern ZEDMDAPI uint16_t ZeDMD_GetHeight(ZeDMD* pZeDMD);

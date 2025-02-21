@@ -105,21 +105,19 @@ uint16_t const ZeDMD::GetHeight()
   return m_pZeDMDComm->GetHeight();
 }
 
-uint16_t const ZeDMD::GetPanelWidth()
-{
-  return GetWidth();
-}
+uint16_t const ZeDMD::GetPanelWidth() { return GetWidth(); }
 
 uint16_t const ZeDMD::GetPanelHeight()
 {
-  bool half= false;
+  bool half = false;
 
   if (m_wifi)
   {
-    half =  m_pZeDMDWiFi->IsHalf();
+    half = m_pZeDMDWiFi->IsHalf();
   }
-  else {
-    half =  m_pZeDMDComm->IsHalf();
+  else
+  {
+    half = m_pZeDMDComm->IsHalf();
   }
 
   return (half ? (GetHeight() * 2) : GetHeight());
@@ -143,6 +141,22 @@ const char* ZeDMD::GetFirmwareVersion()
     return m_pZeDMDComm->GetFirmwareVersion();
   }
   return m_pZeDMDWiFi->GetFirmwareVersion();
+}
+
+uint16_t const ZeDMD::GetId()
+{
+  if (m_usb)
+  {
+    return m_pZeDMDComm->GetId();
+  }
+  return m_pZeDMDWiFi->GetId();
+}
+
+const char* ZeDMD::GetIdString()
+{
+  static char id[5] = {0};
+  snprintf(id, 5, "%04X", GetId());
+  return id;
 }
 
 const char* ZeDMD::GetWiFiSSID()
@@ -650,7 +664,8 @@ bool ZeDMD::UpdateFrameBuffer888(uint8_t* pFrame)
   }
 
   // 12ms means 83Hz. Drop frames of that and higher frame rates because ZeDMD HD can't handle them.
-  if (std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastExecutionTime).count() < 12) {
+  if (std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastExecutionTime).count() < 12)
+  {
     return false;
   }
 
@@ -794,6 +809,10 @@ ZEDMDAPI const char* ZeDMD_FormatLogMessage(const char* format, va_list args, co
 }
 
 ZEDMDAPI const char* ZeDMD_GetFirmwareVersion(ZeDMD* pZeDMD) { return pZeDMD->GetFirmwareVersion(); };
+
+ZEDMDAPI uint16_t ZeDMD_GetId(ZeDMD* pZeDMD) { return pZeDMD->GetId(); };
+
+ZEDMDAPI const char* ZeDMD_GetIdString(ZeDMD* pZeDMD) { return pZeDMD->GetIdString(); };
 
 ZEDMDAPI bool ZeDMD_IsS3(ZeDMD* pZeDMD) { return pZeDMD->IsS3(); };
 

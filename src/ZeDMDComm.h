@@ -223,6 +223,7 @@ class ZeDMDComm
   bool const IsS3();
   bool const IsHalf();
   const char* GetFirmwareVersion() { return (const char*)m_firmwareVersion; }
+  uint16_t GetId() { return m_id; }
   uint8_t GetBrightness() { return m_brightness; }
   uint8_t GetRGBOrder() { return m_rgbMode; }
   uint8_t GetYOffset() { return m_yOffset; }
@@ -242,6 +243,7 @@ class ZeDMDComm
   bool IsQueueEmpty();
 
   char m_firmwareVersion[12] = "0.0.0";
+  uint16_t m_id = 0;
   uint16_t m_width = 128;
   uint16_t m_height = 32;
   bool m_s3 = false;

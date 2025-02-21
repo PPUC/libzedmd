@@ -75,7 +75,7 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
 
     // Log("Handshake: %s", handshake.c_str());
 
-    for (uint8_t pos = 0; pos <= 17; pos++)
+    for (uint8_t pos = 0; pos <= 18; pos++)
     {
       if (std::getline(ss, item, '|'))
       {
@@ -174,6 +174,9 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
             m_half = (std::stoi(item) == 1);
             break;
           }
+          case 18:
+            m_id = std::stoi(item);
+            break;
         }
       }
     }
