@@ -646,6 +646,7 @@ extern "C"
   extern ZEDMDAPI bool ZeDMD_OpenWiFi(ZeDMD* pZeDMD, const char* ip);
   extern ZEDMDAPI bool ZeDMD_OpenDefaultWiFi(ZeDMD* pZeDMD);
   extern ZEDMDAPI void ZeDMD_Close(ZeDMD* pZeDMD);
+  extern ZEDMDAPI void ZeDMD_Reset(ZeDMD* pZeDMD);
   extern ZEDMDAPI const char* ZeDMD_GetIp(ZeDMD* pZeDMD);
   extern ZEDMDAPI const char* ZeDMD_GetDevice(ZeDMD* pZeDMD);
   extern ZEDMDAPI void ZeDMD_SetLogCallback(ZeDMD* pZeDMD, ZeDMD_LogCallback callback, const void* userData);

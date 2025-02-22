@@ -847,7 +847,7 @@ ZEDMDAPI uint8_t ZeDMD_GetBrightness(ZeDMD* pZeDMD) { return pZeDMD->GetBrightne
 
 ZEDMDAPI const char* ZeDMD_GetWiFiSSID(ZeDMD* pZeDMD) { return pZeDMD->GetWiFiSSID(); };
 
-ZEDMDAPI void ZeDMD_StoreWiFiPassword(ZeDMD* pZeDMD) { return pZeDMD->StoreWiFiPassword(); };
+ZEDMDAPI void ZeDMD_StoreWiFiPassword(ZeDMD* pZeDMD) { pZeDMD->StoreWiFiPassword(); };
 
 ZEDMDAPI int ZeDMD_GetWiFiPort(ZeDMD* pZeDMD) { return pZeDMD->GetWiFiPort(); };
 
@@ -875,10 +875,10 @@ ZEDMDAPI uint8_t ZeDMD_GetYOffset(ZeDMD* pZeDMD) { return pZeDMD->GetYOffset(); 
 
 ZEDMDAPI void ZeDMD_IgnoreDevice(ZeDMD* pZeDMD, const char* const ignore_device)
 {
-  return pZeDMD->IgnoreDevice(ignore_device);
+  pZeDMD->IgnoreDevice(ignore_device);
 }
 
-ZEDMDAPI void ZeDMD_SetDevice(ZeDMD* pZeDMD, const char* const device) { return pZeDMD->SetDevice(device); }
+ZEDMDAPI void ZeDMD_SetDevice(ZeDMD* pZeDMD, const char* const device) { pZeDMD->SetDevice(device); }
 
 ZEDMDAPI bool ZeDMD_Open(ZeDMD* pZeDMD) { return pZeDMD->Open(); }
 
@@ -886,70 +886,66 @@ ZEDMDAPI bool ZeDMD_OpenWiFi(ZeDMD* pZeDMD, const char* ip) { return pZeDMD->Ope
 
 ZEDMDAPI bool ZeDMD_OpenDefaultWiFi(ZeDMD* pZeDMD) { return pZeDMD->OpenDefaultWiFi(); }
 
-ZEDMDAPI void ZeDMD_Close(ZeDMD* pZeDMD) { return pZeDMD->Close(); }
+ZEDMDAPI void ZeDMD_Close(ZeDMD* pZeDMD) { pZeDMD->Close(); }
+
+ZEDMDAPI void ZeDMD_Reset(ZeDMD* pZeDMD) { pZeDMD->Reset(); }
 
 ZEDMDAPI void ZeDMD_SetFrameSize(ZeDMD* pZeDMD, uint16_t width, uint16_t height)
 {
   return pZeDMD->SetFrameSize(width, height);
 }
 
-ZEDMDAPI void ZeDMD_LedTest(ZeDMD* pZeDMD) { return pZeDMD->LedTest(); }
+ZEDMDAPI void ZeDMD_LedTest(ZeDMD* pZeDMD) { pZeDMD->LedTest(); }
 
-ZEDMDAPI void ZeDMD_EnableDebug(ZeDMD* pZeDMD) { return pZeDMD->EnableDebug(); }
+ZEDMDAPI void ZeDMD_EnableDebug(ZeDMD* pZeDMD) { pZeDMD->EnableDebug(); }
 
-ZEDMDAPI void ZeDMD_DisableDebug(ZeDMD* pZeDMD) { return pZeDMD->DisableDebug(); }
+ZEDMDAPI void ZeDMD_DisableDebug(ZeDMD* pZeDMD) { pZeDMD->DisableDebug(); }
 
-ZEDMDAPI void ZeDMD_SetRGBOrder(ZeDMD* pZeDMD, uint8_t rgbOrder) { return pZeDMD->SetRGBOrder(rgbOrder); }
+ZEDMDAPI void ZeDMD_SetRGBOrder(ZeDMD* pZeDMD, uint8_t rgbOrder) { pZeDMD->SetRGBOrder(rgbOrder); }
 
-ZEDMDAPI void ZeDMD_SetBrightness(ZeDMD* pZeDMD, uint8_t brightness) { return pZeDMD->SetBrightness(brightness); }
+ZEDMDAPI void ZeDMD_SetBrightness(ZeDMD* pZeDMD, uint8_t brightness) { pZeDMD->SetBrightness(brightness); }
 
-ZEDMDAPI void ZeDMD_SaveSettings(ZeDMD* pZeDMD) { return pZeDMD->SaveSettings(); }
+ZEDMDAPI void ZeDMD_SaveSettings(ZeDMD* pZeDMD) { pZeDMD->SaveSettings(); }
 
-ZEDMDAPI void ZeDMD_EnableUpscaling(ZeDMD* pZeDMD) { return pZeDMD->EnableUpscaling(); }
+ZEDMDAPI void ZeDMD_EnableUpscaling(ZeDMD* pZeDMD) { pZeDMD->EnableUpscaling(); }
 
-ZEDMDAPI void ZeDMD_DisableUpscaling(ZeDMD* pZeDMD) { return pZeDMD->DisableUpscaling(); }
+ZEDMDAPI void ZeDMD_DisableUpscaling(ZeDMD* pZeDMD) { pZeDMD->DisableUpscaling(); }
 
-ZEDMDAPI void ZeDMD_SetWiFiSSID(ZeDMD* pZeDMD, const char* const ssid) { return pZeDMD->SetWiFiSSID(ssid); }
+ZEDMDAPI void ZeDMD_SetWiFiSSID(ZeDMD* pZeDMD, const char* const ssid) { pZeDMD->SetWiFiSSID(ssid); }
 
-ZEDMDAPI void ZeDMD_SetWiFiPassword(ZeDMD* pZeDMD, const char* const password)
-{
-  return pZeDMD->SetWiFiPassword(password);
-}
+ZEDMDAPI void ZeDMD_SetWiFiPassword(ZeDMD* pZeDMD, const char* const password) { pZeDMD->SetWiFiPassword(password); }
 
-ZEDMDAPI void ZeDMD_SetPanelClockPhase(ZeDMD* pZeDMD, uint8_t clockPhase)
-{
-  return pZeDMD->SetPanelClockPhase(clockPhase);
-}
+ZEDMDAPI void ZeDMD_SetPanelClockPhase(ZeDMD* pZeDMD, uint8_t clockPhase) { pZeDMD->SetPanelClockPhase(clockPhase); }
 
-ZEDMDAPI void ZeDMD_SetPanelI2sSpeed(ZeDMD* pZeDMD, uint8_t i2sSpeed) { return pZeDMD->SetPanelI2sSpeed(i2sSpeed); }
+ZEDMDAPI void ZeDMD_SetPanelI2sSpeed(ZeDMD* pZeDMD, uint8_t i2sSpeed) { pZeDMD->SetPanelI2sSpeed(i2sSpeed); }
 
 ZEDMDAPI void ZeDMD_SetPanelLatchBlanking(ZeDMD* pZeDMD, uint8_t latchBlanking)
 {
-  return pZeDMD->SetPanelLatchBlanking(latchBlanking);
+  pZeDMD->SetPanelLatchBlanking(latchBlanking);
 }
 
 ZEDMDAPI void ZeDMD_SetPanelMinRefreshRate(ZeDMD* pZeDMD, uint8_t minRefreshRate)
 {
-  return pZeDMD->SetPanelMinRefreshRate(minRefreshRate);
+  pZeDMD->SetPanelMinRefreshRate(minRefreshRate);
 }
 
-ZEDMDAPI void ZeDMD_SetPanelDriver(ZeDMD* pZeDMD, uint8_t driver) { return pZeDMD->SetPanelDriver(driver); }
+ZEDMDAPI void ZeDMD_SetPanelDriver(ZeDMD* pZeDMD, uint8_t driver) { pZeDMD->SetPanelDriver(driver); }
 
-ZEDMDAPI void ZeDMD_SetTransport(ZeDMD* pZeDMD, uint8_t transport) { return pZeDMD->SetTransport(transport); }
+ZEDMDAPI void ZeDMD_SetTransport(ZeDMD* pZeDMD, uint8_t transport) { pZeDMD->SetTransport(transport); }
 
-ZEDMDAPI void ZeDMD_SetUdpDelay(ZeDMD* pZeDMD, uint8_t udpDelay) { return pZeDMD->SetUdpDelay(udpDelay); }
+ZEDMDAPI void ZeDMD_SetUdpDelay(ZeDMD* pZeDMD, uint8_t udpDelay) { pZeDMD->SetUdpDelay(udpDelay); }
 
 ZEDMDAPI void ZeDMD_SetUsbPackageSize(ZeDMD* pZeDMD, uint16_t usbPackageSize)
 {
-  return pZeDMD->SetUsbPackageSize(usbPackageSize);
+  pZeDMD->SetUsbPackageSize(usbPackageSize);
 }
 
-ZEDMDAPI void ZeDMD_SetYOffset(ZeDMD* pZeDMD, uint8_t yOffset) { return pZeDMD->SetYOffset(yOffset); }
+ZEDMDAPI void ZeDMD_SetYOffset(ZeDMD* pZeDMD, uint8_t yOffset) { pZeDMD->SetYOffset(yOffset); }
 
-ZEDMDAPI void ZeDMD_SetWiFiPort(ZeDMD* pZeDMD, int port) { return pZeDMD->SetWiFiPort(port); }
+ZEDMDAPI void ZeDMD_SetWiFiPort(ZeDMD* pZeDMD, int port) { pZeDMD->SetWiFiPort(port); }
 
-ZEDMDAPI void ZeDMD_ClearScreen(ZeDMD* pZeDMD) { return pZeDMD->ClearScreen(); }
+ZEDMDAPI void ZeDMD_ClearScreen(ZeDMD* pZeDMD) { pZeDMD->ClearScreen(); }
 
-ZEDMDAPI void ZeDMD_RenderRgb888(ZeDMD* pZeDMD, uint8_t* frame) { return pZeDMD->RenderRgb888(frame); }
+ZEDMDAPI void ZeDMD_RenderRgb888(ZeDMD* pZeDMD, uint8_t* frame) { pZeDMD->RenderRgb888(frame); }
 
-ZEDMDAPI void ZeDMD_RenderRgb565(ZeDMD* pZeDMD, uint16_t* frame) { return pZeDMD->RenderRgb565(frame); }
+ZEDMDAPI void ZeDMD_RenderRgb565(ZeDMD* pZeDMD, uint16_t* frame) { pZeDMD->RenderRgb565(frame); }
