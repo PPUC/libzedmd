@@ -298,18 +298,9 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
   }
   else
   {
-    // Converting the ip to an uint32_t before calling inet_address() avoid the DNS lookup.
-    in_addr addr;
-    if (inet_pton(AF_INET, ip, &addr) == 1)
-    {
-      m_udpSocket = new sockpp::udp_socket();
-      m_udpServer = new sockpp::inet_address(ntohl(addr.s_addr), (in_port_t)m_port);
-      m_keepAliveInterval = std::chrono::milliseconds(ZEDMD_WIFI_UDP_KEEP_ALIVE_INTERVAL);
-    }
-    else {
-      Log("Unable to connect ZeDMD UDP streaming port %s:%d", ip, m_port);
-      return false;
-    }
+    m_udpSocket = new sockpp::udp_socket();
+    m_udpServer = new sockpp::inet_address(ntohl(m_httpServer.sin_addr.s_addr), (in_port_t)m_port);
+    m_keepAliveInterval = std::chrono::milliseconds(ZEDMD_WIFI_UDP_KEEP_ALIVE_INTERVAL);
   }
 
   strcpy(m_ip, ip);
