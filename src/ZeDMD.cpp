@@ -671,15 +671,9 @@ void ZeDMD::RenderRgb565(uint16_t* pFrame)
 }
 bool ZeDMD::UpdateFrameBuffer888(uint8_t* pFrame)
 {
-  static auto lastExecutionTime = std::chrono::steady_clock::now();
+  static auto lastExecutionTime = std::chrono::steady_clock::now() - std::chrono::milliseconds(100);
 
   auto currentTime = std::chrono::steady_clock::now();
-
-  if (0 == memcmp(m_pFrameBuffer, pFrame, m_romWidth * m_romHeight * 3))
-  {
-    lastExecutionTime = currentTime;
-    return false;
-  }
 
   // 12ms means 83Hz. Drop frames of that and higher frame rates because ZeDMD HD can't handle them.
   if (std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastExecutionTime).count() < 12)
@@ -688,6 +682,11 @@ bool ZeDMD::UpdateFrameBuffer888(uint8_t* pFrame)
   }
 
   lastExecutionTime = currentTime;
+
+  if (0 == memcmp(m_pFrameBuffer, pFrame, m_romWidth * m_romHeight * 3))
+  {
+    return false;
+  }
 
   memcpy(m_pFrameBuffer, pFrame, m_romWidth * m_romHeight * 3);
   return true;
