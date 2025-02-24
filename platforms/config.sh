@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -e
+
+CARGS_SHA=0698c3f90333446d0fc2745c1e9ce10dd4a9497a
+LIBSERIALPORT_SHA=21b3dfe5f68c205be4086469335fd2fc2ce11ed2
+LIBFRAMEUTIL_SHA=30048ca23d41ca0a8f7d5ab75d3f646a19a90182
+SOCKPP_SHA=e6c4688a576d95f42dd7628cefe68092f6c5cd0f
+
+if [ -z "${BUILD_TYPE}" ]; then
+   BUILD_TYPE="Release"
+fi
+
+echo "Build type: ${BUILD_TYPE}"
+echo ""

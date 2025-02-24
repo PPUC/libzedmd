@@ -2,10 +2,7 @@
 
 set -e
 
-CARGS_SHA=0698c3f90333446d0fc2745c1e9ce10dd4a9497a
-LIBSERIALPORT_SHA=21b3dfe5f68c205be4086469335fd2fc2ce11ed2
-LIBFRAMEUTIL_SHA=30048ca23d41ca0a8f7d5ab75d3f646a19a90182
-SOCKPP_SHA=e6c4688a576d95f42dd7628cefe68092f6c5cd0f
+source ./platforms/config.sh
 
 echo "Building libraries..."
 echo "  CARGS_SHA: ${CARGS_SHA}"
@@ -13,10 +10,6 @@ echo "  LIBSERIALPORT_SHA: ${LIBSERIALPORT_SHA}"
 echo "  LIBFRAMEUTIL_SHA: ${LIBFRAMEUTIL_SHA}"
 echo "  SOCKPP_SHA: ${SOCKPP_SHA}"
 echo ""
-
-if [ -z "${BUILD_TYPE}" ]; then
-   BUILD_TYPE="Release"
-fi
 
 rm -rf external
 mkdir external
@@ -30,7 +23,7 @@ curl -sL https://github.com/likle/cargs/archive/${CARGS_SHA}.tar.gz -o cargs-${C
 tar xzf cargs-${CARGS_SHA}.tar.gz
 mv cargs-${CARGS_SHA} cargs
 cd cargs
-patch -p1 < ../../platforms/win/x64/cargs/001.patch
+sed -i.bak 's/set_target_properties(cargs PROPERTIES DEFINE_SYMBOL CAG_EXPORTS)/set_target_properties(cargs PROPERTIES DEFINE_SYMBOL CAG_EXPORTS)\nset_target_properties(cargs PROPERTIES OUTPUT_NAME cargs64)/' CMakeLists.txt
 cmake \
    -G "Visual Studio 17 2022" \
    -DBUILD_SHARED_LIBS=ON \
@@ -50,8 +43,11 @@ tar xzf libserialport-${LIBSERIALPORT_SHA}.tar.gz
 mv libserialport-${LIBSERIALPORT_SHA} libserialport
 cd libserialport
 cp libserialport.h ../../third-party/include
-patch libserialport.vcxproj < ../../platforms/win/x64/libserialport/001.patch
-msbuild.exe libserialport.sln -p:Configuration=Release -p:Platform=x64
+msbuild.exe libserialport.sln \
+   -p:PlatformToolset=v143 \
+   -p:TargetName=libserialport64 \
+   -p:Platform=x64 \
+   -p:Configuration=Release
 cp x64/Release/libserialport64.lib ../../third-party/build-libs/win/x64
 cp x64/Release/libserialport64.dll ../../third-party/runtime-libs/win/x64
 cd ..
@@ -75,7 +71,7 @@ curl -sL https://github.com/fpagliughi/sockpp/archive/${SOCKPP_SHA}.tar.gz -o so
 tar xzf sockpp-${SOCKPP_SHA}.tar.gz
 mv sockpp-${SOCKPP_SHA} sockpp
 cd sockpp
-patch -p1 < ../../platforms/win/x64/sockpp/001.patch
+sed -i.bak 's/set(SOCKPP_SHARED_LIBRARY sockpp)/set(SOCKPP_SHARED_LIBRARY sockpp64)/' CMakeLists.txt
 cmake \
    -G "Visual Studio 17 2022" \
    -B build

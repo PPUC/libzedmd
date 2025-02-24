@@ -2,17 +2,12 @@
 
 set -e
 
-LIBFRAMEUTIL_SHA=30048ca23d41ca0a8f7d5ab75d3f646a19a90182
-SOCKPP_SHA=e6c4688a576d95f42dd7628cefe68092f6c5cd0f
+source ./platforms/config.sh
 
 echo "Building libraries..."
 echo "  LIBFRAMEUTIL_SHA: ${LIBFRAMEUTIL_SHA}"
 echo "  SOCKPP_SHA: ${SOCKPP_SHA}"
 echo ""
-
-if [ -z "${BUILD_TYPE}" ]; then
-   BUILD_TYPE="Release"
-fi
 
 if [[ $(uname) == "Linux" ]]; then
    NUM_PROCS=$(nproc)
@@ -21,10 +16,6 @@ elif [[ $(uname) == "Darwin" ]]; then
 else
    NUM_PROCS=1
 fi
-
-echo "Build type: ${BUILD_TYPE}"
-echo "Procs: ${NUM_PROCS}"
-echo ""
 
 rm -rf external
 mkdir external
