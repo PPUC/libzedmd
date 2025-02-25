@@ -358,11 +358,15 @@ void ZeDMD::DisableDebug()
 void ZeDMD::EnableVerbose()
 {
   m_verbose = true;
+  m_pZeDMDComm->SetVerbose(true);
+  m_pZeDMDWiFi->SetVerbose(true);
 }
 
 void ZeDMD::DisableVerbose()
 {
   m_verbose = false;
+  m_pZeDMDComm->SetVerbose(false);
+  m_pZeDMDWiFi->SetVerbose(false);
 }
 
 void ZeDMD::SetRGBOrder(uint8_t rgbOrder)

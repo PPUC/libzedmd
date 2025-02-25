@@ -117,6 +117,7 @@ int main(int argc, char* argv[])
 {
   char identifier;
   cag_option_context cag_context;
+  bool wifi = false;
 
   const char* opt_port = NULL;
   const char* opt_ip_address = NULL;
@@ -420,6 +421,7 @@ int main(int argc, char* argv[])
       pZeDMD = nullptr;
       return -1;
     }
+    wifi = true;
   }
   else if (opt_port)
   {
@@ -435,12 +437,16 @@ int main(int argc, char* argv[])
   }
   else
   {
-    if (!pZeDMD->Open() && !pZeDMD->OpenDefaultWiFi())
+    if (!pZeDMD->Open())
     {
-      printf("Unable to open connection to ZeDMD via USB or WiFi.\n");
-      delete pZeDMD;
-      pZeDMD = nullptr;
-      return -1;
+      if (!pZeDMD->OpenDefaultWiFi())
+      {
+        printf("Unable to open connection to ZeDMD via USB or WiFi.\n");
+        delete pZeDMD;
+        pZeDMD = nullptr;
+        return -1;
+      }
+      wifi = true;
     }
   }
 
@@ -565,15 +571,21 @@ int main(int argc, char* argv[])
   if (save)
   {
     pZeDMD->SaveSettings();
-    pZeDMD->Reset();
+    if (wifi) {
+      pZeDMD->Reset();
+    }
+    else {
+      pZeDMD->Close();
+    }
   }
-
-  if (opt_led_test)
+  else if (opt_led_test)
   {
     pZeDMD->LedTest();
   }
+  else {
+    pZeDMD->Close();
+  }
 
-  pZeDMD->Close();
   delete pZeDMD;
   pZeDMD = nullptr;
   return 0;

@@ -844,6 +844,8 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
   uint16_t pos = FRAME_HEADER_SIZE;
 
   m_lastKeepAlive = std::chrono::steady_clock::now();
+  m_currentCommand = pFrame->command;
+  if (m_verbose) Log("StreamBytes, command %02X", m_currentCommand);
 
   for (auto it = pFrame->data.rbegin(); it != pFrame->data.rend(); ++it)
   {
@@ -987,6 +989,11 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
 
     memset(ack, 0, CTRL_CHARS_HEADER_SIZE + 2);
     status = sp_blocking_read(m_pSerialPort, ack, CTRL_CHARS_HEADER_SIZE + 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
+
+    if (0 == status && ZEDMD_COMM_COMMAND::Reset == m_currentCommand) {
+      // Sometimes ZeDMD doesn't acknowledge the reset command because the reset of the serial port happens too early on the client side.
+      continue;
+    }
 
     if (status < (CTRL_CHARS_HEADER_SIZE + 1) || memcmp(ack, CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE) != 0 ||
         ack[CTRL_CHARS_HEADER_SIZE] == 'F')

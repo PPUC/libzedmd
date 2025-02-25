@@ -218,6 +218,7 @@ class ZeDMDComm
   void SoftReset(bool reenableKeepAive = true);
   void EnableKeepAlive() { m_keepAlive = true; }
   void DisableKeepAlive() { m_keepAlive = false; }
+  void SetVerbose(bool verbose) { m_verbose = verbose; };
 
   uint16_t const GetWidth();
   uint16_t const GetHeight();
@@ -245,6 +246,7 @@ class ZeDMDComm
   void ClearFrames();
   bool IsQueueEmpty();
 
+  bool m_verbose = false;
   char m_firmwareVersion[12] = "0.0.0";
   uint16_t m_id = 0;
   uint16_t m_width = 128;
@@ -268,6 +270,8 @@ class ZeDMDComm
   uint8_t m_panelMinRefreshRate = 30;
   uint8_t m_udpDelay = 5;
   uint16_t m_writeAtOnce = ZEDMD_COMM_DEFAULT_SERIAL_WRITE_AT_ONCE;
+
+  uint8_t m_currentCommand = 0;
 
  private:
   bool Connect(char* pName);
