@@ -407,6 +407,7 @@ int main(int argc, char* argv[])
 
   if (opt_verbose)
   {
+    pZeDMD->EnableVerbose();
     pZeDMD->SetLogCallback(LogCallback, nullptr);
   }
 
