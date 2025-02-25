@@ -54,6 +54,7 @@ void ZeDMDComm::Log(const char* format, ...)
 void ZeDMDComm::Run()
 {
   m_lastKeepAlive = std::chrono::steady_clock::now();
+  m_keepAlive = true;
 
   m_pThread = new std::thread(
       [this]()
@@ -110,6 +111,17 @@ void ZeDMDComm::Run()
       });
 }
 
+void ZeDMDComm::Flush(bool reenableKeepAive)
+{
+  DisableKeepAlive();
+  uint8_t timeout = 0;
+  while (IsConnected() && !m_stopFlag.load(std::memory_order_relaxed) && !IsQueueEmpty() && timeout < 10)
+  {
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+  }
+  if (reenableKeepAive) EnableKeepAlive();
+}
+
 void ZeDMDComm::ClearFrames()
 {
   m_frameQueueMutex.lock();
@@ -136,12 +148,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size)
   // Losing frames is ok.
   if (ZEDMD_COMM_COMMAND::ClearScreen != command)
   {
-    uint8_t timeout = 0;
-    while (!IsQueueEmpty() && timeout < 10)
-    {
-      std::this_thread::sleep_for(std::chrono::milliseconds(200));
-      timeout++;
-    }
+    Flush();
   }
   else if (FillDelayed())
   {
@@ -822,13 +829,11 @@ void ZeDMDComm::Reset()
 #endif
 }
 
-void ZeDMDComm::SoftReset()
+void ZeDMDComm::SoftReset(bool reenableKeepAive)
 {
   DisableKeepAlive();
   QueueCommand(ZEDMD_COMM_COMMAND::Reset);
-  // Wait a bit to let the reset command be transmitted.
-  std::this_thread::sleep_for(std::chrono::milliseconds(3000));
-  EnableKeepAlive();
+  Flush(reenableKeepAive);
 }
 
 bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)

@@ -51,22 +51,25 @@ void ZeDMD::SetLogCallback(ZeDMD_LogCallback callback, const void* userData)
 
 void ZeDMD::Close()
 {
+  if (m_verbose) m_pZeDMDComm->Log("ZeDMD::Close");
+
   if (m_usb)
   {
-    // m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::ClearScreen);
-    m_pZeDMDComm->SoftReset();
+    m_pZeDMDComm->SoftReset(false);
+    m_pZeDMDComm->Disconnect();
   }
   else if (m_wifi)
   {
     m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::ClearScreen);
+    m_pZeDMDWiFi->Flush(false);
+    m_pZeDMDWiFi->Disconnect();
   }
-
-  m_pZeDMDComm->Disconnect();
-  m_pZeDMDWiFi->Disconnect();
 }
 
 void ZeDMD::Reset()
 {
+  if (m_verbose) m_pZeDMDComm->Log("ZeDMD::Reset");
+
   if (m_usb)
   {
     m_pZeDMDComm->SoftReset();
@@ -352,8 +355,20 @@ void ZeDMD::DisableDebug()
   }
 }
 
+void ZeDMD::EnableVerbose()
+{
+  m_verbose = true;
+}
+
+void ZeDMD::DisableVerbose()
+{
+  m_verbose = false;
+}
+
 void ZeDMD::SetRGBOrder(uint8_t rgbOrder)
 {
+  if (m_verbose) m_pZeDMDComm->Log("ZeDMD::SetRGBOrder %d", rgbOrder);
+
   if (m_usb)
   {
     m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::RGBOrder, rgbOrder);
@@ -366,6 +381,8 @@ void ZeDMD::SetRGBOrder(uint8_t rgbOrder)
 
 void ZeDMD::SetBrightness(uint8_t brightness)
 {
+  if (m_verbose) m_pZeDMDComm->Log("ZeDMD::SetBrightness %d", brightness);
+
   if (m_usb)
   {
     m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::Brightness, brightness);
@@ -378,6 +395,8 @@ void ZeDMD::SetBrightness(uint8_t brightness)
 
 void ZeDMD::SetPanelClockPhase(uint8_t clockPhase)
 {
+  if (m_verbose) m_pZeDMDComm->Log("ZeDMD::SetPanelClockPhase %d", clockPhase);
+
   if (m_usb)
   {
     m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetClkphase, clockPhase);
@@ -390,6 +409,8 @@ void ZeDMD::SetPanelClockPhase(uint8_t clockPhase)
 
 void ZeDMD::SetPanelI2sSpeed(uint8_t i2sSpeed)
 {
+  if (m_verbose) m_pZeDMDComm->Log("ZeDMD::SetPanelI2sSpeed %d", i2sSpeed);
+
   if (m_usb)
   {
     m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetI2sspeed, i2sSpeed);
@@ -402,6 +423,8 @@ void ZeDMD::SetPanelI2sSpeed(uint8_t i2sSpeed)
 
 void ZeDMD::SetPanelLatchBlanking(uint8_t latchBlanking)
 {
+  if (m_verbose) m_pZeDMDComm->Log("ZeDMD::SetPanelLatchBlanking %d", latchBlanking);
+
   if (m_usb)
   {
     m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetLatchBlanking, latchBlanking);
@@ -414,6 +437,8 @@ void ZeDMD::SetPanelLatchBlanking(uint8_t latchBlanking)
 
 void ZeDMD::SetPanelMinRefreshRate(uint8_t minRefreshRate)
 {
+  if (m_verbose) m_pZeDMDComm->Log("ZeDMD::SetPanelMinRefreshRate %d", minRefreshRate);
+
   if (m_usb)
   {
     m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetMinRefreshRate, minRefreshRate);
@@ -426,6 +451,8 @@ void ZeDMD::SetPanelMinRefreshRate(uint8_t minRefreshRate)
 
 void ZeDMD::SetPanelDriver(uint8_t driver)
 {
+  if (m_verbose) m_pZeDMDComm->Log("ZeDMD::SetPanelDriver %d", driver);
+
   if (m_usb)
   {
     m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetDriver, driver);
@@ -438,6 +465,8 @@ void ZeDMD::SetPanelDriver(uint8_t driver)
 
 void ZeDMD::SetTransport(uint8_t transport)
 {
+  if (m_verbose) m_pZeDMDComm->Log("ZeDMD::SetTransport %d", transport);
+
   if (m_usb)
   {
     m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetTransport, transport);
@@ -450,6 +479,8 @@ void ZeDMD::SetTransport(uint8_t transport)
 
 void ZeDMD::SetUdpDelay(uint8_t udpDelay)
 {
+  if (m_verbose) m_pZeDMDComm->Log("ZeDMD::SetUdpDelay %d", udpDelay);
+
   if (m_usb)
   {
     m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetUdpDelay, udpDelay);
@@ -462,6 +493,8 @@ void ZeDMD::SetUdpDelay(uint8_t udpDelay)
 
 void ZeDMD::SetUsbPackageSize(uint16_t usbPackageSize)
 {
+  if (m_verbose) m_pZeDMDComm->Log("ZeDMD::SetUsbPackageSize %d", usbPackageSize);
+
   uint8_t multiplier = (uint8_t)(usbPackageSize / 32);
   if (m_usb)
   {
@@ -475,6 +508,8 @@ void ZeDMD::SetUsbPackageSize(uint16_t usbPackageSize)
 
 void ZeDMD::SetYOffset(uint8_t yOffset)
 {
+  if (m_verbose) m_pZeDMDComm->Log("ZeDMD::SetYOffset %d", yOffset);
+
   if (m_usb)
   {
     m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetYOffset, yOffset);
@@ -487,16 +522,20 @@ void ZeDMD::SetYOffset(uint8_t yOffset)
 
 void ZeDMD::SaveSettings()
 {
+  if (m_verbose) m_pZeDMDComm->Log("ZeDMD::SaveSettings");
+
   if (m_usb)
   {
     m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SaveSettings);
+    // Avoid that client resets the device before settings are saved.
+    m_pZeDMDComm->Flush();
   }
   else if (m_wifi)
   {
     m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::SaveSettings);
+    // Avoid that client resets the device before settings are saved.
+    m_pZeDMDWiFi->Flush();
   }
-  // Avoid that client resets the device before settings are saved.
-  std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 }
 
 void ZeDMD::EnableUpscaling()
@@ -509,6 +548,8 @@ void ZeDMD::DisableUpscaling() { m_upscaling = false; }
 
 void ZeDMD::SetWiFiSSID(const char* const ssid)
 {
+  if (m_verbose) m_pZeDMDComm->Log("ZeDMD::SetWiFiSSID");
+
   int size = strlen(ssid);
   if (size <= 32)
   {
@@ -527,6 +568,8 @@ void ZeDMD::SetWiFiSSID(const char* const ssid)
 
 void ZeDMD::SetWiFiPassword(const char* const password)
 {
+  if (m_verbose) m_pZeDMDComm->Log("ZeDMD::SetWiFiPassword");
+
   int size = strlen(password);
   if (size <= 32)
   {
@@ -545,6 +588,8 @@ void ZeDMD::SetWiFiPassword(const char* const password)
 
 void ZeDMD::SetWiFiPort(int port)
 {
+  if (m_verbose) m_pZeDMDComm->Log("ZeDMD::SetWiFiPort %d", port);
+
   uint8_t data[2];
   data[0] = (uint8_t)(port >> 8 & 0xFF);
   data[1] = (uint8_t)(port & 0xFF);
@@ -560,6 +605,8 @@ void ZeDMD::SetWiFiPort(int port)
 
 bool ZeDMD::OpenWiFi(const char* ip)
 {
+  if (m_verbose) m_pZeDMDComm->Log("ZeDMD::OpenWiFi %s", ip);
+
   m_wifi = m_pZeDMDWiFi->Connect(ip);
 
   if (m_wifi && !m_usb)
@@ -612,6 +659,8 @@ bool ZeDMD::Open(uint16_t width, uint16_t height)
 
 void ZeDMD::ClearScreen()
 {
+  if (m_verbose) m_pZeDMDComm->Log("ZeDMD::ClearScreen");
+
   if (m_usb)
   {
     m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::ClearScreen);
@@ -626,6 +675,8 @@ void ZeDMD::ClearScreen()
 
 void ZeDMD::RenderRgb888(uint8_t* pFrame)
 {
+  if (m_verbose) m_pZeDMDComm->Log("ZeDMD::RenderRgb888");
+
   if (!(m_usb || m_wifi) || !UpdateFrameBuffer888(pFrame))
   {
     return;
@@ -653,6 +704,8 @@ void ZeDMD::RenderRgb888(uint8_t* pFrame)
 
 void ZeDMD::RenderRgb565(uint16_t* pFrame)
 {
+  if (m_verbose) m_pZeDMDComm->Log("ZeDMD::RenderRgb565");
+
   if (!(m_usb || m_wifi) || !UpdateFrameBuffer565(pFrame))
   {
     return;
@@ -669,6 +722,7 @@ void ZeDMD::RenderRgb565(uint16_t* pFrame)
     m_pZeDMDComm->QueueFrame(m_pScaledFrameBuffer, size);
   }
 }
+
 bool ZeDMD::UpdateFrameBuffer888(uint8_t* pFrame)
 {
   static auto lastExecutionTime = std::chrono::steady_clock::now() - std::chrono::milliseconds(100);
@@ -900,6 +954,10 @@ ZEDMDAPI void ZeDMD_LedTest(ZeDMD* pZeDMD) { pZeDMD->LedTest(); }
 ZEDMDAPI void ZeDMD_EnableDebug(ZeDMD* pZeDMD) { pZeDMD->EnableDebug(); }
 
 ZEDMDAPI void ZeDMD_DisableDebug(ZeDMD* pZeDMD) { pZeDMD->DisableDebug(); }
+
+ZEDMDAPI void ZeDMD_EnableVerbose(ZeDMD* pZeDMD) { pZeDMD->EnableVerbose(); }
+
+ZEDMDAPI void ZeDMD_DisableVerbose(ZeDMD* pZeDMD) { pZeDMD->DisableVerbose(); }
 
 ZEDMDAPI void ZeDMD_SetRGBOrder(ZeDMD* pZeDMD, uint8_t rgbOrder) { pZeDMD->SetRGBOrder(rgbOrder); }
 

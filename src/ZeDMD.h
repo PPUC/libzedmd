@@ -397,6 +397,18 @@ class ZEDMDAPI ZeDMD
    */
   void DisableDebug();
 
+  /** @brief Enable verbose mode
+   *
+   *  libzedmd will log mor verbose messages.
+   */
+  void EnableVerbose();
+
+  /** @brief Disable verbose mode
+   *
+   *  @see EnableVerbose()
+   */
+  void DisableVerbose();
+
   /** @brief Set the RGB order
    *
    *  ZeDMD supports different LED panels.
@@ -603,6 +615,7 @@ class ZEDMDAPI ZeDMD
   bool m_wifi = false;
   bool m_hd = false;
   bool m_upscaling = false;
+  bool m_verbose = false;
 
   uint8_t* m_pFrameBuffer;
   uint8_t* m_pScaledFrameBuffer;
@@ -655,6 +668,8 @@ extern "C"
   extern ZEDMDAPI void ZeDMD_LedTest(ZeDMD* pZeDMD);
   extern ZEDMDAPI void ZeDMD_EnableDebug(ZeDMD* pZeDMD);
   extern ZEDMDAPI void ZeDMD_DisableDebug(ZeDMD* pZeDMD);
+  extern ZEDMDAPI void ZeDMD_EnableVerbose(ZeDMD* pZeDMD);
+  extern ZEDMDAPI void ZeDMD_DisableVerbose(ZeDMD* pZeDMD);
   extern ZEDMDAPI void ZeDMD_SetRGBOrder(ZeDMD* pZeDMD, uint8_t rgbOrder);
   extern ZEDMDAPI void ZeDMD_SetBrightness(ZeDMD* pZeDMD, uint8_t brightness);
   extern ZEDMDAPI void ZeDMD_SaveSettings(ZeDMD* pZeDMD);

@@ -40,6 +40,7 @@
 static struct cag_option options[] = {
     {.identifier = 'h', .access_letters = "h", .access_name = "help", .description = "Show zedmd-client help"},
     {.identifier = 'v', .access_letters = "v", .access_name = "version", .description = "Show zedmd-client version"},
+    {.identifier = '5', .access_name = "verbose", .description = "Verbose log messages"},
     {.identifier = 'p',
      .access_letters = "p",
      .access_name = "port",
@@ -121,6 +122,7 @@ int main(int argc, char* argv[])
   const char* opt_ip_address = NULL;
   bool opt_info = false;
   bool opt_version = false;
+  bool opt_verbose = false;
   const char* opt_brightness = NULL;
   const char* opt_debug = NULL;
   const char* opt_panel_clkphase = NULL;
@@ -148,6 +150,9 @@ int main(int argc, char* argv[])
       case 'v':
         opt_version = true;
         has_other_options_than_h = true;
+        break;
+      case '5':
+        opt_verbose = true;
         break;
       case 'p':
         opt_port = cag_option_get_value(&cag_context);
@@ -400,7 +405,10 @@ int main(int argc, char* argv[])
     return -1;
   }
 
-  pZeDMD->SetLogCallback(LogCallback, nullptr);
+  if (opt_verbose)
+  {
+    pZeDMD->SetLogCallback(LogCallback, nullptr);
+  }
 
   if (opt_ip_address)
   {

@@ -209,12 +209,13 @@ class ZeDMDComm
   virtual int GetWiFiPort();
 
   void Run();
+  void Flush(bool reenableKeepAive = true);
   void QueueFrame(uint8_t* buffer, int size);
   void QueueCommand(char command, uint8_t* buffer, int size);
   void QueueCommand(char command);
   void QueueCommand(char command, uint8_t value);
   bool FillDelayed();
-  void SoftReset();
+  void SoftReset(bool reenableKeepAive = true);
   void EnableKeepAlive() { m_keepAlive = true; }
   void DisableKeepAlive() { m_keepAlive = false; }
 
@@ -236,10 +237,11 @@ class ZeDMDComm
   uint8_t GetUdpDelay() { return m_udpDelay; }
   uint16_t GetUsbPackageSize() { return m_writeAtOnce; }
 
+  void Log(const char* format, ...);
+
  protected:
   virtual bool SendChunks(uint8_t* pData, uint16_t size);
   virtual void Reset();
-  void Log(const char* format, ...);
   void ClearFrames();
   bool IsQueueEmpty();
 
