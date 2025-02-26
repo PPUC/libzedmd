@@ -25,9 +25,10 @@ class ZeDMDWiFi : public ZeDMDComm
   virtual void Disconnect();
   virtual bool IsConnected();
   virtual uint8_t GetTransport();
-  virtual const char* GetWiFiSSID();
-  virtual void StoreWiFiPassword();
-  virtual int GetWiFiPort();
+  const char* GetWiFiSSID();
+  void StoreWiFiPassword();
+  int GetWiFiPort();
+  uint8_t GetWiFiPower();
   const char* GetIp() { return (const char*)m_ip; }
 
  protected:
@@ -47,6 +48,7 @@ class ZeDMDWiFi : public ZeDMDComm
   char m_ip[16] = {0};
   int m_httpSocket = -1;
   int m_port = -1;
+  uint8_t m_power = 80;
   struct sockaddr_in m_httpServer;
   sockpp::udp_socket* m_udpSocket = nullptr;
   sockpp::inet_address* m_udpServer = nullptr;

@@ -164,11 +164,11 @@ const char* ZeDMD::GetIdString()
 
 const char* ZeDMD::GetWiFiSSID()
 {
-  if (m_usb)
+  if (m_wifi)
   {
-    return m_pZeDMDComm->GetWiFiSSID();
+    return m_pZeDMDWiFi->GetWiFiSSID();
   }
-  return m_pZeDMDWiFi->GetWiFiSSID();
+  return "";
 }
 
 const char* ZeDMD::GetIp()
@@ -191,20 +191,28 @@ const char* ZeDMD::GetDevice()
 
 int ZeDMD::GetWiFiPort()
 {
-  if (m_usb)
+  if (m_wifi)
   {
-    return m_pZeDMDComm->GetWiFiPort();
+    return m_pZeDMDWiFi->GetWiFiPort();
   }
-  return m_pZeDMDWiFi->GetWiFiPort();
+  return 0;
+}
+
+uint8_t ZeDMD::GetWiFiPower()
+{
+  if (m_wifi)
+  {
+    return m_pZeDMDWiFi->GetWiFiPower();
+  }
+  return 0;
 }
 
 void ZeDMD::StoreWiFiPassword()
 {
-  if (m_usb)
+  if (m_wifi)
   {
-    return m_pZeDMDComm->StoreWiFiPassword();
+    return m_pZeDMDWiFi->StoreWiFiPassword();
   }
-  return m_pZeDMDWiFi->StoreWiFiPassword();
 }
 
 uint8_t ZeDMD::GetRGBOrder()
@@ -607,6 +615,22 @@ void ZeDMD::SetWiFiPort(int port)
   }
 }
 
+void ZeDMD::SetWiFiPower(uint8_t power)
+{
+  if (m_verbose) m_pZeDMDComm->Log("ZeDMD::SetWiFiPower %d", power);
+
+  uint8_t data[1];
+  data[0] = power;
+  if (m_usb)
+  {
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetWiFiPower, data, 1);
+  }
+  else if (m_wifi)
+  {
+    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::SetWiFiPower, data, 1);
+  }
+}
+
 bool ZeDMD::OpenWiFi(const char* ip)
 {
   if (m_verbose) m_pZeDMDComm->Log("ZeDMD::OpenWiFi %s", ip);
@@ -909,6 +933,8 @@ ZEDMDAPI void ZeDMD_StoreWiFiPassword(ZeDMD* pZeDMD) { pZeDMD->StoreWiFiPassword
 
 ZEDMDAPI int ZeDMD_GetWiFiPort(ZeDMD* pZeDMD) { return pZeDMD->GetWiFiPort(); };
 
+ZEDMDAPI uint8_t ZeDMD_GetWiFiPower(ZeDMD* pZeDMD) { return pZeDMD->GetWiFiPower(); };
+
 ZEDMDAPI uint16_t ZeDMD_GetPanelWidth(ZeDMD* pZeDMD) { return pZeDMD->GetPanelWidth(); };
 
 ZEDMDAPI uint16_t ZeDMD_GetPanelHeight(ZeDMD* pZeDMD) { return pZeDMD->GetPanelHeight(); };
@@ -1005,6 +1031,8 @@ ZEDMDAPI void ZeDMD_SetUsbPackageSize(ZeDMD* pZeDMD, uint16_t usbPackageSize)
 ZEDMDAPI void ZeDMD_SetYOffset(ZeDMD* pZeDMD, uint8_t yOffset) { pZeDMD->SetYOffset(yOffset); }
 
 ZEDMDAPI void ZeDMD_SetWiFiPort(ZeDMD* pZeDMD, int port) { pZeDMD->SetWiFiPort(port); }
+
+ZEDMDAPI void ZeDMD_SetWiFiPower(ZeDMD* pZeDMD, uint8_t power) { pZeDMD->SetWiFiPower(power); }
 
 ZEDMDAPI void ZeDMD_ClearScreen(ZeDMD* pZeDMD) { pZeDMD->ClearScreen(); }
 

@@ -295,6 +295,15 @@ class ZEDMDAPI ZeDMD
    */
   int GetWiFiPort();
 
+  /** @brief Get the WiFi Power
+   *
+   *  Get the WiFi power.
+   *  @see https://github.com/PPUC/ZeDMD
+   *
+   *  @return the power
+   */
+  uint8_t GetWiFiPower();
+
   /** @brief Get the panel clock phase
    *
    *  Get the clock phase of the LED panels.
@@ -463,6 +472,15 @@ class ZEDMDAPI ZeDMD
    *  @param port the port
    */
   void SetWiFiPort(int port);
+
+  /** @brief Set the WiFi Port
+   *
+   *  Set the Port ZeDMD should listen at over WiFi.
+   *  @see https://github.com/PPUC/ZeDMD
+   *
+   *  @param port the port
+   */
+  void SetWiFiPower(uint8_t power);
 
   /** @brief Set the panel clock phase
    *
@@ -642,6 +660,7 @@ extern "C"
   extern ZEDMDAPI const char* ZeDMD_GetWiFiSSID(ZeDMD* pZeDMD);
   extern ZEDMDAPI void ZeDMD_StoreWiFiPassword(ZeDMD* pZeDMD);
   extern ZEDMDAPI int ZeDMD_GetWiFiPort(ZeDMD* pZeDMD);
+  extern ZEDMDAPI uint8_t ZeDMD_GetWiFiPower(ZeDMD* pZeDMD);
   extern ZEDMDAPI uint16_t ZeDMD_GetPanelWidth(ZeDMD* pZeDMD);
   extern ZEDMDAPI uint16_t ZeDMD_GetPanelHeight(ZeDMD* pZeDMD);
   extern ZEDMDAPI uint8_t ZeDMD_GetPanelClockPhase(ZeDMD* pZeDMD);
@@ -678,6 +697,7 @@ extern "C"
   extern ZEDMDAPI void ZeDMD_SetWiFiSSID(ZeDMD* pZeDMD, const char* const ssid);
   extern ZEDMDAPI void ZeDMD_SetWiFiPassword(ZeDMD* pZeDMD, const char* const password);
   extern ZEDMDAPI void ZeDMD_SetWiFiPort(ZeDMD* pZeDMD, int port);
+  extern ZEDMDAPI void ZeDMD_SetWiFiPower(ZeDMD* pZeDMD, uint8_t power);
   extern ZEDMDAPI void ZeDMD_SetPanelClockPhase(ZeDMD* pZeDMD, uint8_t clockPhase);
   extern ZEDMDAPI void ZeDMD_SetPanelI2sSpeed(ZeDMD* pZeDMD, uint8_t i2sSpeed);
   extern ZEDMDAPI void ZeDMD_SetPanelLatchBlanking(ZeDMD* pZeDMD, uint8_t latchBlanking);

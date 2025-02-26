@@ -53,6 +53,7 @@ typedef enum
   DisableUpscaling = 0x14,
   Brightness = 0x16,
   RGBOrder = 0x17,
+  SetWiFiPower = 0x1a,
   SetWiFiSSID = 0x1b,
   SetWiFiPassword = 0x1c,
   SetWiFiPort = 0x1d,
@@ -204,9 +205,6 @@ class ZeDMDComm
   virtual void Disconnect();
   virtual bool IsConnected();
   virtual uint8_t GetTransport();
-  virtual const char* GetWiFiSSID();
-  virtual void StoreWiFiPassword();
-  virtual int GetWiFiPort();
 
   void Run();
   void Flush(bool reenableKeepAive = true);

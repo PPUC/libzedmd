@@ -75,7 +75,7 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
 
     // Log("Handshake: %s", handshake.c_str());
 
-    for (uint8_t pos = 0; pos <= 18; pos++)
+    for (uint8_t pos = 0; pos <= 19; pos++)
     {
       if (std::getline(ss, item, '|'))
       {
@@ -175,8 +175,15 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
             break;
           }
           case 18:
+          {
             m_id = std::stoi(item);
             break;
+          }
+          case 19:
+          {
+            m_power = std::stoi(item);
+            break;
+          }
         }
       }
     }
@@ -622,3 +629,5 @@ const char* ZeDMDWiFi::GetWiFiSSID() { return (const char*)m_ssid; }
 void ZeDMDWiFi::StoreWiFiPassword() {}
 
 int ZeDMDWiFi::GetWiFiPort() { return m_port; };
+
+uint8_t ZeDMDWiFi::GetWiFiPower() { return m_power; };

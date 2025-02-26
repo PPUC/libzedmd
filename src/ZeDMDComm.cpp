@@ -990,8 +990,10 @@ bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
     memset(ack, 0, CTRL_CHARS_HEADER_SIZE + 2);
     status = sp_blocking_read(m_pSerialPort, ack, CTRL_CHARS_HEADER_SIZE + 1, ZEDMD_COMM_SERIAL_READ_TIMEOUT);
 
-    if (0 == status && ZEDMD_COMM_COMMAND::Reset == m_currentCommand) {
-      // Sometimes ZeDMD doesn't acknowledge the reset command because the reset of the serial port happens too early on the client side.
+    if (0 == status && ZEDMD_COMM_COMMAND::Reset == m_currentCommand)
+    {
+      // Sometimes ZeDMD doesn't acknowledge the reset command because the reset of the serial port happens too early on
+      // the client side.
       continue;
     }
 
@@ -1078,9 +1080,3 @@ bool const ZeDMDComm::IsS3() { return m_s3; }
 bool const ZeDMDComm::IsHalf() { return m_half; }
 
 uint8_t ZeDMDComm::GetTransport() { return 0; }
-
-const char* ZeDMDComm::GetWiFiSSID() { return ""; }
-
-void ZeDMDComm::StoreWiFiPassword() {}
-
-int ZeDMDComm::GetWiFiPort() { return 3333; };

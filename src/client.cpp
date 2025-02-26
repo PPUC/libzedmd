@@ -66,7 +66,7 @@ static struct cag_option options[] = {
     {.identifier = '1',
      .access_name = "set-panel-driver",
      .value_name = "VALUE",
-     .description = "0(SHIFTREG),1(FM6124),2(FM6126A),3(ICN2038S),4(MBI5124),5(SM5266P),6(DP3246_SM5368)"},
+     .description = "0(SHIFTREG), 1(FM6124), 2(FM6126A), 3(ICN2038S), 4(MBI5124), 5(SM5266P), 6(DP3246_SM5368)"},
     {.identifier = '2', .access_name = "set-panel-i2sspeed", .value_name = "VALUE", .description = "8,16,20"},
     {.identifier = '3', .access_name = "set-panel-latch-blanking", .value_name = "VALUE", .description = "0,1,2,3,4"},
     {.identifier = '4', .access_name = "set-panel-min-refresh-rate", .value_name = "VALUE", .description = "30..120"},
@@ -79,7 +79,7 @@ static struct cag_option options[] = {
      .access_letters = "t",
      .access_name = "set-transport",
      .value_name = "VALUE",
-     .description = "0(USB),1(WiFi UDP),2(WiFi TCP),3(SPI)"},
+     .description = "0(USB), 1(WiFi UDP), 2(WiFi TCP), 3(SPI)"},
     {.identifier = 'u',
      .access_letters = "u",
      .access_name = "set-udp-delay",
@@ -99,6 +99,12 @@ static struct cag_option options[] = {
      .access_name = "set-wifi-port",
      .value_name = "VALUE",
      .description = "WiFi network port (default is 3333)"},
+    {.identifier = '9',
+     .access_name = "set-wifi-power",
+     .value_name = "VALUE",
+     .description =
+         "WiFi power, default is 80, supported values 84(21dBm), 82(20.5dBm), 80(20dBm), 78(19.5dBm), 76(19dBm), "
+         "74(18.5dBm), 68(17dBm), 60(15dBm), 52(13dBm), 44(11dBm), 34(8.5dBm), 28(7dBm), 20(5dBm), 8(2dBm)"},
     {.identifier = 'l',
      .access_letters = "l",
      .access_name = "led-test",
@@ -138,6 +144,7 @@ int main(int argc, char* argv[])
   const char* opt_wifi_ssid = NULL;
   const char* opt_wifi_password = NULL;
   const char* opt_wifi_port = NULL;
+  const char* opt_wifi_power = NULL;
   const char* opt_y_offset = NULL;
   bool opt_led_test = false;
 
@@ -221,6 +228,10 @@ int main(int argc, char* argv[])
         break;
       case '8':
         opt_wifi_port = cag_option_get_value(&cag_context);
+        has_other_options_than_h = true;
+        break;
+      case '9':
+        opt_wifi_power = cag_option_get_value(&cag_context);
         has_other_options_than_h = true;
         break;
       case 'y':
@@ -377,6 +388,21 @@ int main(int argc, char* argv[])
     }
   }
 
+  uint16_t wifi_power;
+  if (opt_wifi_power)
+  {
+    wifi_power = (uint8_t)std::stoi(std::string(opt_wifi_power));
+    if (wifi_power != 84 && wifi_power != 82 && wifi_power != 80 && wifi_power != 78 && wifi_power != 76 &&
+        wifi_power != 74 && wifi_power != 68 && wifi_power != 60 && wifi_power != 52 && wifi_power != 44 &&
+        wifi_power != 34 && wifi_power != 28 && wifi_power != 20 && wifi_power != 8)
+    {
+      {
+        printf("Error: WiFi power has to be one of 84, 82, 80, 78, 76, 74, 68, 60, 52, 44, 34, 28, 20, 8.\n");
+        return -1;
+      }
+    }
+  }
+
   uint8_t y_offset;
   if (opt_y_offset)
   {
@@ -472,9 +498,19 @@ int main(int argc, char* argv[])
       printf("IP address:                 %s\n", pZeDMD->GetIp());
     }
     printf("USB package size:           %d\n", pZeDMD->GetUsbPackageSize());
-    printf("WiFi SSID:                  %s\n",
-           pZeDMD->GetTransport() == 0 ? "could only be retrieved via WiFi" : pZeDMD->GetWiFiSSID());
-    printf("WiFi port:                  %d\n", pZeDMD->GetWiFiPort());
+    if (pZeDMD->GetTransport() == 0)
+    {
+      printf("WiFi SSID:                  could only be retrieved via WiFi\n");
+      printf("WiFi port:                  could only be retrieved via WiFi\n");
+      printf("WiFi power:                 could only be retrieved via WiFi\n");
+    }
+    else
+    {
+      printf("WiFi SSID:                  %s\n", pZeDMD->GetWiFiSSID());
+
+      printf("WiFi port:                  %d\n", pZeDMD->GetWiFiPort());
+      printf("WiFi power:                 %d\n", pZeDMD->GetWiFiPower());
+    }
     printf("WiFi UDP delay:             %d\n", pZeDMD->GetUdpDelay());
     printf("panel width:                %d\n", pZeDMD->GetWidth());
     printf("panel height:               %d\n", pZeDMD->GetHeight());
@@ -562,6 +598,11 @@ int main(int argc, char* argv[])
     pZeDMD->SetWiFiPort(wifi_port);
     save = true;
   }
+  if (opt_wifi_power)
+  {
+    pZeDMD->SetWiFiPower(wifi_power);
+    save = true;
+  }
   if (opt_y_offset)
   {
     pZeDMD->SetBrightness(brightness);
@@ -571,10 +612,12 @@ int main(int argc, char* argv[])
   if (save)
   {
     pZeDMD->SaveSettings();
-    if (wifi) {
+    if (wifi)
+    {
       pZeDMD->Reset();
     }
-    else {
+    else
+    {
       pZeDMD->Close();
     }
   }
@@ -582,7 +625,8 @@ int main(int argc, char* argv[])
   {
     pZeDMD->LedTest();
   }
-  else {
+  else
+  {
     pZeDMD->Close();
   }
 
