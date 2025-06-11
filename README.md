@@ -1,5 +1,5 @@
 # libzedmd
-ZeDMD communication library
+The ZeDMD communication library.
 
 ## API Documentation
 
