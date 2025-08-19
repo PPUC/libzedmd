@@ -55,265 +55,292 @@ bool ZeDMDWiFi::Connect(const char* name_or_ip)
 
 bool ZeDMDWiFi::DoConnect(const char* ip)
 {
-  Log("Attempting to connect to IP address: %s", ip);
-
-  m_httpServer.sin_family = AF_INET;
-  m_httpServer.sin_port = htons(80);
-  m_httpServer.sin_addr.s_addr = inet_addr(ip);
-
-  m_port = 3333;
-  m_udpDelay = 5;
-
-  bool handshakeReceived = false;
-  if (SendGetRequest("/handshake"))
+  try
   {
-    handshakeReceived = true;
+    Log("Attempting to connect to IP address: %s", ip);
 
-    std::string handshake = ReceiveStringPayload();
-    std::stringstream ss(handshake);
-    std::string item;
+    m_httpServer.sin_family = AF_INET;
+    m_httpServer.sin_port = htons(80);
+    m_httpServer.sin_addr.s_addr = inet_addr(ip);
 
-    // Log("Handshake: %s", handshake.c_str());
+    m_port = 3333;
+    m_udpDelay = 5;
 
-    for (uint8_t pos = 0; pos <= 19; pos++)
+    bool handshakeReceived = false;
+    if (SendGetRequest("/handshake"))
     {
-      if (std::getline(ss, item, '|'))
+      handshakeReceived = true;
+
+      std::string handshake = ReceiveStringPayload();
+      std::stringstream ss(handshake);
+      std::string item;
+
+      // Log("Handshake: %s", handshake.c_str());
+
+      for (uint8_t pos = 0; pos <= 19; pos++)
       {
-        switch (pos)
+        if (std::getline(ss, item, '|'))
         {
-          case 0:
+          switch (pos)
           {
-            m_width = std::stoi(item);
-            break;
-          }
-          case 1:
-          {
-            m_height = std::stoi(item);
-            break;
-          }
-          case 2:
-          {
-            strncpy(m_firmwareVersion, item.c_str(), sizeof(m_firmwareVersion) - 1);
-            break;
-          }
-          case 3:
-          {
-            m_s3 = (std::stoi(item) == 1);
-            break;
-          }
-          case 4:
-          {
-            if (strcmp("TCP", item.c_str()) == 0)
+            case 0:
             {
-              m_tcp = true;
+              m_width = std::stoi(item);
+              break;
             }
-            break;
-          }
-          case 5:
-          {
-            m_port = std::stoi(item);
-            break;
-          }
-          case 6:
-          {
-            m_udpDelay = std::stoi(item);
-            break;
-          }
-          case 7:
-          {
-            m_writeAtOnce = std::stoi(item);
-            break;
-          }
-          case 8:
-          {
-            m_brightness = std::stoi(item);
-            break;
-          }
-          case 9:
-          {
-            m_rgbMode = std::stoi(item);
-            break;
-          }
-          case 10:
-          {
-            m_panelClkphase = std::stoi(item);
-            break;
-          }
-          case 11:
-          {
-            m_panelDriver = std::stoi(item);
-            break;
-          }
-          case 12:
-          {
-            m_panelI2sspeed = std::stoi(item);
-            break;
-          }
-          case 13:
-          {
-            m_panelLatchBlanking = std::stoi(item);
-            break;
-          }
-          case 14:
-          {
-            m_panelMinRefreshRate = std::stoi(item);
-            break;
-          }
-          case 15:
-          {
-            m_yOffset = std::stoi(item);
-            break;
-          }
-          case 16:
-          {
-            strncpy(m_ssid, item.c_str(), sizeof(m_ssid) - 1);
-            break;
-          }
-          case 17:
-          {
-            m_half = (std::stoi(item) == 1);
-            break;
-          }
-          case 18:
-          {
-            m_id = std::stoi(item);
-            break;
-          }
-          case 19:
-          {
-            m_power = std::stoi(item);
-            break;
+            case 1:
+            {
+              m_height = std::stoi(item);
+              break;
+            }
+            case 2:
+            {
+              strncpy(m_firmwareVersion, item.c_str(), sizeof(m_firmwareVersion) - 1);
+              break;
+            }
+            case 3:
+            {
+              m_s3 = (std::stoi(item) == 1);
+              break;
+            }
+            case 4:
+            {
+              if (strcmp("TCP", item.c_str()) == 0)
+              {
+                m_tcp = true;
+              }
+              break;
+            }
+            case 5:
+            {
+              m_port = std::stoi(item);
+              break;
+            }
+            case 6:
+            {
+              m_udpDelay = std::stoi(item);
+              break;
+            }
+            case 7:
+            {
+              m_writeAtOnce = std::stoi(item);
+              break;
+            }
+            case 8:
+            {
+              m_brightness = std::stoi(item);
+              break;
+            }
+            case 9:
+            {
+              m_rgbMode = std::stoi(item);
+              break;
+            }
+            case 10:
+            {
+              m_panelClkphase = std::stoi(item);
+              break;
+            }
+            case 11:
+            {
+              m_panelDriver = std::stoi(item);
+              break;
+            }
+            case 12:
+            {
+              m_panelI2sspeed = std::stoi(item);
+              break;
+            }
+            case 13:
+            {
+              m_panelLatchBlanking = std::stoi(item);
+              break;
+            }
+            case 14:
+            {
+              m_panelMinRefreshRate = std::stoi(item);
+              break;
+            }
+            case 15:
+            {
+              m_yOffset = std::stoi(item);
+              break;
+            }
+            case 16:
+            {
+              strncpy(m_ssid, item.c_str(), sizeof(m_ssid) - 1);
+              break;
+            }
+            case 17:
+            {
+              m_half = (std::stoi(item) == 1);
+              break;
+            }
+            case 18:
+            {
+              m_id = std::stoi(item);
+              break;
+            }
+            case 19:
+            {
+              m_power = std::stoi(item);
+              break;
+            }
           }
         }
       }
     }
-  }
 
-  if (!handshakeReceived)
-  {
-    Log("ZeDMD fast handshake failed ... fallback to single requests");
+    if (!handshakeReceived)
+    {
+      Log("ZeDMD fast handshake failed ... fallback to single requests");
 
-    // Just get the essential things now for normal usage, not for the zedmd-client info.
+      // Just get the essential things now for normal usage, not for the zedmd-client info.
 
-    if (SendGetRequest("/get_version"))
-    {
-      strncpy(m_firmwareVersion, ReceiveCStringPayload(), sizeof(m_firmwareVersion) - 1);
-    }
-    else
-    {
-      Log("ZeDMD version could not be detected");
-      return false;
-    }
-
-    if (SendGetRequest("/get_width"))
-    {
-      m_width = (uint16_t)ReceiveIntegerPayload();
-    }
-    else
-    {
-      Log("ZeDMD width could not be detected");
-      return false;
-    }
-
-    if (SendGetRequest("/get_height"))
-    {
-      m_height = (uint16_t)ReceiveIntegerPayload();
-    }
-    else
-    {
-      Log("ZeDMD height could not be detected");
-      return false;
-    }
-
-    if (SendGetRequest("/get_s3"))
-    {
-      m_s3 = (ReceiveIntegerPayload() == 1);
-    }
-    else
-    {
-      Log("ZeDMD ESP32 generation could not be detected");
-      return false;
-    }
-
-    if (SendGetRequest("/get_protocol"))
-    {
-      if (strcmp("TCP", ReceiveCStringPayload()) == 0)
+      if (SendGetRequest("/get_version"))
       {
-        m_tcp = true;
+        strncpy(m_firmwareVersion, ReceiveCStringPayload(), sizeof(m_firmwareVersion) - 1);
+      }
+      else
+      {
+        Log("ZeDMD version could not be detected");
+        return false;
+      }
+
+      if (SendGetRequest("/get_width"))
+      {
+        m_width = (uint16_t)ReceiveIntegerPayload();
+      }
+      else
+      {
+        Log("ZeDMD width could not be detected");
+        return false;
+      }
+
+      if (SendGetRequest("/get_height"))
+      {
+        m_height = (uint16_t)ReceiveIntegerPayload();
+      }
+      else
+      {
+        Log("ZeDMD height could not be detected");
+        return false;
+      }
+
+      if (SendGetRequest("/get_s3"))
+      {
+        m_s3 = (ReceiveIntegerPayload() == 1);
+      }
+      else
+      {
+        Log("ZeDMD ESP32 generation could not be detected");
+        return false;
+      }
+
+      if (SendGetRequest("/get_protocol"))
+      {
+        if (strcmp("TCP", ReceiveCStringPayload()) == 0)
+        {
+          m_tcp = true;
+        }
+      }
+      else
+      {
+        Log("ZeDMD port could not be detected");
+        return false;
+      }
+
+      m_port = 3333;
+      if (SendGetRequest("/get_port"))
+      {
+        m_port = (int)ReceiveIntegerPayload();
+      }
+      else
+      {
+        Log("ZeDMD port could not be detected");
+        return false;
+      }
+
+      if (SendGetRequest("/get_udp_delay"))
+      {
+        m_udpDelay = (ReceiveIntegerPayload() == 1);
+      }
+      else
+      {
+        Log("ZeDMD UDP delay could not be detected, falling back to 5ms deafult");
       }
     }
-    else
+
+    if (!(128 == m_width && 32 == m_height) && !(256 == m_width && 64 == m_height))
     {
-      Log("ZeDMD port could not be detected");
+      Log("Invalid dimensions reported from ZeDMD: %dx%d", m_width, m_height);
       return false;
     }
 
-    m_port = 3333;
-    if (SendGetRequest("/get_port"))
+    m_zoneWidth = m_width / 16;
+    m_zoneHeight = m_height / 8;
+
+    Log("ZeDMD %s found: %sWiFi %s, width=%d, height=%d", m_firmwareVersion, m_s3 ? "S3 " : "", m_tcp ? "TCP" : "UDP",
+        m_width, m_height);
+
+    if (m_tcp)
     {
-      m_port = (int)ReceiveIntegerPayload();
+      m_tcpConnector = new sockpp::tcp_connector({ip, (in_port_t)m_port});
+      if (!m_tcpConnector)
+      {
+        Log("Unable to connect ZeDMD TCP streaming port %s:%d", ip, m_port);
+        return false;
+      }
+
+      int flag = 1;  // Disable Nagle's algorithm
+      if (!m_tcpConnector->set_option(IPPROTO_TCP, TCP_NODELAY, flag))
+      {
+        Log("%s", m_tcpConnector->last_error_str().c_str());
+      }
+      // Set QoS (IP_TOS)
+      int qos_value = 0x10;  // Low delay DSCP value
+      if (!m_tcpConnector->set_option(IPPROTO_IP, IP_TOS, qos_value))
+      {
+        Log("%s", m_tcpConnector->last_error_str().c_str());
+      }
+      m_keepAliveInterval = std::chrono::milliseconds(ZEDMD_WIFI_TCP_KEEP_ALIVE_INTERVAL);
     }
     else
     {
-      Log("ZeDMD port could not be detected");
-      return false;
+      try
+      {
+        m_udpSocket = new sockpp::udp_socket();
+        m_udpServer = new sockpp::inet_address(ntohl(m_httpServer.sin_addr.s_addr), (in_port_t)m_port);
+        m_keepAliveInterval = std::chrono::milliseconds(ZEDMD_WIFI_UDP_KEEP_ALIVE_INTERVAL);
+      }
+      catch (...)
+      {
+        // Cleanup if UDP setup fails
+        if (m_udpSocket) delete m_udpSocket;
+        m_udpSocket = nullptr;
+        if (m_udpServer) delete m_udpServer;
+        m_udpServer = nullptr;
+        throw;
+      }
     }
 
-    if (SendGetRequest("/get_udp_delay"))
-    {
-      m_udpDelay = (ReceiveIntegerPayload() == 1);
-    }
-    else
-    {
-      Log("ZeDMD UDP delay could not be detected, falling back to 5ms deafult");
-    }
+    strcpy(m_ip, ip);
+    m_connected = true;
+
+    return true;
   }
-
-  if (!(128 == m_width && 32 == m_height) && !(256 == m_width && 64 == m_height))
+  catch (const std::exception& e)
   {
-    Log("Invalid dimensions reported from ZeDMD: %dx%d", m_width, m_height);
+    Log("ZeDMD: Exception in DoConnect: %s", e.what());
+    Disconnect();
     return false;
   }
-
-  m_zoneWidth = m_width / 16;
-  m_zoneHeight = m_height / 8;
-
-  Log("ZeDMD %s found: %sWiFi %s, width=%d, height=%d", m_firmwareVersion, m_s3 ? "S3 " : "", m_tcp ? "TCP" : "UDP",
-      m_width, m_height);
-
-  if (m_tcp)
+  catch (...)
   {
-    m_tcpConnector = new sockpp::tcp_connector({ip, (in_port_t)m_port});
-    if (!m_tcpConnector)
-    {
-      Log("Unable to connect ZeDMD TCP streaming port %s:%d", ip, m_port);
-      return false;
-    }
-
-    int flag = 1;  // Disable Nagle's algorithm
-    if (!m_tcpConnector->set_option(IPPROTO_TCP, TCP_NODELAY, flag))
-    {
-      Log("%s", m_tcpConnector->last_error_str().c_str());
-    }
-    // Set QoS (IP_TOS)
-    int qos_value = 0x10;  // Low delay DSCP value
-    if (!m_tcpConnector->set_option(IPPROTO_IP, IP_TOS, qos_value))
-    {
-      Log("%s", m_tcpConnector->last_error_str().c_str());
-    }
-    m_keepAliveInterval = std::chrono::milliseconds(ZEDMD_WIFI_TCP_KEEP_ALIVE_INTERVAL);
+    Log("ZeDMD: Unknown exception in DoConnect");
+    Disconnect();
+    return false;
   }
-  else
-  {
-    m_udpSocket = new sockpp::udp_socket();
-    m_udpServer = new sockpp::inet_address(ntohl(m_httpServer.sin_addr.s_addr), (in_port_t)m_port);
-    m_keepAliveInterval = std::chrono::milliseconds(ZEDMD_WIFI_UDP_KEEP_ALIVE_INTERVAL);
-  }
-
-  strcpy(m_ip, ip);
-  m_connected = true;
-
-  return true;
 }
 
 void ZeDMDWiFi::Disconnect()

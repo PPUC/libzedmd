@@ -299,4 +299,7 @@ class ZeDMDComm
   bool m_keepAlive = true;
   std::chrono::steady_clock::time_point m_lastKeepAlive;
   bool m_autoDetect = true;
+
+  static std::unique_ptr<uint8_t[]> s_keepAliveData;
+  static const uint16_t s_keepAliveSize;
 };

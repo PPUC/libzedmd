@@ -3,6 +3,9 @@
 #include "komihash/komihash.h"
 #include "miniz/miniz.h"
 
+std::unique_ptr<uint8_t[]> ZeDMDComm::s_keepAliveData;
+const uint16_t ZeDMDComm::s_keepAliveSize = FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 4;
+
 ZeDMDComm::ZeDMDComm()
 {
   m_keepAliveInterval = std::chrono::milliseconds(ZEDMD_COMM_KEEP_ALIVE_INTERVAL);
@@ -16,6 +19,18 @@ ZeDMDComm::ZeDMDComm()
     defined(__ANDROID__))
   m_pSerialPort = nullptr;
 #endif
+
+  // Initialize keep alive data if not done yet
+  if (!s_keepAliveData)
+  {
+    s_keepAliveData = std::make_unique<uint8_t[]>(s_keepAliveSize);
+    memcpy(s_keepAliveData.get(), FRAME_HEADER, FRAME_HEADER_SIZE);
+    memcpy(&s_keepAliveData[FRAME_HEADER_SIZE], CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
+    s_keepAliveData[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE] = ZEDMD_COMM_COMMAND::KeepAlive;
+    s_keepAliveData[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 1] = 0;  // Size high byte
+    s_keepAliveData[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 2] = 0;  // Size low byte
+    s_keepAliveData[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 3] = 0;  // Compression flag
+  }
 }
 
 ZeDMDComm::~ZeDMDComm()
@@ -1057,17 +1072,14 @@ void ZeDMDComm::KeepAlive()
   if (now - m_lastKeepAlive > m_keepAliveInterval)
   {
     m_lastKeepAlive = now;
-
-    uint16_t size = FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 4;
-    uint8_t* pData = (uint8_t*)malloc(size);
-    memcpy(pData, FRAME_HEADER, FRAME_HEADER_SIZE);
-    memcpy(&pData[FRAME_HEADER_SIZE], CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
-    pData[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE] = ZEDMD_COMM_COMMAND::KeepAlive;
-    pData[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 1] = 0;  // Size high byte
-    pData[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 2] = 0;  // Size low byte
-    pData[FRAME_HEADER_SIZE + CTRL_CHARS_HEADER_SIZE + 3] = 0;  // Compression flag
-    SendChunks(pData, size);
-    free(pData);
+    try
+    {
+      SendChunks(s_keepAliveData.get(), s_keepAliveSize);
+    }
+    catch (const std::exception& e)
+    {
+      Log("ZeDMD: Exception in KeepAlive: %s", e.what());
+    }
   }
 }
 

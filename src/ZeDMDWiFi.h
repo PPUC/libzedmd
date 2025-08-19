@@ -20,6 +20,7 @@ class ZeDMDWiFi : public ZeDMDComm
 {
  public:
   ZeDMDWiFi() : ZeDMDComm() {}
+  ~ZeDMDWiFi() { Disconnect(); }
 
   virtual bool Connect(const char* name_or_ip);
   virtual void Disconnect();
