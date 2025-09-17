@@ -28,7 +28,6 @@ cd cargs
 cmake \
    -DBUILD_SHARED_LIBS=ON \
    -DCMAKE_OSX_ARCHITECTURES=arm64 \
-   -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0 \
    -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
    -B build
 cmake --build build -- -j${NUM_PROCS}
@@ -75,7 +74,6 @@ cmake \
    -DSOCKPP_BUILD_SHARED=ON \
    -DSOCKPP_BUILD_STATIC=OFF \
    -DCMAKE_OSX_ARCHITECTURES=arm64 \
-   -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0 \
    -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
    -B build
 cmake --build build -- -j${NUM_PROCS}
