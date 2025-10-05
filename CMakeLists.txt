@@ -15,7 +15,6 @@ message(STATUS "BUILD_STATIC: ${BUILD_STATIC}")
 message(STATUS "POST_BUILD_COPY_EXT_LIBS: ${POST_BUILD_COPY_EXT_LIBS}")
 
 if(PLATFORM STREQUAL "macos")
-   set(CMAKE_OSX_DEPLOYMENT_TARGET 14.0)
    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -g")
       set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -g")
