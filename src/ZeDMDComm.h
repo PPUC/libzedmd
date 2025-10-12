@@ -49,8 +49,8 @@ typedef enum
   FrameSize = 0x02,
   Handshake = 0x0c,
   LEDTest = 0x10,
-  EnableUpscaling = 0x15,
   DisableUpscaling = 0x14,
+  EnableUpscaling = 0x15,
   Brightness = 0x16,
   RGBOrder = 0x17,
   SetWiFiPower = 0x1a,
@@ -69,6 +69,13 @@ typedef enum
   SetUdpDelay = 0x2e,
   SetUsbPackageSizeMultiplier = 0x2f,
   SetYOffset = 0x30,
+  SetYOffset = 0x30,
+
+  DisableMonochrom = 0x40,
+  EnableMonochrom = 0x41,
+  SetMonochromRed = 0x42,
+  SetMonochromGreen = 0x43,
+  SetMonochromBlue = 0x44,
 
   RGB565ZonesStream = 0x05,
   RenderRGB565Frame = 0x06,

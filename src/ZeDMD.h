@@ -616,6 +616,15 @@ class ZEDMDAPI ZeDMD
    */
   void RenderRgb565(uint16_t* frame);
 
+  /** @brief Render a 8bit monochrom frame
+   *
+   *  @param frame the monochrome frame
+   *  @param frame the full brightness red component
+   *  @param frame the full brightness green component
+   *  @param frame the full brightness blue component
+   */
+  void RenderMonochrom(uint8_t* frame, uint8_t red, uint8_t green, uint8_t blue);
+
  private:
   bool UpdateFrameBuffer888(uint8_t* pFrame);
   bool UpdateFrameBuffer565(uint16_t* pFrame);
@@ -634,6 +643,11 @@ class ZEDMDAPI ZeDMD
   bool m_hd = false;
   bool m_upscaling = false;
   bool m_verbose = false;
+  bool m_monochrom = false;
+
+  uint8_t m_monochromRed = 0;
+  uint8_t m_monochromGreen = 0;
+  uint8_t m_monochromBlue = 0;
 
   uint8_t* m_pFrameBuffer;
   uint8_t* m_pScaledFrameBuffer;

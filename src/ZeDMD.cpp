@@ -890,6 +890,131 @@ int ZeDMD::Scale565(uint8_t* pScaledFrame, uint16_t* pFrame, bool bigEndian)
   return bufferSize;
 }
 
+void ZeDMD::RenderMonochrom(uint8_t* pFrame, uint8_t red, uint8_t green, uint8_t blue)
+{
+  if (m_verbose) m_pZeDMDComm->Log("ZeDMD::RenderMonochrom");
+
+  if (!m_monochrom)
+  {
+    EnableMonochromMode();
+    m_monochrom = true;
+  }
+
+  if (red != m_monochromRed)
+  {
+    if (m_usb)
+    {
+      m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetMonochromRed, red);
+    }
+    else if (m_wifi)
+    {
+      m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::SetMonochromRed, red);
+    }
+    m_monochromRed = red;
+  }
+
+  if (green != m_monochromGreen)
+  {
+    if (m_usb)
+    {
+      m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetMonochromGreen, green);
+    }
+    else if (m_wifi)
+    {
+      m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::SetMonochromGreen, green);
+    }
+    m_monochromGreen = green;
+  }
+
+  if (blue != m_monochromBlue)
+  {
+    if (m_usb)
+    {
+      m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetMonochromBlue, blue);
+    }
+    else if (m_wifi)
+    {
+      m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::SetMonochromBlue, blue);
+    }
+    m_monochromBlue = blue;
+  }
+
+
+
+  if (!(m_usb || m_wifi) || !UpdateFrameBuffer888(pFrame))
+  {
+    return;
+  }
+
+  int bufferSize = Scale888(m_pScaledFrameBuffer, m_pFrameBuffer, 3);
+  int rgb565Size = bufferSize / 3;
+  for (uint16_t i = 0; i < rgb565Size; i++)
+  {
+    uint8_t r = (m_pScaledFrameBuffer[i * 3] > 0) ? red : 0;
+    uint8_t g = (m_pScaledFrameBuffer[i * 3 + 1] > 0) ? green : 0;
+    uint8_t b = (m_pScaledFrameBuffer[i * 3 + 2] > 0) ? blue : 0;
+    uint16_t tmp = (((uint16_t)(r & 0xF8)) << 8) | (((uint16_t)(g & 0xFC)) << 3) | (b >> 3);
+    m_pRgb565Buffer[i * 2 + 1] = tmp >> 8;
+    m_pRgb565Buffer[i * 2] = tmp & 0xFF;
+  }
+
+  if (m_wifi)
+  {
+    m_pZeDMDWiFi->QueueFrame(m_pRgb565Buffer, rgb565Size * 2);
+  }
+  else if (m_usb)
+  {
+    m_pZeDMDComm->QueueFrame(m_pRgb565Buffer, rgb565Size * 2);
+  }
+}
+{
+  if (m_verbose) m_pZeDMDComm->Log("ZeDMD::RenderRgb565");
+
+  if (!(m_usb || m_wifi) || !UpdateFrameBuffer565(pFrame))
+  {
+    return;
+  }
+
+  int size = Scale565(m_pScaledFrameBuffer, pFrame, is_bigendian());
+
+  if (m_wifi)
+  {
+    m_pZeDMDWiFi->QueueFrame(m_pScaledFrameBuffer, size);
+  }
+  else if (m_usb)
+  {
+    m_pZeDMDComm->QueueFrame(m_pScaledFrameBuffer, size);
+  }
+}
+
+void ZeDMD::EnableMonochromMode()
+{
+  if (m_verbose) m_pZeDMDComm->Log("ZeDMD::EnableMonochromMode");
+
+  if (m_usb)
+  {
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::EnableMonochrom);
+  }
+  else if (m_wifi)
+  {
+    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::EnableMonochrom);
+  }
+}
+
+void ZeDMD::DisableMonochromMode()
+{
+  if (m_verbose) m_pZeDMDComm->Log("ZeDMD::DisableMonochrom");
+
+  if (m_usb)
+  {
+    m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::DisableMonochrom);
+  }
+  else if (m_wifi)
+  {
+    m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::DisableMonochrom);
+  }
+}
+
 ZEDMDAPI ZeDMD* ZeDMD_GetInstance() { return new ZeDMD(); }
 
 ZEDMDAPI const char* ZeDMD_GetVersion() { return ZEDMD_VERSION; };
