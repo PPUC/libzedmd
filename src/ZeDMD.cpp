@@ -899,12 +899,10 @@ ZEDMDAPI void ZeDMD_SetLogCallback(ZeDMD* pZeDMD, ZeDMD_LogCallback callback, co
   pZeDMD->SetLogCallback(callback, pUserData);
 }
 
-ZEDMDAPI const char* ZeDMD_FormatLogMessage(const char* format, va_list args, const void* pUserData)
+ZEDMDAPI void ZeDMD_FormatLogMessage(char *out, const size_t outSize, const char* format, va_list args, const void* pUserData)
 {
-  char buffer[1024];
-  vsnprintf(buffer, sizeof(buffer), format, args);
-
-  return buffer;
+  if (!out || outSize == 0) return;
+  vsnprintf(out, outSize, format, args);
 }
 
 ZEDMDAPI const char* ZeDMD_GetFirmwareVersion(ZeDMD* pZeDMD) { return pZeDMD->GetFirmwareVersion(); };

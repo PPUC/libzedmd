@@ -648,7 +648,7 @@ extern "C"
   extern ZEDMDAPI ZeDMD* ZeDMD_GetInstance();
   extern ZEDMDAPI const char* ZeDMD_GetVersion();
   extern ZEDMDAPI void ZeDMD_SetLogCallback(ZeDMD* pZeDMD, ZeDMD_LogCallback callback, const void* pUserData);
-  extern ZEDMDAPI const char* ZeDMD_FormatLogMessage(const char* format, va_list args, const void* pUserData);
+  extern ZEDMDAPI void ZeDMD_FormatLogMessage(char *out, size_t outSize, const char* format, va_list args, const void* pUserData);
   extern ZEDMDAPI const char* ZeDMD_GetFirmwareVersion(ZeDMD* pZeDMD);
   extern ZEDMDAPI uint16_t ZeDMD_GetId(ZeDMD* pZeDMD);
   extern ZEDMDAPI const char* ZeDMD_GetIdString(ZeDMD* pZeDMD);
