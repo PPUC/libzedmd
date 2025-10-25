@@ -59,6 +59,7 @@ typedef enum
   SetWiFiPort = 0x1d,
   SaveSettings = 0x1e,
   Reset = 0x1f,
+  RebootToBootloader = 0x20,
 
   SetClkphase = 0x28,
   SetI2sspeed = 0x29,
@@ -214,6 +215,7 @@ class ZeDMDComm
   void QueueCommand(char command, uint8_t value);
   bool FillDelayed();
   void SoftReset(bool reenableKeepAive = true);
+  void RebootToBootloader(bool reenableKeepAive = true);
   void EnableKeepAlive() { m_keepAlive = true; }
   void DisableKeepAlive() { m_keepAlive = false; }
   void SetVerbose(bool verbose) { m_verbose = verbose; };

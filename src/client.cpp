@@ -109,7 +109,12 @@ static struct cag_option options[] = {
      .access_letters = "l",
      .access_name = "led-test",
      .value_name = "VALUE",
-     .description = "run LED test"}};
+     .description = "run LED test"},
+    {.identifier = 'r',
+     .access_letters = "r",
+     .access_name = "reboot-bootloader",
+     .value_name = NULL,
+     .description = "reboot to bootloader for easy firmware updating (pico only)"}};
 
 void ZEDMDCALLBACK LogCallback(const char* format, va_list args, const void* pUserData)
 {
@@ -147,6 +152,7 @@ int main(int argc, char* argv[])
   const char* opt_wifi_power = NULL;
   const char* opt_y_offset = NULL;
   bool opt_led_test = false;
+  bool opt_reboot_bootloader = false;
 
   bool has_other_options_than_h = false;
   cag_option_init(&cag_context, options, CAG_ARRAY_SIZE(options), argc, argv);
@@ -240,6 +246,10 @@ int main(int argc, char* argv[])
         break;
       case 'l':
         opt_led_test = true;
+        has_other_options_than_h = true;
+        break;
+      case 'r':
+        opt_reboot_bootloader = true;
         has_other_options_than_h = true;
         break;
     }
@@ -607,6 +617,10 @@ int main(int argc, char* argv[])
   {
     pZeDMD->SetBrightness(brightness);
     save = true;
+  }
+  if (opt_reboot_bootloader)
+  {
+    pZeDMD->RebootToBootloader();
   }
 
   if (save)

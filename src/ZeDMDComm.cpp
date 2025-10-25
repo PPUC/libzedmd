@@ -851,6 +851,13 @@ void ZeDMDComm::SoftReset(bool reenableKeepAive)
   Flush(reenableKeepAive);
 }
 
+void ZeDMDComm::RebootToBootloader(bool reenableKeepAive)
+{
+  DisableKeepAlive();
+  QueueCommand(ZEDMD_COMM_COMMAND::RebootToBootloader);
+  Flush(reenableKeepAive);
+}
+
 bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
 {
   static uint8_t payload[36864] = {0};
