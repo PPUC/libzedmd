@@ -80,6 +80,16 @@ void ZeDMD::Reset()
   }
 }
 
+void ZeDMD::RebootToBootloader()
+{
+  if (m_verbose) m_pZeDMDComm->Log("ZeDMD::RebootToBootloader");
+
+  if (m_usb)
+  {
+    m_pZeDMDComm->RebootToBootloader();
+  }
+}
+
 void ZeDMD::IgnoreDevice(const char* const ignore_device) { m_pZeDMDComm->IgnoreDevice(ignore_device); }
 
 void ZeDMD::SetDevice(const char* const device) { m_pZeDMDComm->SetDevice(device); }
@@ -973,6 +983,8 @@ ZEDMDAPI bool ZeDMD_OpenDefaultWiFi(ZeDMD* pZeDMD) { return pZeDMD->OpenDefaultW
 ZEDMDAPI void ZeDMD_Close(ZeDMD* pZeDMD) { pZeDMD->Close(); }
 
 ZEDMDAPI void ZeDMD_Reset(ZeDMD* pZeDMD) { pZeDMD->Reset(); }
+
+ZEDMDAPI void ZeDMD_RebootToBootloader(ZeDMD* pZeDMD) { pZeDMD->RebootToBootloader(); }
 
 ZEDMDAPI void ZeDMD_SetFrameSize(ZeDMD* pZeDMD, uint16_t width, uint16_t height)
 {

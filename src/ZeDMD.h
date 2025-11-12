@@ -144,6 +144,13 @@ class ZEDMDAPI ZeDMD
    */
   void Reset();
 
+  /** @brief Reboot ZeDMD to bootloader (pico)
+   *
+   *  Reboot ZeDMD to bootloader for easy
+   *  firmware updating on the pico (rp2040, rp2350)
+   */
+  void RebootToBootloader();
+
   /** @brief Get the IP address in case of a WiFi connection
    *
    *  Get the IP address in case of a WiFi connection.
