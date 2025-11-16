@@ -186,6 +186,11 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
               m_power = std::stoi(item);
               break;
             }
+            case 20:
+            {
+              m_deviceType = std::stoi(item);
+              break;
+            }
           }
         }
       }

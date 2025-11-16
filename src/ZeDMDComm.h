@@ -46,6 +46,15 @@
 
 typedef enum
 {
+  ESP32 = 0,
+  ESP32_S3 = 1,
+  ESP32_S3_RM67162 = 2,
+  RP2350 = 3,
+  RP2040 = 4
+} ZeDMD_DeviceType;
+
+typedef enum
+{
   FrameSize = 0x02,
   Handshake = 0x0c,
   LEDTest = 0x10,
@@ -70,6 +79,17 @@ typedef enum
   SetUdpDelay = 0x2e,
   SetUsbPackageSizeMultiplier = 0x2f,
   SetYOffset = 0x30,
+
+  SetSpeakerLightsBlackThreshold = 100,
+  SetSpeakerLightsGammaFactor = 101,
+  SetSpeakerLightsLeftNumLeds = 102,
+  SetSpeakerLightsLeftLedType = 103,
+  SetSpeakerLightsLeftMode = 104,
+  SetSpeakerLightsLeftColor = 105,
+  SetSpeakerLightsRightNumLeds = 106,
+  SetSpeakerLightsRightLedType = 107,
+  SetSpeakerLightsRightMode = 108,
+  SetSpeakerLightsRightColor = 109,
 
   RGB565ZonesStream = 0x05,
   RenderRGB565Frame = 0x06,
@@ -272,6 +292,8 @@ class ZeDMDComm
   uint16_t m_writeAtOnce = ZEDMD_COMM_DEFAULT_SERIAL_WRITE_AT_ONCE;
 
   uint8_t m_currentCommand = 0;
+
+  ZeDMD_DeviceType m_deviceType = ZeDMD_DeviceType::ESP32;
 
  private:
   bool Connect(char* pName);
