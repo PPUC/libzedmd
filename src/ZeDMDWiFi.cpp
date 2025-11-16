@@ -188,7 +188,7 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
             }
             case 20:
             {
-              m_deviceType = std::stoi(item);
+              m_deviceType = static_cast<ZeDMD_DeviceType>(std::stoi(item));
               break;
             }
           }
