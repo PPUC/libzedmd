@@ -25,7 +25,7 @@ mv cargs-${CARGS_SHA} cargs
 cd cargs
 sed -i.bak 's/set_target_properties(cargs PROPERTIES DEFINE_SYMBOL CAG_EXPORTS)/set_target_properties(cargs PROPERTIES DEFINE_SYMBOL CAG_EXPORTS)\nset_target_properties(cargs PROPERTIES OUTPUT_NAME cargs64)/' CMakeLists.txt
 cmake \
-   -G "Visual Studio 17 2022" \
+   -G "Visual Studio 18 2026" \
    -DBUILD_SHARED_LIBS=ON \
    -B build
 cmake --build build --config ${BUILD_TYPE}
@@ -73,7 +73,7 @@ mv sockpp-${SOCKPP_SHA} sockpp
 cd sockpp
 sed -i.bak 's/set(SOCKPP_SHARED_LIBRARY sockpp)/set(SOCKPP_SHARED_LIBRARY sockpp64)/' CMakeLists.txt
 cmake \
-   -G "Visual Studio 17 2022" \
+   -G "Visual Studio 18 2026" \
    -B build
 cmake --build build --config ${BUILD_TYPE}
 cp -r include/sockpp ../../third-party/include/
