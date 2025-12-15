@@ -24,7 +24,7 @@ tar xzf cargs-${CARGS_SHA}.tar.gz
 mv cargs-${CARGS_SHA} cargs
 cd cargs
 cmake \
-   -G "Visual Studio 17 2022" \
+   -G "Visual Studio 18 2026" \
    -DBUILD_SHARED_LIBS=ON \
    -A Win32 \
    -B build
@@ -71,7 +71,7 @@ tar xzf sockpp-${SOCKPP_SHA}.tar.gz
 mv sockpp-${SOCKPP_SHA} sockpp
 cd sockpp
 cmake \
-   -G "Visual Studio 17 2022" \
+   -G "Visual Studio 18 2026" \
    -A Win32 \
    -B build
 cmake --build build --config ${BUILD_TYPE}
