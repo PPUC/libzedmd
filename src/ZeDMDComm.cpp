@@ -184,7 +184,11 @@ void ZeDMDComm::QueueCommand(char command, uint8_t value) { QueueCommand(command
 
 void ZeDMDComm::QueueCommand(char command) { QueueCommand(command, nullptr, 0); }
 
-void ZeDMDComm::QueueFrame(uint8_t* data, int size)
+void ZeDMDComm::QueueFrame(uint8_t* data, int size) {
+  QueueFrame(uint8_t* data, int size, false);
+}
+
+void ZeDMDComm::QueueFrame(uint8_t* data, int size, bool rgb888)
 {
   if (m_fullFrameFlag.load(std::memory_order_relaxed))
   {
@@ -218,15 +222,16 @@ void ZeDMDComm::QueueFrame(uint8_t* data, int size)
   }
 
   uint8_t idx = 0;
+  uint8_t bitsPerPixel = rgb888 ? 3 : 2;
   uint16_t zonesBytesLimit = (m_s3 && !m_cdc) ? ZEDMD_S3_ZONES_BYTE_LIMIT : ZEDMD_ZONES_BYTE_LIMIT;
-  const uint16_t zoneBytes = m_zoneWidth * m_zoneHeight * 2;
+  const uint16_t zoneBytes = m_zoneWidth * m_zoneHeight * bitsPerPixel;
   const uint16_t zoneBytesTotal = zoneBytes + 1;
   uint8_t* zone = (uint8_t*)malloc(zoneBytes);
   uint8_t* buffer = (uint8_t*)malloc(zonesBytesLimit);
   uint16_t bufferPosition = 0;
   const uint16_t bufferSizeThreshold = zonesBytesLimit - zoneBytesTotal;
 
-  ZeDMDFrame frame(ZEDMD_COMM_COMMAND::RGB565ZonesStream);
+  ZeDMDFrame frame(rgb888 ? ZEDMD_COMM_COMMAND::RGB888ZonesStream : ZEDMD_COMM_COMMAND::RGB565ZonesStream);
 
   bool delayed = FillDelayed();
   if (delayed)
@@ -242,7 +247,7 @@ void ZeDMDComm::QueueFrame(uint8_t* data, int size)
     {
       for (uint8_t z = 0; z < m_zoneHeight; z++)
       {
-        memcpy(&zone[z * m_zoneWidth * 2], &data[((y + z) * m_width + x) * 2], m_zoneWidth * 2);
+        memcpy(&zone[z * m_zoneWidth * 2], &data[((y + z) * m_width + x) * bitsPerPixel], m_zoneWidth * bitsPerPixel);
       }
 
       bool black = (0 == memcmp(zone, m_allBlack, zoneBytes));
@@ -921,11 +926,11 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
     }
   }
 
-  if (pFrame->command == ZEDMD_COMM_COMMAND::RGB565ZonesStream)
+  if (pFrame->command == ZEDMD_COMM_COMMAND::RGB565ZonesStream || pFrame->command == ZEDMD_COMM_COMMAND::RGB888ZonesStream)
   {
     memcpy(&payload[pos], CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
     pos += CTRL_CHARS_HEADER_SIZE;
-    payload[pos++] = ZEDMD_COMM_COMMAND::RenderRGB565Frame;
+    payload[pos++] = ZEDMD_COMM_COMMAND::RenderFrame;
     payload[pos++] = 0;  // Size high byte
     payload[pos++] = 0;  // Size low byte
     payload[pos++] = 0;  // Compression flag

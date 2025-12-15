@@ -91,8 +91,9 @@ typedef enum
   SetSpeakerLightsRightMode = 108,
   SetSpeakerLightsRightColor = 109,
 
+  RGB888ZonesStream = 0x04,
   RGB565ZonesStream = 0x05,
-  RenderRGB565Frame = 0x06,
+  RenderFrame = 0x06,
 
   ClearScreen = 0x0a,
 
@@ -230,6 +231,7 @@ class ZeDMDComm
   void Run();
   void Flush(bool reenableKeepAive = true);
   void QueueFrame(uint8_t* buffer, int size);
+  void QueueFrame(uint8_t* buffer, int size, bool rgb888);
   void QueueCommand(char command, uint8_t* buffer, int size);
   void QueueCommand(char command);
   void QueueCommand(char command, uint8_t value);

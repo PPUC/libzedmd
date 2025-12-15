@@ -7,7 +7,7 @@
 
 #define ZEDMD_VERSION_MAJOR 0  // X Digits
 #define ZEDMD_VERSION_MINOR 9  // Max 2 Digits
-#define ZEDMD_VERSION_PATCH 7  // Max 2 Digits
+#define ZEDMD_VERSION_PATCH 8  // Max 2 Digits
 
 #define _ZEDMD_STR(x) #x
 #define ZEDMD_STR(x) _ZEDMD_STR(x)
@@ -605,11 +605,21 @@ class ZEDMDAPI ZeDMD
    *  Turn off all pixels of ZeDMD, so a blank black screen will be shown.
    */
   void ClearScreen();
+
+  /** @brief Enable true RGB888
+   *
+   *  If set, RenderRgb888 will send true RGB888 frames to ZeDMD.
+   *  Otherwise, RGB888 gets converted to RGB565 to ensure a quick transport.
+   *  @see RenderRgb888()
+   *
+   *  @param frame the RGB frame
+   */
+  void EnableTrueRgb888(bool enable);
+
   /** @brief Render a RGB24 frame
    *
    *  Renders a true color RGB frame. By default the zone streaming mode is
    *  used. The encoding is RGB888.
-   *  @see DisableRGB24Streaming()
    *
    *  @param frame the RGB frame
    */
@@ -638,8 +648,10 @@ class ZEDMDAPI ZeDMD
 
   bool m_usb = false;
   bool m_wifi = false;
+  bool m_spi = false;
   bool m_hd = false;
   bool m_upscaling = false;
+  bool m_rgb888 = false;
   bool m_verbose = false;
 
   uint8_t* m_pFrameBuffer;
@@ -715,6 +727,7 @@ extern "C"
   extern ZEDMDAPI void ZeDMD_SetUsbPackageSize(ZeDMD* pZeDMD, uint16_t usbPackageSize);
   extern ZEDMDAPI void ZeDMD_SetYOffset(ZeDMD* pZeDMD, uint8_t yOffset);
   extern ZEDMDAPI void ZeDMD_ClearScreen(ZeDMD* pZeDMD);
+  extern ZEDMDAPI void ZeDMD_EnableTrueRgb888(ZeDMD* pZeDMD, bool enable);
   extern ZEDMDAPI void ZeDMD_RenderRgb888(ZeDMD* pZeDMD, uint8_t* frame);
   extern ZEDMDAPI void ZeDMD_RenderRgb565(ZeDMD* pZeDMD, uint16_t* frame);
 

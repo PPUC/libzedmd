@@ -711,6 +711,8 @@ void ZeDMD::ClearScreen()
   memset(m_pFrameBuffer, 0, ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
 }
 
+void ZeDMD::EnableTrueRgb888(bool enable) { m_rgb888 = enable; }
+
 void ZeDMD::RenderRgb888(uint8_t* pFrame)
 {
   if (m_verbose) m_pZeDMDComm->Log("ZeDMD::RenderRgb888");
@@ -721,22 +723,38 @@ void ZeDMD::RenderRgb888(uint8_t* pFrame)
   }
 
   int bufferSize = Scale888(m_pScaledFrameBuffer, m_pFrameBuffer, 3);
-  int rgb565Size = bufferSize / 3;
-  for (uint16_t i = 0; i < rgb565Size; i++)
-  {
-    uint16_t tmp = (((uint16_t)(m_pScaledFrameBuffer[i * 3] & 0xF8)) << 8) |
-                   (((uint16_t)(m_pScaledFrameBuffer[i * 3 + 1] & 0xFC)) << 3) | (m_pScaledFrameBuffer[i * 3 + 2] >> 3);
-    m_pRgb565Buffer[i * 2 + 1] = tmp >> 8;
-    m_pRgb565Buffer[i * 2] = tmp & 0xFF;
-  }
 
-  if (m_wifi)
+  if (m_rgb888)
   {
-    m_pZeDMDWiFi->QueueFrame(m_pRgb565Buffer, rgb565Size * 2);
+    if (m_wifi)
+    {
+      m_pZeDMDWiFi->QueueFrame(m_pScaledFrameBuffer, bufferSize, true);
+    }
+    else if (m_usb)
+    {
+      m_pZeDMDComm->QueueFrame(m_pScaledFrameBuffer, bufferSize, true);
+    }
   }
-  else if (m_usb)
+  else
   {
-    m_pZeDMDComm->QueueFrame(m_pRgb565Buffer, rgb565Size * 2);
+    int rgb565Size = bufferSize / 3;
+    for (uint16_t i = 0; i < rgb565Size; i++)
+    {
+      uint16_t tmp = (((uint16_t)(m_pScaledFrameBuffer[i * 3] & 0xF8)) << 8) |
+                     (((uint16_t)(m_pScaledFrameBuffer[i * 3 + 1] & 0xFC)) << 3) |
+                     (m_pScaledFrameBuffer[i * 3 + 2] >> 3);
+      m_pRgb565Buffer[i * 2 + 1] = tmp >> 8;
+      m_pRgb565Buffer[i * 2] = tmp & 0xFF;
+    }
+
+    if (m_wifi)
+    {
+      m_pZeDMDWiFi->QueueFrame(m_pRgb565Buffer, rgb565Size * 2);
+    }
+    else if (m_usb)
+    {
+      m_pZeDMDComm->QueueFrame(m_pRgb565Buffer, rgb565Size * 2);
+    }
   }
 }
 
@@ -1047,6 +1065,8 @@ ZEDMDAPI void ZeDMD_SetWiFiPort(ZeDMD* pZeDMD, int port) { pZeDMD->SetWiFiPort(p
 ZEDMDAPI void ZeDMD_SetWiFiPower(ZeDMD* pZeDMD, uint8_t power) { pZeDMD->SetWiFiPower(power); }
 
 ZEDMDAPI void ZeDMD_ClearScreen(ZeDMD* pZeDMD) { pZeDMD->ClearScreen(); }
+
+ZEDMDAPI void ZeDMD_EnableTrueRgb888(ZeDMD* pZeDMD, bool enable) { pZeDMD->EnableTrueRgb888(enable); }
 
 ZEDMDAPI void ZeDMD_RenderRgb888(ZeDMD* pZeDMD, uint8_t* frame) { pZeDMD->RenderRgb888(frame); }
 
