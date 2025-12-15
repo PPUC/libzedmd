@@ -73,6 +73,8 @@ set(CMAKE_C_VISIBILITY_PRESET hidden)
 set(ZEDMD_SOURCES
    src/ZeDMDComm.h
    src/ZeDMDComm.cpp
+   src/ZeDMDSpi.h
+   src/ZeDMDSpi.cpp
    src/ZeDMDWiFi.h
    src/ZeDMDWiFi.cpp
    src/ZeDMD.h

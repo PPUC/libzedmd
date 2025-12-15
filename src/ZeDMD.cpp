@@ -64,6 +64,12 @@ void ZeDMD::Close()
     m_pZeDMDWiFi->Flush(false);
     m_pZeDMDWiFi->Disconnect();
   }
+  else if (m_spi)
+  {
+    m_pZeDMDSpi->QueueCommand(ZEDMD_COMM_COMMAND::ClearScreen);
+    m_pZeDMDSpi->Flush(false);
+    m_pZeDMDSpi->Disconnect();
+  }
 }
 
 void ZeDMD::Reset()
@@ -153,7 +159,11 @@ const char* ZeDMD::GetFirmwareVersion()
   {
     return m_pZeDMDComm->GetFirmwareVersion();
   }
-  return m_pZeDMDWiFi->GetFirmwareVersion();
+  else if (m_wifi)
+  {
+    return m_pZeDMDWiFi->GetFirmwareVersion();
+  }
+  return "SPI";
 }
 
 uint16_t const ZeDMD::GetId()
@@ -162,7 +172,11 @@ uint16_t const ZeDMD::GetId()
   {
     return m_pZeDMDComm->GetId();
   }
-  return m_pZeDMDWiFi->GetId();
+  else if (m_wifi)
+  {
+    return m_pZeDMDWiFi->GetId();
+  }
+  return 0;
 }
 
 const char* ZeDMD::GetIdString()
@@ -231,7 +245,11 @@ uint8_t ZeDMD::GetRGBOrder()
   {
     return m_pZeDMDComm->GetRGBOrder();
   }
-  return m_pZeDMDWiFi->GetRGBOrder();
+  else if (m_wifi)
+  {
+    return m_pZeDMDWiFi->GetRGBOrder();
+  }
+  return 0;
 }
 
 uint8_t ZeDMD::GetBrightness()
@@ -240,7 +258,11 @@ uint8_t ZeDMD::GetBrightness()
   {
     return m_pZeDMDComm->GetBrightness();
   }
-  return m_pZeDMDWiFi->GetBrightness();
+  else if (m_wifi)
+  {
+    return m_pZeDMDWiFi->GetBrightness();
+  }
+  return 0;
 }
 
 uint8_t ZeDMD::GetPanelClockPhase()
@@ -249,7 +271,11 @@ uint8_t ZeDMD::GetPanelClockPhase()
   {
     return m_pZeDMDComm->GetPanelClockPhase();
   }
-  return m_pZeDMDWiFi->GetPanelClockPhase();
+  else if (m_wifi)
+  {
+    return m_pZeDMDWiFi->GetPanelClockPhase();
+  }
+  return 0;
 }
 
 uint8_t ZeDMD::GetPanelI2sSpeed()
@@ -267,7 +293,11 @@ uint8_t ZeDMD::GetPanelLatchBlanking()
   {
     return m_pZeDMDComm->GetPanelLatchBlanking();
   }
-  return m_pZeDMDWiFi->GetPanelLatchBlanking();
+  else if (m_wifi)
+  {
+    return m_pZeDMDWiFi->GetPanelLatchBlanking();
+  }
+  return 0;
 }
 
 uint8_t ZeDMD::GetPanelMinRefreshRate()
@@ -276,7 +306,11 @@ uint8_t ZeDMD::GetPanelMinRefreshRate()
   {
     return m_pZeDMDComm->GetPanelMinRefreshRate();
   }
-  return m_pZeDMDWiFi->GetPanelMinRefreshRate();
+  else if (m_wifi)
+  {
+    return m_pZeDMDWiFi->GetPanelMinRefreshRate();
+  }
+  retrun 0;
 }
 
 uint8_t ZeDMD::GetPanelDriver()
@@ -294,7 +328,11 @@ uint8_t ZeDMD::GetTransport()
   {
     return m_pZeDMDComm->GetTransport();
   }
-  return m_pZeDMDWiFi->GetTransport();
+  else
+  {
+    return m_pZeDMDWiFi->GetTransport();
+  }
+  return 0;
 }
 
 uint8_t ZeDMD::GetUdpDelay()
@@ -303,7 +341,11 @@ uint8_t ZeDMD::GetUdpDelay()
   {
     return m_pZeDMDComm->GetUdpDelay();
   }
-  return m_pZeDMDWiFi->GetUdpDelay();
+  else if (m_wifi)
+  {
+    return m_pZeDMDWiFi->GetUdpDelay();
+  }
+  return 0;
 }
 
 uint16_t ZeDMD::GetUsbPackageSize()
@@ -312,7 +354,11 @@ uint16_t ZeDMD::GetUsbPackageSize()
   {
     return m_pZeDMDComm->GetUsbPackageSize();
   }
-  return m_pZeDMDWiFi->GetUsbPackageSize();
+  else if (m_wifi)
+  {
+    return m_pZeDMDWiFi->GetUsbPackageSize();
+  }
+  return 0;
 }
 
 uint8_t ZeDMD::GetYOffset()
@@ -321,7 +367,11 @@ uint8_t ZeDMD::GetYOffset()
   {
     return m_pZeDMDComm->GetYOffset();
   }
-  return m_pZeDMDWiFi->GetYOffset();
+  else if (m_wifi)
+  {
+    return m_pZeDMDWiFi->GetYOffset();
+  }
+  return 0;
 }
 
 void ZeDMD::LedTest()
@@ -335,6 +385,10 @@ void ZeDMD::LedTest()
   {
     m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::LEDTest);
     m_pZeDMDWiFi->DisableKeepAlive();
+  }
+  else if (m_spi)
+  {
+    m_pZeDMDSpi->QueueCommand(ZEDMD_COMM_COMMAND::LEDTest);
   }
 
   std::this_thread::sleep_for(std::chrono::milliseconds(8000));
@@ -359,6 +413,10 @@ void ZeDMD::EnableDebug()
   {
     m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::EnableDebug);
   }
+  else if (m_spi)
+  {
+    m_pZeDMDSpi->QueueCommand(ZEDMD_COMM_COMMAND::EnableDebug);
+  }
 }
 
 void ZeDMD::DisableDebug()
@@ -371,6 +429,10 @@ void ZeDMD::DisableDebug()
   {
     m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::DisableDebug);
   }
+  else if (m_spi)
+  {
+    m_pZeDMDSpi->QueueCommand(ZEDMD_COMM_COMMAND::DisableDebug);
+  }
 }
 
 void ZeDMD::EnableVerbose()
@@ -378,6 +440,7 @@ void ZeDMD::EnableVerbose()
   m_verbose = true;
   m_pZeDMDComm->SetVerbose(true);
   m_pZeDMDWiFi->SetVerbose(true);
+  m_pZeDMDSpi->SetVerbose(true);
 }
 
 void ZeDMD::DisableVerbose()
@@ -385,6 +448,7 @@ void ZeDMD::DisableVerbose()
   m_verbose = false;
   m_pZeDMDComm->SetVerbose(false);
   m_pZeDMDWiFi->SetVerbose(false);
+  m_pZeDMDSpi->SetVerbose(false);
 }
 
 void ZeDMD::SetRGBOrder(uint8_t rgbOrder)
@@ -398,6 +462,10 @@ void ZeDMD::SetRGBOrder(uint8_t rgbOrder)
   else if (m_wifi)
   {
     m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::RGBOrder, rgbOrder);
+  }
+  else if (m_spi)
+  {
+    m_pZeDMDSpi->QueueCommand(ZEDMD_COMM_COMMAND::RGBOrder, rgbOrder);
   }
 }
 
@@ -413,6 +481,10 @@ void ZeDMD::SetBrightness(uint8_t brightness)
   {
     m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::Brightness, brightness);
   }
+  else if (m_spi)
+  {
+    m_pZeDMDSpi->QueueCommand(ZEDMD_COMM_COMMAND::Brightness, brightness);
+  }
 }
 
 void ZeDMD::SetPanelClockPhase(uint8_t clockPhase)
@@ -426,6 +498,10 @@ void ZeDMD::SetPanelClockPhase(uint8_t clockPhase)
   else if (m_wifi)
   {
     m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::SetClkphase, clockPhase);
+  }
+  else if (m_spi)
+  {
+    m_pZeDMDSpi->QueueCommand(ZEDMD_COMM_COMMAND::SetClkphase, clockPhase);
   }
 }
 
@@ -441,6 +517,10 @@ void ZeDMD::SetPanelI2sSpeed(uint8_t i2sSpeed)
   {
     m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::SetI2sspeed, i2sSpeed);
   }
+  else if (m_spi)
+  {
+    m_pZeDMDSpi->QueueCommand(ZEDMD_COMM_COMMAND::SetI2sspeed, i2sSpeed);
+  }
 }
 
 void ZeDMD::SetPanelLatchBlanking(uint8_t latchBlanking)
@@ -454,6 +534,10 @@ void ZeDMD::SetPanelLatchBlanking(uint8_t latchBlanking)
   else if (m_wifi)
   {
     m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::SetLatchBlanking, latchBlanking);
+  }
+  else if (m_spi)
+  {
+    m_pZeDMDSpi->QueueCommand(ZEDMD_COMM_COMMAND::SetLatchBlanking, latchBlanking);
   }
 }
 
@@ -469,6 +553,10 @@ void ZeDMD::SetPanelMinRefreshRate(uint8_t minRefreshRate)
   {
     m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::SetMinRefreshRate, minRefreshRate);
   }
+  else if (m_spi)
+  {
+    m_pZeDMDSpi->QueueCommand(ZEDMD_COMM_COMMAND::SetMinRefreshRate, minRefreshRate);
+  }
 }
 
 void ZeDMD::SetPanelDriver(uint8_t driver)
@@ -482,6 +570,10 @@ void ZeDMD::SetPanelDriver(uint8_t driver)
   else if (m_wifi)
   {
     m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::SetDriver, driver);
+  }
+  else if (m_spi)
+  {
+    m_pZeDMDSpi->QueueCommand(ZEDMD_COMM_COMMAND::SetDriver, driver);
   }
 }
 
@@ -540,6 +632,10 @@ void ZeDMD::SetYOffset(uint8_t yOffset)
   {
     m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::SetYOffset, yOffset);
   }
+  else if (m_spi)
+  {
+    m_pZeDMDSpi->QueueCommand(ZEDMD_COMM_COMMAND::DisableDebug);
+  }
 }
 
 void ZeDMD::SaveSettings()
@@ -557,6 +653,10 @@ void ZeDMD::SaveSettings()
     m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::SaveSettings);
     // Avoid that client resets the device before settings are saved.
     m_pZeDMDWiFi->Flush();
+  }
+  else if (m_spi)
+  {
+    m_pZeDMDSpi->QueueCommand(ZEDMD_COMM_COMMAND::DisableDebug);
   }
 }
 
@@ -695,6 +795,24 @@ bool ZeDMD::Open(uint16_t width, uint16_t height)
   return m_usb;
 }
 
+bool ZeDMD::OpenSpi(uint16_t width, uint16_t height);
+{
+  m_spi = m_pZeDMDSpi->Connect();
+
+  if (m_spi && !m_usb && !m_wifi)
+  {
+    m_hd = (width == 256);
+
+    m_pFrameBuffer = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
+    m_pScaledFrameBuffer = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
+    m_pRgb565Buffer = (uint8_t*)malloc(width * height * 2);
+
+    m_pZeDMDSpi->Run();
+  }
+
+  return m_spi;
+}
+
 void ZeDMD::ClearScreen()
 {
   if (m_verbose) m_pZeDMDComm->Log("ZeDMD::ClearScreen");
@@ -707,6 +825,10 @@ void ZeDMD::ClearScreen()
   {
     m_pZeDMDWiFi->QueueCommand(ZEDMD_COMM_COMMAND::ClearScreen);
   }
+  else if (m_spi)
+  {
+    m_pZeDMDSpi->QueueCommand(ZEDMD_COMM_COMMAND::ClearScreen);
+  }
   // "Blank" the frame buffer.
   memset(m_pFrameBuffer, 0, ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
 }
@@ -717,7 +839,7 @@ void ZeDMD::RenderRgb888(uint8_t* pFrame)
 {
   if (m_verbose) m_pZeDMDComm->Log("ZeDMD::RenderRgb888");
 
-  if (!(m_usb || m_wifi) || !UpdateFrameBuffer888(pFrame))
+  if (!(m_usb || m_wifi || m_spi) || !UpdateFrameBuffer888(pFrame))
   {
     return;
   }
@@ -733,6 +855,10 @@ void ZeDMD::RenderRgb888(uint8_t* pFrame)
     else if (m_usb)
     {
       m_pZeDMDComm->QueueFrame(m_pScaledFrameBuffer, bufferSize, true);
+    }
+    else if (m_spi)
+    {
+      m_pZeDMDSpi->QueueFrame(m_pScaledFrameBuffer, bufferSize, true);
     }
   }
   else
@@ -755,6 +881,10 @@ void ZeDMD::RenderRgb888(uint8_t* pFrame)
     {
       m_pZeDMDComm->QueueFrame(m_pRgb565Buffer, rgb565Size * 2);
     }
+    else if (m_spi)
+    {
+      m_pZeDMDSpi->QueueFrame(m_pRgb565Buffer, rgb565Size * 2);
+    }
   }
 }
 
@@ -776,6 +906,10 @@ void ZeDMD::RenderRgb565(uint16_t* pFrame)
   else if (m_usb)
   {
     m_pZeDMDComm->QueueFrame(m_pScaledFrameBuffer, size);
+  }
+  else if (m_spi)
+  {
+    m_pZeDMDSpi->QueueFrame(m_pScaledFrameBuffer, size);
   }
 }
 

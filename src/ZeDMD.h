@@ -132,6 +132,8 @@ class ZEDMDAPI ZeDMD
    */
   bool OpenDefaultWiFi();
 
+  bool OpenSpi(uint16_t width, uint16_t height);
+
   /** @brief Close connection to ZeDMD
    *
    *  Close connection to ZeDMD.
@@ -641,6 +643,7 @@ class ZEDMDAPI ZeDMD
   int Scale565(uint8_t* pScaledFrame, uint16_t* pFrame, bool bigEndian);
 
   ZeDMDComm* m_pZeDMDComm;
+  ZeDMDApi* m_pZeDMDSpi;
   ZeDMDWiFi* m_pZeDMDWiFi;
 
   uint16_t m_romWidth;
