@@ -160,6 +160,8 @@ bool ZeDMDSpi::SendChunks(uint8_t* pData, uint16_t size)
     return false;
   }
 
+  std::this_thread::sleep_for(std::chrono::microseconds(10));
+
   while (remaining > 0)
   {
     uint32_t chunkSize = std::min<uint32_t>(remaining, spi_kernel_bufsize);

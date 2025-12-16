@@ -879,7 +879,7 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
   {
     ZeDMDFrameData frameData = *it;
 
-    if (pFrame->command != ZEDMD_COMM_COMMAND::RGB565ZonesStream)
+    if (pFrame->command != ZEDMD_COMM_COMMAND::RGB565ZonesStream && pFrame->command != ZEDMD_COMM_COMMAND::RGB888ZonesStream)
     {
       memcpy(&payload[pos], CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
       pos += CTRL_CHARS_HEADER_SIZE;
