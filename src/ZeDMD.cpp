@@ -310,7 +310,7 @@ uint8_t ZeDMD::GetPanelMinRefreshRate()
   {
     return m_pZeDMDWiFi->GetPanelMinRefreshRate();
   }
-  retrun 0;
+  return 0;
 }
 
 uint8_t ZeDMD::GetPanelDriver()

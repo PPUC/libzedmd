@@ -184,7 +184,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t value) { QueueCommand(command
 
 void ZeDMDComm::QueueCommand(char command) { QueueCommand(command, nullptr, 0); }
 
-void ZeDMDComm::QueueFrame(uint8_t* data, int size) { QueueFrame(uint8_t* data, int size, false); }
+void ZeDMDComm::QueueFrame(uint8_t* data, int size) { QueueFrame(data, size, false); }
 
 void ZeDMDComm::QueueFrame(uint8_t* data, int size, bool rgb888)
 {

@@ -643,7 +643,7 @@ class ZEDMDAPI ZeDMD
   int Scale565(uint8_t* pScaledFrame, uint16_t* pFrame, bool bigEndian);
 
   ZeDMDComm* m_pZeDMDComm;
-  ZeDMDApi* m_pZeDMDSpi;
+  ZeDMDSpi* m_pZeDMDSpi;
   ZeDMDWiFi* m_pZeDMDWiFi;
 
   uint16_t m_romWidth;
