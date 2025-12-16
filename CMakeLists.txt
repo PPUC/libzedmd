@@ -86,18 +86,12 @@ set(ZEDMD_SOURCES
 if (ARCH STREQUAL "aarch64")
    find_package(PkgConfig REQUIRED)
    pkg_check_modules(GPIOD REQUIRED libgpiod)
-
-   set(ZEDMD_INCLUDE_DIRS
-      src
-      third-party/include
-      ${GPIOD_LIBRARIES}
-   )
-else()
-   set(ZEDMD_INCLUDE_DIRS
-      src
-      third-party/include
-   )
 endif()
+
+set(ZEDMD_INCLUDE_DIRS
+   src
+   third-party/include
+)
 
 if(BUILD_SHARED)
    add_library(zedmd_shared SHARED ${ZEDMD_SOURCES})
@@ -123,7 +117,11 @@ if(BUILD_SHARED)
       target_link_directories(zedmd_shared PUBLIC
          third-party/runtime-libs/${PLATFORM}/${ARCH}
       )
-      target_link_libraries(zedmd_shared PUBLIC serialport sockpp)
+      if (ARCH STREQUAL "aarch64")
+         target_link_libraries(zedmd_shared PUBLIC serialport sockpp ${GPIOD_LIBRARIES})
+      else()
+         target_link_libraries(zedmd_shared PUBLIC serialport sockpp)
+      endif()
    elseif(PLATFORM STREQUAL "ios" OR PLATFORM STREQUAL "ios-simulator" OR PLATFORM STREQUAL "tvos")
       target_link_directories(zedmd_shared PUBLIC
          third-party/build-libs/${PLATFORM}/${ARCH}
