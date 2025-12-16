@@ -1,6 +1,6 @@
 #include "ZeDMDSpi.h"
 
-#if defined(__linux__) && defined(__aarch64__)
+#if defined(__linux__) && defined(__aarch64__) && !defined(__ANDROID__)
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
@@ -23,7 +23,7 @@ constexpr const char kGpioConsumer[] = "ZeDMDSpi";
 
 bool ZeDMDSpi::IsSupportedPlatform() const
 {
-#if defined(__linux__) && defined(__aarch64__)
+#if defined(__linux__) && defined(__aarch64__) && !defined(__ANDROID__)
   std::ifstream model("/proc/device-tree/model");
   if (!model.is_open())
   {
