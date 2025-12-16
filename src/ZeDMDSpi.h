@@ -1,10 +1,14 @@
 #pragma once
 
+#if defined(__linux__) && defined(__aarch64__) && !defined(__ANDROID__)
+#define RASPI 1
+#endif
+
 #include <cstdint>
 
 #include "ZeDMDComm.h"
 
-#if defined(__linux__) && defined(__aarch64__) && !defined(__ANDROID__)
+#if defined(RASPI)
 #include <gpiod.h>
 #include <linux/spi/spidev.h>
 #else
@@ -42,7 +46,7 @@ class ZeDMDSpi : public ZeDMDComm
 
   uint32_t m_speed = spi_default_speed_hz;
   int m_fileDescriptor = -1;
-#if defined(__linux__) && defined(__aarch64__) && !defined(__ANDROID__)
+#if defined(RASPI)
   gpiod_chip* m_gpioChip = nullptr;
   gpiod_line* m_csLine = nullptr;
 #endif

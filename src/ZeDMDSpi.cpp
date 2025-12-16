@@ -1,6 +1,6 @@
 #include "ZeDMDSpi.h"
 
-#if defined(__linux__) && defined(__aarch64__) && !defined(__ANDROID__)
+#if defined(RASPI)
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
