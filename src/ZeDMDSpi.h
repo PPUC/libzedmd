@@ -1,13 +1,17 @@
 #pragma once
 
+#include <cstdint>
+
 #include "ZeDMDComm.h"
 
 #if defined(__linux__)
 #include <gpiod.h>
 #include <linux/spi/spidev.h>
+#else
+// Forward declarations so non-Linux builds can compile the stub implementation.
+struct gpiod_chip;
+struct gpiod_line;
 #endif
-
-#include <cstdint>
 
 #define GPIO_CHIP "/dev/gpiochip0"
 #define SPI_DEVICE "/dev/spidev1.0"
@@ -38,8 +42,10 @@ class ZeDMDSpi : public ZeDMDComm
 
   uint32_t m_speed = spi_default_speed_hz;
   int m_fileDescriptor = -1;
+#if defined(__linux__)
   gpiod_chip* m_gpioChip = nullptr;
   gpiod_line* m_csLine = nullptr;
+#endif
   bool m_connected = false;
   bool m_keepAlive = false;
 };

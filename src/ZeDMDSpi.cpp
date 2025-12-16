@@ -1,18 +1,17 @@
 #include "ZeDMDSpi.h"
 
+#if defined(__linux__)
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 
 #include <algorithm>
 #include <cerrno>
+#include <chrono>
 #include <cstring>
 #include <fstream>
 #include <string>
-
-#if !defined(__linux__)
-#error "ZeDMDSpi is only supported on Linux (Raspberry Pi)."
-#endif
+#include <thread>
 
 namespace
 {
@@ -192,3 +191,23 @@ bool ZeDMDSpi::SendChunks(uint8_t* pData, uint16_t size)
 
   return true;
 }
+
+#else  // non-Linux stub
+
+bool ZeDMDSpi::IsSupportedPlatform() const { return false; }
+
+bool ZeDMDSpi::Connect()
+{
+  Log("ZeDMDSpi: unsupported platform. This transport only runs on Raspberry Pi with Linux.");
+  return false;
+}
+
+void ZeDMDSpi::Disconnect() {}
+
+bool ZeDMDSpi::IsConnected() { return false; }
+
+void ZeDMDSpi::Reset() {}
+
+bool ZeDMDSpi::SendChunks(uint8_t*, uint16_t) { return false; }
+
+#endif  // __linux__

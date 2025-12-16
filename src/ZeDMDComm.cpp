@@ -184,9 +184,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t value) { QueueCommand(command
 
 void ZeDMDComm::QueueCommand(char command) { QueueCommand(command, nullptr, 0); }
 
-void ZeDMDComm::QueueFrame(uint8_t* data, int size) {
-  QueueFrame(uint8_t* data, int size, false);
-}
+void ZeDMDComm::QueueFrame(uint8_t* data, int size) { QueueFrame(uint8_t* data, int size, false); }
 
 void ZeDMDComm::QueueFrame(uint8_t* data, int size, bool rgb888)
 {
@@ -879,7 +877,8 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
   {
     ZeDMDFrameData frameData = *it;
 
-    if (pFrame->command != ZEDMD_COMM_COMMAND::RGB565ZonesStream && pFrame->command != ZEDMD_COMM_COMMAND::RGB888ZonesStream)
+    if (pFrame->command != ZEDMD_COMM_COMMAND::RGB565ZonesStream &&
+        pFrame->command != ZEDMD_COMM_COMMAND::RGB888ZonesStream)
     {
       memcpy(&payload[pos], CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
       pos += CTRL_CHARS_HEADER_SIZE;
@@ -926,7 +925,8 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
     }
   }
 
-  if (pFrame->command == ZEDMD_COMM_COMMAND::RGB565ZonesStream || pFrame->command == ZEDMD_COMM_COMMAND::RGB888ZonesStream)
+  if (pFrame->command == ZEDMD_COMM_COMMAND::RGB565ZonesStream ||
+      pFrame->command == ZEDMD_COMM_COMMAND::RGB888ZonesStream)
   {
     memcpy(&payload[pos], CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
     pos += CTRL_CHARS_HEADER_SIZE;
