@@ -5,6 +5,7 @@
 #include "FrameUtil.h"
 #include "ZeDMDComm.h"
 #include "ZeDMDWiFi.h"
+#include "ZeDMDSpi.h"
 
 const int endian_check = 1;
 #define is_bigendian() ((*(char*)&endian_check) == 0)
@@ -20,12 +21,14 @@ ZeDMD::ZeDMD()
 
   m_pZeDMDComm = new ZeDMDComm();
   m_pZeDMDWiFi = new ZeDMDWiFi();
+  m_pZeDMDSpi = new ZeDMDSpi();
 }
 
 ZeDMD::~ZeDMD()
 {
   delete m_pZeDMDComm;
   delete m_pZeDMDWiFi;
+  delete m_pZeDMDSpi;
 
   if (m_pFrameBuffer)
   {
@@ -47,6 +50,7 @@ void ZeDMD::SetLogCallback(ZeDMD_LogCallback callback, const void* userData)
 {
   m_pZeDMDComm->SetLogCallback(callback, userData);
   m_pZeDMDWiFi->SetLogCallback(callback, userData);
+  m_pZeDMDSpi->SetLogCallback(callback, userData);
 }
 
 void ZeDMD::Close()
