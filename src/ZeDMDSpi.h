@@ -4,7 +4,7 @@
 
 #include "ZeDMDComm.h"
 
-#if defined(__linux__)
+#if defined(__linux__) && defined(__aarch64__)
 #include <gpiod.h>
 #include <linux/spi/spidev.h>
 #else
@@ -42,7 +42,7 @@ class ZeDMDSpi : public ZeDMDComm
 
   uint32_t m_speed = spi_default_speed_hz;
   int m_fileDescriptor = -1;
-#if defined(__linux__)
+#if defined(__linux__) && defined(__aarch64__)
   gpiod_chip* m_gpioChip = nullptr;
   gpiod_line* m_csLine = nullptr;
 #endif

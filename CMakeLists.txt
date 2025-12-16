@@ -83,10 +83,21 @@ set(ZEDMD_SOURCES
    third-party/include/miniz/miniz.c
 )
 
-set(ZEDMD_INCLUDE_DIRS
-   src
-   third-party/include
-)
+if (ARCH STREQUAL "aarch64")
+   find_package(PkgConfig REQUIRED)
+   pkg_check_modules(GPIOD REQUIRED libgpiod)
+
+   set(ZEDMD_INCLUDE_DIRS
+      src
+      third-party/include
+      ${GPIOD_LIBRARIES}
+   )
+else()
+   set(ZEDMD_INCLUDE_DIRS
+      src
+      third-party/include
+   )
+endif()
 
 if(BUILD_SHARED)
    add_library(zedmd_shared SHARED ${ZEDMD_SOURCES})

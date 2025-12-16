@@ -1,6 +1,6 @@
 #include "ZeDMDSpi.h"
 
-#if defined(__linux__)
+#if defined(__linux__) && defined(__aarch64__)
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
@@ -23,7 +23,7 @@ constexpr const char kGpioConsumer[] = "ZeDMDSpi";
 
 bool ZeDMDSpi::IsSupportedPlatform() const
 {
-#if defined(__linux__) && (defined(__arm__) || defined(__aarch64__))
+#if defined(__linux__) && defined(__aarch64__)
   std::ifstream model("/proc/device-tree/model");
   if (!model.is_open())
   {
@@ -192,7 +192,7 @@ bool ZeDMDSpi::SendChunks(uint8_t* pData, uint16_t size)
   return true;
 }
 
-#else  // non-Linux stub
+#else  // non-Linux or non-aarch64 stub
 
 bool ZeDMDSpi::IsSupportedPlatform() const { return false; }
 
