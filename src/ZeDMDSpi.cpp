@@ -23,7 +23,6 @@ constexpr const char kGpioConsumer[] = "ZeDMDSpi";
 
 bool ZeDMDSpi::IsSupportedPlatform() const
 {
-#if defined(__linux__) && defined(__aarch64__) && !defined(__ANDROID__)
   std::ifstream model("/proc/device-tree/model");
   if (!model.is_open())
   {
@@ -32,9 +31,6 @@ bool ZeDMDSpi::IsSupportedPlatform() const
   std::string line;
   std::getline(model, line);
   return line.find("Raspberry Pi") != std::string::npos;
-#else
-  return false;
-#endif
 }
 
 bool ZeDMDSpi::Connect()
@@ -201,7 +197,7 @@ bool ZeDMDSpi::IsSupportedPlatform() const { return false; }
 
 bool ZeDMDSpi::Connect()
 {
-  Log("ZeDMDSpi: unsupported platform. This transport only runs on Raspberry Pi with Linux.");
+  Log("ZeDMDSpi: unsupported platform. SPI only runs on Raspberry Pi with Linux.");
   return false;
 }
 
