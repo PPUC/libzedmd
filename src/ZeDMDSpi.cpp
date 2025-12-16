@@ -1,6 +1,6 @@
 #include "ZeDMDSpi.h"
 
-#if defined(RASPI)
+#if defined(SPI_SUPPORT)
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <unistd.h>

@@ -6,6 +6,8 @@ set(ARCH "x64" CACHE STRING "Arch")
 option(BUILD_SHARED "Option to build shared library" ON)
 option(BUILD_STATIC "Option to build static library" ON)
 option(POST_BUILD_COPY_EXT_LIBS "Option to copy external libraries to build directory" ON)
+option(SPI_SUPPORT "SPI support" OFF)
+add_compile_definitions($<$<BOOL:${SPI_SUPPORT}>:SPI_SUPPORT>)
 
 message(STATUS "PLATFORM: ${PLATFORM}")
 message(STATUS "ARCH: ${ARCH}")
