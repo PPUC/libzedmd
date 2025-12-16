@@ -110,7 +110,10 @@ bool ZeDMDSpi::Connect()
     return false;
   }
 
+  // Create a rising edge to switch ZeDMD from loopback to SPI mode.
   // Keep CS high when idle.
+  gpiod_line_set_value(m_csLine, 0);
+  std::this_thread::sleep_for(std::chrono::microseconds(100));
   gpiod_line_set_value(m_csLine, 1);
 
   m_connected = true;
