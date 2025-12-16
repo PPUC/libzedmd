@@ -37,6 +37,7 @@ typedef void(ZEDMDCALLBACK* ZeDMD_LogCallback)(const char* format, va_list args,
 
 class ZeDMDComm;
 class ZeDMDWiFi;
+class ZeDMDSpi;
 
 class ZEDMDAPI ZeDMD
 {
