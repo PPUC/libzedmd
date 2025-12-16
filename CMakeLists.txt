@@ -226,7 +226,11 @@ if(BUILD_STATIC)
          target_link_directories(zedmd-test-portable PUBLIC
             third-party/runtime-libs/${PLATFORM}/${ARCH}
          )
-         target_link_libraries(zedmd-test-portable PUBLIC zedmd_static serialport sockpp)
+         if (ARCH STREQUAL "aarch64")
+            target_link_libraries(zedmd-test-portable PUBLIC zedmd_static serialport sockpp ${GPIOD_LIBRARIES})
+         else()
+            target_link_libraries(zedmd-test-portable PUBLIC zedmd_static serialport sockpp)
+         endif()
       endif()
 
       if(POST_BUILD_COPY_EXT_LIBS)
@@ -257,7 +261,11 @@ if(BUILD_STATIC)
          target_link_directories(zedmd-client-portable PUBLIC
             third-party/runtime-libs/${PLATFORM}/${ARCH}
          )
-         target_link_libraries(zedmd-client-portable PUBLIC zedmd_static cargs serialport sockpp)
+         if (ARCH STREQUAL "aarch64")
+            target_link_libraries(zedmd-client-portable PUBLIC zedmd_static cargs serialport sockpp ${GPIOD_LIBRARIES})
+         else()
+            target_link_libraries(zedmd-client-portable PUBLIC zedmd_static cargs serialport sockpp)
+         endif()
       endif()
 
       if(POST_BUILD_COPY_EXT_LIBS)
