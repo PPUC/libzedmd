@@ -26,6 +26,9 @@ class ZeDMDSpi : public ZeDMDComm
   void Disconnect() override;
   bool IsConnected() override;
 
+  void SetWidth(uint16_t width) { m_width = width; }
+  void SetHeight(uint16_t height) { m_height = height; }
+
  protected:
   bool SendChunks(uint8_t* pData, uint16_t size) override;
   void Reset() override;

@@ -795,7 +795,7 @@ bool ZeDMD::Open(uint16_t width, uint16_t height)
   return m_usb;
 }
 
-bool ZeDMD::OpenSpi(uint16_t width, uint16_t height);
+bool ZeDMD::OpenSpi(uint16_t width, uint16_t height)
 {
   m_spi = m_pZeDMDSpi->Connect();
 
@@ -807,6 +807,8 @@ bool ZeDMD::OpenSpi(uint16_t width, uint16_t height);
     m_pScaledFrameBuffer = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
     m_pRgb565Buffer = (uint8_t*)malloc(width * height * 2);
 
+    m_pZeDMDSpi->SetWidth(width);
+    m_pZeDMDSpi->SetHeight(height);
     m_pZeDMDSpi->Run();
   }
 
