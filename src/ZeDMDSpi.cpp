@@ -52,6 +52,7 @@ bool ZeDMDSpi::Connect()
     Log("ZeDMDSpi: couldn't open SPI device %s: %s", SPI_DEVICE, strerror(errno));
     return false;
   }
+  Log("ZeDMDSpi: opened SPI device %s", SPI_DEVICE);
 
   if (ioctl(m_fileDescriptor, SPI_IOC_WR_MODE, &kSpiMode) < 0)
   {
@@ -82,6 +83,7 @@ bool ZeDMDSpi::Connect()
     Disconnect();
     return false;
   }
+  Log("ZeDMDSpi: set SPI speed %d", m_speed);
 
   m_gpioChip = gpiod_chip_open(GPIO_CHIP);
   if (!m_gpioChip)
@@ -111,6 +113,8 @@ bool ZeDMDSpi::Connect()
   gpiod_line_set_value(m_csLine, 0);
   std::this_thread::sleep_for(std::chrono::microseconds(100));
   gpiod_line_set_value(m_csLine, 1);
+
+  Log("ZeDMDSpi: signaling via GPIO %d established", kCsGpio);
 
   m_connected = true;
   return true;
