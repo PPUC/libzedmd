@@ -898,7 +898,7 @@ void ZeDMD::RenderRgb565(uint16_t* pFrame)
 {
   if (m_verbose) m_pZeDMDComm->Log("ZeDMD::RenderRgb565");
 
-  if (!(m_usb || m_wifi) || !UpdateFrameBuffer565(pFrame))
+  if (!(m_usb || m_wifi || m_spi) || !UpdateFrameBuffer565(pFrame))
   {
     return;
   }
