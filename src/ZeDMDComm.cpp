@@ -875,15 +875,21 @@ void ZeDMDComm::RebootToBootloader(bool reenableKeepAive)
 
 bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
 {
-  if (pFrame->command == ZEDMD_COMM_COMMAND::RGB565Stream || pFrame->command == ZEDMD_COMM_COMMAND::RGB888Stream)
+  if (!m_zoneStream && !m_compression)
   {
-    for (auto it = pFrame->data.rbegin(); it != pFrame->data.rend(); ++it)
+    // Direct stream without compression and zones.
+    if (pFrame->command == ZEDMD_COMM_COMMAND::RGB565Stream || pFrame->command == ZEDMD_COMM_COMMAND::RGB888Stream)
     {
-      ZeDMDFrameData frameData = *it;
-      if (!SendChunks(frameData.data, frameData.size)) return false;
+      for (auto it = pFrame->data.rbegin(); it != pFrame->data.rend(); ++it)
+      {
+        ZeDMDFrameData frameData = *it;
+        if (!SendChunks(frameData.data, frameData.size)) return false;
 
-      m_lastKeepAlive = std::chrono::steady_clock::now();
+        m_lastKeepAlive = std::chrono::steady_clock::now();
+      }
     }
+
+    m_lastKeepAlive = std::chrono::steady_clock::now();
     return true;
   }
 
