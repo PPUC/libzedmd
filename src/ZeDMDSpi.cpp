@@ -181,7 +181,7 @@ bool ZeDMDSpi::SendChunks(uint8_t* pData, uint16_t size)
       if (m_csLine) gpiod_line_set_value(m_csLine, 1);
       return false;
     }
-
+    Log("ZeDMDSpi: send chunk of %d bytes", chunkSize);
     cursor += chunkSize;
     remaining -= chunkSize;
   }

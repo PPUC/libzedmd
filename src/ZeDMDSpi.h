@@ -22,7 +22,7 @@ struct gpiod_line;
 
 // can be read from /sys/module/spidev/parameters/bufsiz, but hardcoded now for simplicity
 constexpr int spi_kernel_bufsize = 4096;
-constexpr uint32_t spi_default_speed_hz = 12000000;
+constexpr uint32_t spi_default_speed_hz = 4000000;
 
 class ZeDMDSpi : public ZeDMDComm
 {
