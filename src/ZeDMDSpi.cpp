@@ -192,6 +192,8 @@ bool ZeDMDSpi::SendChunks(uint8_t* pData, uint16_t size)
     return false;
   }
 
+  std::this_thread::sleep_for(std::chrono::milliseconds(2));
+
   return true;
 }
 

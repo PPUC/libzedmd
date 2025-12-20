@@ -27,7 +27,11 @@ constexpr uint32_t spi_default_speed_hz = 12000000;
 class ZeDMDSpi : public ZeDMDComm
 {
  public:
-  ZeDMDSpi() : ZeDMDComm() {}
+  ZeDMDSpi() : ZeDMDComm()
+  {
+    m_compression = false;
+    m_zoneStream = false;
+  }
   ~ZeDMDSpi() { Disconnect(); }
 
   bool Connect() override;

@@ -41,8 +41,8 @@
 
 #define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX 8
 
-#define ZEDMD_ZONES_BYTE_LIMIT (128 * 4 * 2 + 16)
-#define ZEDMD_S3_ZONES_BYTE_LIMIT (ZEDMD_ZONES_BYTE_LIMIT)
+#define ZEDMD_ZONES_BYTE_LIMIT_RGB565 (128 * 4 * 2 + 16)
+#define ZEDMD_ZONES_BYTE_LIMIT_RGB888 (128 * 4 * 3 + 16)
 
 typedef enum
 {
@@ -94,6 +94,8 @@ typedef enum
   RGB888ZonesStream = 0x04,
   RGB565ZonesStream = 0x05,
   RenderFrame = 0x06,
+  RGB888Stream = 0x07,
+  RGB565Stream = 0x08,
 
   ClearScreen = 0x0a,
 
@@ -294,6 +296,9 @@ class ZeDMDComm
   uint16_t m_writeAtOnce = ZEDMD_COMM_DEFAULT_SERIAL_WRITE_AT_ONCE;
 
   uint8_t m_currentCommand = 0;
+
+  bool m_compression = true;
+  bool m_zoneStream = true;
 
   ZeDMD_DeviceType m_deviceType = ZeDMD_DeviceType::ESP32;
 

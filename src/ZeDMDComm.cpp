@@ -188,6 +188,17 @@ void ZeDMDComm::QueueFrame(uint8_t* data, int size) { QueueFrame(data, size, fal
 
 void ZeDMDComm::QueueFrame(uint8_t* data, int size, bool rgb888)
 {
+  if (!m_zoneStream)
+  {
+    ZeDMDFrame frame(rgb888 ? ZEDMD_COMM_COMMAND::RGB888Stream : ZEDMD_COMM_COMMAND::RGB565Stream, data, size);
+
+    m_frameQueueMutex.lock();
+    m_frames.push(std::move(frame));
+    m_frameQueueMutex.unlock();
+
+    return;
+  }
+
   if (m_fullFrameFlag.load(std::memory_order_relaxed))
   {
     m_fullFrameFlag.store(false, std::memory_order_release);
@@ -221,7 +232,7 @@ void ZeDMDComm::QueueFrame(uint8_t* data, int size, bool rgb888)
 
   uint8_t idx = 0;
   uint8_t bitsPerPixel = rgb888 ? 3 : 2;
-  uint16_t zonesBytesLimit = (m_s3 && !m_cdc) ? ZEDMD_S3_ZONES_BYTE_LIMIT : ZEDMD_ZONES_BYTE_LIMIT;
+  uint16_t zonesBytesLimit = (rgb888) ? ZEDMD_ZONES_BYTE_LIMIT_RGB888 : ZEDMD_ZONES_BYTE_LIMIT_RGB565;
   const uint16_t zoneBytes = m_zoneWidth * m_zoneHeight * bitsPerPixel;
   const uint16_t zoneBytesTotal = zoneBytes + 1;
   uint8_t* zone = (uint8_t*)malloc(zoneBytes);
@@ -864,8 +875,21 @@ void ZeDMDComm::RebootToBootloader(bool reenableKeepAive)
 
 bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
 {
-  static uint8_t payload[36864] = {0};
-  memset(payload, 0, 36864);
+  if (pFrame->command == ZEDMD_COMM_COMMAND::RGB565Stream || pFrame->command == ZEDMD_COMM_COMMAND::RGB888Stream)
+  {
+    for (auto it = pFrame->data.rbegin(); it != pFrame->data.rend(); ++it)
+    {
+      ZeDMDFrameData frameData = *it;
+      if (!SendChunks(frameData.data, frameData.size)) return false;
+
+      m_lastKeepAlive = std::chrono::steady_clock::now();
+    }
+    return true;
+  }
+
+  // 256*64*3 (RGB888) = 49152 + headers
+  static uint8_t payload[50176] = {0};
+  memset(payload, 0, 50176);
   memcpy(payload, FRAME_HEADER, FRAME_HEADER_SIZE);
   uint16_t pos = FRAME_HEADER_SIZE;
 
@@ -877,8 +901,8 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
   {
     ZeDMDFrameData frameData = *it;
 
-    if (pFrame->command != ZEDMD_COMM_COMMAND::RGB565ZonesStream &&
-        pFrame->command != ZEDMD_COMM_COMMAND::RGB888ZonesStream)
+    if (!m_compression || (pFrame->command != ZEDMD_COMM_COMMAND::RGB565ZonesStream &&
+                           pFrame->command != ZEDMD_COMM_COMMAND::RGB888ZonesStream))
     {
       memcpy(&payload[pos], CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
       pos += CTRL_CHARS_HEADER_SIZE;
