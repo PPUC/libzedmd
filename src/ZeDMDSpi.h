@@ -31,6 +31,7 @@ class ZeDMDSpi : public ZeDMDComm
     m_compression = false;
     m_zoneStream = false;
     m_keepAlive = false;
+    m_keepAliveNotSupported = true;
   }
   ~ZeDMDSpi() { Disconnect(); }
 

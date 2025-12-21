@@ -1110,7 +1110,7 @@ void ZeDMDComm::KeepAlive()
 {
   auto now = std::chrono::steady_clock::now();
 
-  if (!m_keepAlive)
+  if (!m_keepAlive || m_keepAliveNotSupported)
   {
     m_lastKeepAlive = now;
     return;
