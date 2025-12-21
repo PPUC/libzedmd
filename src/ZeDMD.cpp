@@ -112,20 +112,34 @@ void ZeDMD::SetFrameSize(uint16_t width, uint16_t height)
 
 uint16_t const ZeDMD::GetWidth()
 {
-  if (m_wifi)
+  if (m_usb)
+  {
+    return m_pZeDMDComm->GetWidth();
+  }
+  else if (m_wifi)
   {
     return m_pZeDMDWiFi->GetWidth();
   }
-  return m_pZeDMDComm->GetWidth();
+  else if (m_spi)
+  {
+    return m_pZeDMDSpi->GetWidth();
+  }
 }
 
 uint16_t const ZeDMD::GetHeight()
 {
-  if (m_wifi)
+  if (m_usb)
+  {
+    return m_pZeDMDComm->GetHeight();
+  }
+  else if (m_wifi)
   {
     return m_pZeDMDWiFi->GetHeight();
   }
-  return m_pZeDMDComm->GetHeight();
+  else if (m_spi)
+  {
+    return m_pZeDMDSpi->GetHeight();
+  }
 }
 
 uint16_t const ZeDMD::GetPanelWidth() { return GetWidth(); }
@@ -134,13 +148,17 @@ uint16_t const ZeDMD::GetPanelHeight()
 {
   bool half = false;
 
-  if (m_wifi)
+  if (m_usb)
   {
-    half = m_pZeDMDWiFi->IsHalf();
+    return m_pZeDMDComm->IsHalf();
   }
-  else
+  else if (m_wifi)
   {
-    half = m_pZeDMDComm->IsHalf();
+    return m_pZeDMDWiFi->IsHalf();
+  }
+  else if (m_spi)
+  {
+    return m_pZeDMDSpi->IsHalf();
   }
 
   return (half ? (GetHeight() * 2) : GetHeight());
@@ -148,11 +166,18 @@ uint16_t const ZeDMD::GetPanelHeight()
 
 bool const ZeDMD::IsS3()
 {
+  if (m_usb)
+  {
+    return m_pZeDMDComm->IsS3();
+  }
   if (m_wifi)
   {
     return m_pZeDMDWiFi->IsS3();
   }
-  return m_pZeDMDComm->IsS3();
+  else if (m_spi)
+  {
+    return m_pZeDMDSpi->IsS3();
+  }
 }
 
 const char* ZeDMD::GetVersion() { return ZEDMD_VERSION; }
@@ -288,7 +313,11 @@ uint8_t ZeDMD::GetPanelI2sSpeed()
   {
     return m_pZeDMDComm->GetPanelI2sSpeed();
   }
-  return m_pZeDMDWiFi->GetPanelI2sSpeed();
+  else if (m_wifi)
+  {
+    return m_pZeDMDWiFi->GetPanelI2sSpeed();
+  }
+  return 0;
 }
 
 uint8_t ZeDMD::GetPanelLatchBlanking()
@@ -323,7 +352,11 @@ uint8_t ZeDMD::GetPanelDriver()
   {
     return m_pZeDMDComm->GetPanelDriver();
   }
-  return m_pZeDMDWiFi->GetPanelDriver();
+  else if (m_wifi)
+  {
+    return m_pZeDMDWiFi->GetPanelDriver();
+  }
+  return 0;
 }
 
 uint8_t ZeDMD::GetTransport()
@@ -802,6 +835,9 @@ bool ZeDMD::Open(uint16_t width, uint16_t height)
 bool ZeDMD::OpenSpi(uint32_t speed, uint16_t width, uint16_t height)
 {
   m_pZeDMDSpi->SetSpeed(speed);
+  m_pZeDMDSpi->SetWidth(width);
+  m_pZeDMDSpi->SetHeight(height);
+
   m_spi = m_pZeDMDSpi->Connect();
 
   if (m_spi && !m_usb && !m_wifi)
@@ -812,8 +848,6 @@ bool ZeDMD::OpenSpi(uint32_t speed, uint16_t width, uint16_t height)
     m_pScaledFrameBuffer = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
     m_pRgb565Buffer = (uint8_t*)malloc(width * height * 2);
 
-    m_pZeDMDSpi->SetWidth(width);
-    m_pZeDMDSpi->SetHeight(height);
     m_pZeDMDSpi->Run();
   }
 
