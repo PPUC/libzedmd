@@ -30,7 +30,6 @@ class ZeDMDSpi : public ZeDMDComm
   {
     m_compression = false;
     m_zoneStream = false;
-    m_keepAlive = false;
     m_keepAliveNotSupported = true;
   }
   ~ZeDMDSpi() { Disconnect(); }
@@ -57,5 +56,4 @@ class ZeDMDSpi : public ZeDMDComm
   gpiod_line* m_csLine = nullptr;
 #endif
   bool m_connected = false;
-  bool m_keepAlive = false;
 };

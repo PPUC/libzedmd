@@ -299,6 +299,7 @@ class ZeDMDComm
 
   bool m_compression = true;
   bool m_zoneStream = true;
+  bool m_keepAliveNotSupported = false;
 
   ZeDMD_DeviceType m_deviceType = ZeDMD_DeviceType::ESP32;
 
@@ -328,7 +329,6 @@ class ZeDMDComm
   std::mutex m_delayedFrameMutex;
   bool m_delayedFrameReady = false;
   bool m_keepAlive = true;
-  bool m_keepAliveNotSupported = false;
   std::chrono::steady_clock::time_point m_lastKeepAlive;
   bool m_autoDetect = true;
 
