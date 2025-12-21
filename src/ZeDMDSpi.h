@@ -22,7 +22,6 @@ struct gpiod_line;
 
 // can be read from /sys/module/spidev/parameters/bufsiz, but hardcoded now for simplicity
 constexpr int spi_kernel_bufsize = 4096;
-constexpr uint32_t spi_default_speed_hz = 64000000;
 
 class ZeDMDSpi : public ZeDMDComm
 {
@@ -38,6 +37,7 @@ class ZeDMDSpi : public ZeDMDComm
   void Disconnect() override;
   bool IsConnected() override;
 
+  void SetSpeed(uint32_t speed) { m_speed = speed; }
   void SetWidth(uint16_t width) { m_width = width; }
   void SetHeight(uint16_t height) { m_height = height; }
 
@@ -48,7 +48,7 @@ class ZeDMDSpi : public ZeDMDComm
  private:
   bool IsSupportedPlatform() const;
 
-  uint32_t m_speed = spi_default_speed_hz;
+  uint32_t m_speed = 24000000;  // 24 MHz
   int m_fileDescriptor = -1;
 #if defined(SPI_SUPPORT)
   gpiod_chip* m_gpioChip = nullptr;

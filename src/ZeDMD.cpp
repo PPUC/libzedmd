@@ -4,8 +4,8 @@
 
 #include "FrameUtil.h"
 #include "ZeDMDComm.h"
-#include "ZeDMDWiFi.h"
 #include "ZeDMDSpi.h"
+#include "ZeDMDWiFi.h"
 
 const int endian_check = 1;
 #define is_bigendian() ((*(char*)&endian_check) == 0)
@@ -799,8 +799,9 @@ bool ZeDMD::Open(uint16_t width, uint16_t height)
   return m_usb;
 }
 
-bool ZeDMD::OpenSpi(uint16_t width, uint16_t height)
+bool ZeDMD::OpenSpi(uint32_t speed, uint16_t width, uint16_t height)
 {
+  m_pZeDMDSpi->SetSpeed(speed);
   m_spi = m_pZeDMDSpi->Connect();
 
   if (m_spi && !m_usb && !m_wifi)
