@@ -11,17 +11,14 @@
 #if defined(SPI_SUPPORT)
 #include <gpiod.h>
 #include <linux/spi/spidev.h>
+
+#define GPIO_CHIP "/dev/gpiochip0"
+#define SPI_DEVICE "/dev/spidev1.0"
 #else
 // Forward declarations so non-Linux builds can compile the stub implementation.
 struct gpiod_chip;
 struct gpiod_line;
 #endif
-
-#define GPIO_CHIP "/dev/gpiochip0"
-#define SPI_DEVICE "/dev/spidev1.0"
-
-// can be read from /sys/module/spidev/parameters/bufsiz, but hardcoded now for simplicity
-constexpr int spi_kernel_bufsize = 4096;
 
 class ZeDMDSpi : public ZeDMDComm
 {

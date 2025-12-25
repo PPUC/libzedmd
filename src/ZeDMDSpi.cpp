@@ -19,6 +19,27 @@ constexpr uint8_t kSpiBitsPerWord = 8;
 constexpr uint8_t kSpiMode = SPI_MODE_0;
 constexpr unsigned int kCsGpio = 25;  // GPIO25 on Raspberry Pi
 constexpr const char kGpioConsumer[] = "ZeDMDSpi";
+constexpr const char kSpiBufSizePath[] = "/sys/module/spidev/parameters/bufsiz";
+
+uint32_t GetSpiKernelBufSize()
+{
+  static uint32_t cachedBufSize = 0;
+  if (cachedBufSize != 0)
+  {
+    return cachedBufSize;
+  }
+
+  std::ifstream bufFile(kSpiBufSizePath);
+  uint32_t parsed = 0;
+  if (bufFile.is_open() && (bufFile >> parsed) && parsed > 0)
+  {
+    cachedBufSize = parsed;
+    return cachedBufSize;
+  }
+
+  cachedBufSize = 4096;  // fallback if sysfs entry is unavailable
+  return cachedBufSize;
+}
 }  // namespace
 
 bool ZeDMDSpi::IsSupportedPlatform() const
@@ -163,6 +184,7 @@ bool ZeDMDSpi::SendChunks(uint8_t* pData, uint16_t size)
   }
 
   std::this_thread::sleep_for(std::chrono::microseconds(10));
+  const uint32_t spi_kernel_bufsize = GetSpiKernelBufSize();
 
   while (remaining > 0)
   {
