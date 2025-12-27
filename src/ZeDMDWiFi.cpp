@@ -272,7 +272,7 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
       }
       else
       {
-        Log("ZeDMD UDP delay could not be detected, falling back to 5ms deafult");
+        Log("ZeDMD UDP delay could not be detected, falling back to 5ms default");
       }
     }
 
