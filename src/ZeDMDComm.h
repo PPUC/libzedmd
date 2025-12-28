@@ -265,7 +265,7 @@ class ZeDMDComm
   void Log(const char* format, ...);
 
  protected:
-  virtual bool SendChunks(uint8_t* pData, uint16_t size);
+  virtual bool SendChunks(const uint8_t* pData, uint16_t size);
   virtual void Reset();
   void ClearFrames();
   bool IsQueueEmpty();

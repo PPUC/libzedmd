@@ -171,7 +171,7 @@ void ZeDMDSpi::QueueCommand(char command, uint8_t* buffer, int size)
   switch (command)
   {
     case ZEDMD_COMM_COMMAND::ClearScreen:
-      SendChunks(m_allBlack, m_width * m_height * 2);  // RGB565
+      SendChunks(m_allBlack, GetWidth() * GetHeight() * 2);  // RGB565
       break;
 
     default:
@@ -181,7 +181,7 @@ void ZeDMDSpi::QueueCommand(char command, uint8_t* buffer, int size)
   }
 }
 
-bool ZeDMDSpi::SendChunks(uint8_t* pData, uint16_t size)
+bool ZeDMDSpi::SendChunks(const uint8_t* pData, uint16_t size)
 {
   if (!m_connected || m_fileDescriptor < 0)
   {
@@ -262,6 +262,6 @@ void ZeDMDSpi::Reset() {}
 
 void ZeDMDSpi::QueueCommand(char command, uint8_t* buffer, int size) { ZeDMDComm::QueueCommand(command, buffer, size); }
 
-bool ZeDMDSpi::SendChunks(uint8_t*, uint16_t) { return false; }
+bool ZeDMDSpi::SendChunks(const uint8_t*, uint16_t) { return false; }
 
 #endif  // __linux__

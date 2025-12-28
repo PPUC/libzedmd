@@ -42,7 +42,7 @@ class ZeDMDSpi : public ZeDMDComm
   void SetHeight(uint16_t height) { m_height = height; }
 
  protected:
-  bool SendChunks(uint8_t* pData, uint16_t size) override;
+  bool SendChunks(const uint8_t* pData, uint16_t size) override;
   void Reset() override;
 
  private:

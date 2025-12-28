@@ -124,6 +124,8 @@ uint16_t const ZeDMD::GetWidth()
   {
     return m_pZeDMDSpi->GetWidth();
   }
+
+  return 0;
 }
 
 uint16_t const ZeDMD::GetHeight()
@@ -140,6 +142,8 @@ uint16_t const ZeDMD::GetHeight()
   {
     return m_pZeDMDSpi->GetHeight();
   }
+
+  return 0;
 }
 
 uint16_t const ZeDMD::GetPanelWidth() { return GetWidth(); }
@@ -150,15 +154,15 @@ uint16_t const ZeDMD::GetPanelHeight()
 
   if (m_usb)
   {
-    return m_pZeDMDComm->IsHalf();
+    half = m_pZeDMDComm->IsHalf();
   }
   else if (m_wifi)
   {
-    return m_pZeDMDWiFi->IsHalf();
+    half = m_pZeDMDWiFi->IsHalf();
   }
   else if (m_spi)
   {
-    return m_pZeDMDSpi->IsHalf();
+    half = m_pZeDMDSpi->IsHalf();
   }
 
   return (half ? (GetHeight() * 2) : GetHeight());
@@ -178,6 +182,8 @@ bool const ZeDMD::IsS3()
   {
     return m_pZeDMDSpi->IsS3();
   }
+
+  return false;
 }
 
 const char* ZeDMD::GetVersion() { return ZEDMD_VERSION; }
