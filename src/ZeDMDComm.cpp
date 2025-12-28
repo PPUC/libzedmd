@@ -883,9 +883,13 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
       for (auto it = pFrame->data.rbegin(); it != pFrame->data.rend(); ++it)
       {
         ZeDMDFrameData frameData = *it;
-        Log("StreamBytes, command %02X, length %d", pFrame->command, frameData.size);
+        if (m_verbose) Log("StreamBytes, command %02X, length %d", pFrame->command, frameData.size);
 
-        if (!SendChunks(frameData.data, frameData.size)) return false;
+        if (!SendChunks(frameData.data, frameData.size))
+        {
+          Log("StreamBytes failed");
+          return false;
+        }
 
         m_lastKeepAlive = std::chrono::steady_clock::now();
       }
@@ -894,8 +898,6 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
     m_lastKeepAlive = std::chrono::steady_clock::now();
     return true;
   }
-
-  Log("StreamBytes, command %02X, length %d", pFrame->command);
 
   // 256*64*3 (RGB888) = 49152 + headers
   static uint8_t payload[50176] = {0};

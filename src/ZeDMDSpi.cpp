@@ -216,6 +216,7 @@ bool ZeDMDSpi::SendChunks(const uint8_t* pData, uint16_t size)
     {
       Log("ZeDMDSpi: SPI write failed: %s", strerror(errno));
       if (m_csLine) gpiod_line_set_value(m_csLine, 1);
+      std::this_thread::sleep_for(std::chrono::microseconds(100));
       return false;
     }
     const uint32_t bytesTransferred = static_cast<uint32_t>(res);
@@ -225,12 +226,15 @@ bool ZeDMDSpi::SendChunks(const uint8_t* pData, uint16_t size)
       if (bytesTransferred == 0)
       {
         if (m_csLine) gpiod_line_set_value(m_csLine, 1);
+        std::this_thread::sleep_for(std::chrono::microseconds(100));
         return false;
       }
     }
 
     cursor += bytesTransferred;
     remaining -= bytesTransferred;
+
+    if (m_verbose) Log("SendChunks, transferred %d, remaining %d", bytesTransferred, remaining);
   }
 
   if (m_csLine && gpiod_line_set_value(m_csLine, 1) < 0)
