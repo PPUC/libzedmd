@@ -171,7 +171,7 @@ void ZeDMDSpi::QueueCommand(char command, uint8_t* buffer, int size)
   switch (command)
   {
     case ZEDMD_COMM_COMMAND::ClearScreen:
-      SendChunks(m_allBlack, getWidth() * getHeight() * 2);  // RGB565
+      SendChunks(m_allBlack, m_width * m_height * 2);  // RGB565
       break;
 
     default:
