@@ -234,7 +234,7 @@ class ZeDMDComm
   void Flush(bool reenableKeepAive = true);
   void QueueFrame(uint8_t* buffer, int size);
   void QueueFrame(uint8_t* buffer, int size, bool rgb888);
-  void QueueCommand(char command, uint8_t* buffer, int size);
+  virtual void QueueCommand(char command, uint8_t* buffer, int size);
   void QueueCommand(char command);
   void QueueCommand(char command, uint8_t value);
   bool FillDelayed();
@@ -294,6 +294,7 @@ class ZeDMDComm
   uint8_t m_panelMinRefreshRate = 30;
   uint8_t m_udpDelay = 5;
   uint16_t m_writeAtOnce = ZEDMD_COMM_DEFAULT_SERIAL_WRITE_AT_ONCE;
+  const uint8_t m_allBlack[32768] = {0};
 
   uint8_t m_currentCommand = 0;
 
@@ -312,7 +313,6 @@ class ZeDMDComm
   ZeDMD_LogCallback m_logCallback = nullptr;
   const void* m_logUserData = nullptr;
   uint64_t m_zoneHashes[128] = {0};
-  const uint8_t m_allBlack[32768] = {0};
 
   char m_ignoredDevices[10][32] = {0};
   uint8_t m_ignoredDevicesCounter = 0;

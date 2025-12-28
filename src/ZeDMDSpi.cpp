@@ -166,6 +166,21 @@ bool ZeDMDSpi::IsConnected() { return m_connected; }
 
 void ZeDMDSpi::Reset() {}
 
+void ZeDMDSpi::QueueCommand(char command, uint8_t* buffer, int size)
+{
+  switch (command)
+  {
+    case ZEDMD_COMM_COMMAND::ClearScreen:
+      SendChunks(m_allBlack, getWidth() * getHeight() * 2);  // RGB565
+      break;
+
+    default:
+      // ZeDMDComm::QueueCommand(command, buffer, size);
+      // Drop commands other than ClearScreen for SPI transport for now.
+      break;
+  }
+}
+
 bool ZeDMDSpi::SendChunks(uint8_t* pData, uint16_t size)
 {
   if (!m_connected || m_fileDescriptor < 0)
@@ -203,9 +218,19 @@ bool ZeDMDSpi::SendChunks(uint8_t* pData, uint16_t size)
       if (m_csLine) gpiod_line_set_value(m_csLine, 1);
       return false;
     }
-    // Log("ZeDMDSpi: send chunk of %d bytes", chunkSize);
-    cursor += chunkSize;
-    remaining -= chunkSize;
+    const uint32_t bytesTransferred = static_cast<uint32_t>(res);
+    if (bytesTransferred != chunkSize)
+    {
+      Log("ZeDMDSpi: partial SPI write (%u/%u bytes)", bytesTransferred, chunkSize);
+      if (bytesTransferred == 0)
+      {
+        if (m_csLine) gpiod_line_set_value(m_csLine, 1);
+        return false;
+      }
+    }
+
+    cursor += bytesTransferred;
+    remaining -= bytesTransferred;
   }
 
   if (m_csLine && gpiod_line_set_value(m_csLine, 1) < 0)
@@ -234,6 +259,8 @@ void ZeDMDSpi::Disconnect() {}
 bool ZeDMDSpi::IsConnected() { return false; }
 
 void ZeDMDSpi::Reset() {}
+
+void ZeDMDSpi::QueueCommand(char command, uint8_t* buffer, int size) { ZeDMDComm::QueueCommand(command, buffer, size); }
 
 bool ZeDMDSpi::SendChunks(uint8_t*, uint16_t) { return false; }
 
