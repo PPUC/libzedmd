@@ -34,6 +34,7 @@ class ZeDMDSpi : public ZeDMDComm
   bool Connect() override;
   void Disconnect() override;
   bool IsConnected() override;
+  using ZeDMDComm::QueueCommand;
   void QueueCommand(char command, uint8_t* buffer, int size) override;
 
   void SetSpeed(uint32_t speed) { m_speed = speed; }
