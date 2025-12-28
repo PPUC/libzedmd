@@ -977,7 +977,7 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
   return true;
 }
 
-bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
+bool ZeDMDComm::SendChunks(const uint8_t* pData, uint16_t size)
 {
 #if !(                                                                                                                \
     (defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \
