@@ -190,7 +190,7 @@ bool ZeDMDSpi::SendChunks(const uint8_t* pData, uint16_t size)
   }
 
   uint32_t remaining = size;
-  uint8_t* cursor = pData;
+  uint8_t* cursor = (uint8_t*)pData;
 
   if (m_csLine && gpiod_line_set_value(m_csLine, 0) < 0)
   {
