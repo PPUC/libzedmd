@@ -642,10 +642,15 @@ class ZEDMDAPI ZeDMD
   uint8_t GetScaleMode(uint16_t frameWidth, uint16_t frameHeight, uint8_t* pXOffset, uint8_t* pYOffset);
   int Scale888(uint8_t* pScaledFrame, uint8_t* pFrame, uint8_t bytes);
   int Scale565(uint8_t* pScaledFrame, uint16_t* pFrame, bool bigEndian);
+  void SetActiveZeDMD(ZeDMDComm* pActive, bool usb, bool wifi, bool spi);
+  ZeDMDComm* GetActiveZeDMD() const;
+  ZeDMDWiFi* GetActiveZeDMDWiFi() const;
+  ZeDMDSpi* GetActiveZeDMDSpi() const;
 
   ZeDMDComm* m_pZeDMDComm;
   ZeDMDSpi* m_pZeDMDSpi;
   ZeDMDWiFi* m_pZeDMDWiFi;
+  ZeDMDComm* m_pActiveZeDMD = nullptr;
 
   uint16_t m_romWidth;
   uint16_t m_romHeight;

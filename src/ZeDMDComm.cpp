@@ -87,6 +87,7 @@ void ZeDMDComm::Run()
             // All frames are sent, move delayed frame into the frames queue.
             if (m_delayedFrameReady)
             {
+              if (m_verbose) Log("libzedmd queuing dealyed command %02X", m_delayedFrame.command);
               m_frames.push(std::move(m_delayedFrame));
               m_delayedFrameReady = false;
               m_delayedFrameMutex.unlock();
@@ -98,7 +99,7 @@ void ZeDMDComm::Run()
             m_frameQueueMutex.unlock();
 
             KeepAlive();
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            std::this_thread::sleep_for(std::chrono::microseconds(10));
 
             continue;
           }
@@ -191,6 +192,8 @@ void ZeDMDComm::QueueFrame(uint8_t* data, int size, bool rgb888)
   if (!m_zoneStream)
   {
     ZeDMDFrame frame(rgb888 ? ZEDMD_COMM_COMMAND::RGB888Stream : ZEDMD_COMM_COMMAND::RGB565Stream, data, size);
+
+    if (m_verbose) Log("libzedmd queuing command %02X", frame.command);
 
     m_frameQueueMutex.lock();
     m_frames.push(std::move(frame));
@@ -1123,6 +1126,8 @@ void ZeDMDComm::KeepAlive()
     m_lastKeepAlive = now;
     try
     {
+      if (m_verbose) Log("Keep alive ZeDMD connection");
+
       SendChunks(s_keepAliveData.get(), s_keepAliveSize);
     }
     catch (const std::exception& e)
