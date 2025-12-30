@@ -1,6 +1,7 @@
 #include "ZeDMD.h"
 
 #include <cstring>
+#include <cstdlib>
 
 #include "FrameUtil.h"
 #include "ZeDMDComm.h"
@@ -32,17 +33,20 @@ ZeDMD::~ZeDMD()
 
   if (m_pFrameBuffer)
   {
-    delete m_pFrameBuffer;
+    free(m_pFrameBuffer);
+    m_pFrameBuffer = nullptr;
   }
 
   if (m_pScaledFrameBuffer)
   {
-    delete m_pScaledFrameBuffer;
+    free(m_pScaledFrameBuffer);
+    m_pScaledFrameBuffer = nullptr;
   }
 
   if (m_pRgb565Buffer)
   {
-    delete m_pRgb565Buffer;
+    free(m_pRgb565Buffer);
+    m_pRgb565Buffer = nullptr;
   }
 }
 
@@ -737,7 +741,10 @@ void ZeDMD::ClearScreen()
     pActive->QueueCommand(ZEDMD_COMM_COMMAND::ClearScreen);
   }
   // "Blank" the frame buffer.
-  memset(m_pFrameBuffer, 0, ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
+  if (m_pFrameBuffer)
+  {
+    memset(m_pFrameBuffer, 0, ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
+  }
 }
 
 void ZeDMD::EnableTrueRgb888(bool enable) { m_rgb888 = enable; }
@@ -791,6 +798,11 @@ void ZeDMD::RenderRgb565(uint16_t* pFrame)
 
 bool ZeDMD::UpdateFrameBuffer888(uint8_t* pFrame)
 {
+  if (!m_pFrameBuffer)
+  {
+    return false;
+  }
+
   if (0 == memcmp(m_pFrameBuffer, pFrame, m_romWidth * m_romHeight * 3))
   {
     return false;
@@ -802,6 +814,11 @@ bool ZeDMD::UpdateFrameBuffer888(uint8_t* pFrame)
 
 bool ZeDMD::UpdateFrameBuffer565(uint16_t* pFrame)
 {
+  if (!m_pFrameBuffer)
+  {
+    return false;
+  }
+
   if (0 == memcmp(m_pFrameBuffer, pFrame, m_romWidth * m_romHeight * 2))
   {
     return false;
