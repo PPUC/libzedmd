@@ -243,7 +243,14 @@ bool ZeDMDSpi::SendChunks(const uint8_t* pData, uint16_t size)
     return false;
   }
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(2));
+  if (m_framePause > 0)
+  {
+    std::this_thread::sleep_for(std::chrono::milliseconds(m_framePause));
+  }
+  else
+  {
+    std::this_thread::sleep_for(std::chrono::microseconds(100));
+  }
 
   return true;
 }

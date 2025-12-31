@@ -1,7 +1,7 @@
 #include "ZeDMD.h"
 
-#include <cstring>
 #include <cstdlib>
+#include <cstring>
 
 #include "FrameUtil.h"
 #include "ZeDMDComm.h"
@@ -708,9 +708,10 @@ bool ZeDMD::Open(uint16_t width, uint16_t height)
   return m_usb;
 }
 
-bool ZeDMD::OpenSpi(uint32_t speed, uint16_t width, uint16_t height)
+bool ZeDMD::OpenSpi(uint32_t speed, uint8_t framePause, uint16_t width, uint16_t height)
 {
   m_pZeDMDSpi->SetSpeed(speed);
+  m_pZeDMDSpi->SetFramePause(framePause);
   m_pZeDMDSpi->SetWidth(width);
   m_pZeDMDSpi->SetHeight(height);
 

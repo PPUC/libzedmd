@@ -38,6 +38,7 @@ class ZeDMDSpi : public ZeDMDComm
   void QueueCommand(char command, uint8_t* buffer, int size) override;
 
   void SetSpeed(uint32_t speed) { m_speed = speed; }
+  void SetFramePause(uint8_t pause) { m_framePause = pause; }
   void SetWidth(uint16_t width) { m_width = width; }
   void SetHeight(uint16_t height) { m_height = height; }
 
@@ -48,7 +49,8 @@ class ZeDMDSpi : public ZeDMDComm
  private:
   bool IsSupportedPlatform() const;
 
-  uint32_t m_speed = 24000000;  // 24 MHz
+  uint32_t m_speed = 72000000;  // 72MHz
+  uint8_t m_framePause = 2;     // 2ms
   int m_fileDescriptor = -1;
 #if defined(SPI_SUPPORT)
   gpiod_chip* m_gpioChip = nullptr;

@@ -133,7 +133,7 @@ class ZEDMDAPI ZeDMD
    */
   bool OpenDefaultWiFi();
 
-  bool OpenSpi(uint32_t speed, uint16_t width, uint16_t height);
+  bool OpenSpi(uint32_t speed, uint8_t framePause, uint16_t width, uint16_t height);
 
   /** @brief Close connection to ZeDMD
    *
