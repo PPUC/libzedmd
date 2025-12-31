@@ -41,8 +41,8 @@
 
 #define ZEDMD_COMM_FRAME_QUEUE_SIZE_MAX 8
 
-#define ZEDMD_ZONES_BYTE_LIMIT (128 * 4 * 2 + 16)
-#define ZEDMD_S3_ZONES_BYTE_LIMIT (ZEDMD_ZONES_BYTE_LIMIT)
+#define ZEDMD_ZONES_BYTE_LIMIT_RGB565 (128 * 4 * 2 + 16)
+#define ZEDMD_ZONES_BYTE_LIMIT_RGB888 (128 * 4 * 3 + 16)
 
 typedef enum
 {
@@ -94,6 +94,8 @@ typedef enum
   RGB888ZonesStream = 0x04,
   RGB565ZonesStream = 0x05,
   RenderFrame = 0x06,
+  RGB888Stream = 0x07,
+  RGB565Stream = 0x08,
 
   ClearScreen = 0x0a,
 
@@ -232,7 +234,7 @@ class ZeDMDComm
   void Flush(bool reenableKeepAive = true);
   void QueueFrame(uint8_t* buffer, int size);
   void QueueFrame(uint8_t* buffer, int size, bool rgb888);
-  void QueueCommand(char command, uint8_t* buffer, int size);
+  virtual void QueueCommand(char command, uint8_t* buffer, int size);
   void QueueCommand(char command);
   void QueueCommand(char command, uint8_t value);
   bool FillDelayed();
@@ -263,7 +265,7 @@ class ZeDMDComm
   void Log(const char* format, ...);
 
  protected:
-  virtual bool SendChunks(uint8_t* pData, uint16_t size);
+  virtual bool SendChunks(const uint8_t* pData, uint16_t size);
   virtual void Reset();
   void ClearFrames();
   bool IsQueueEmpty();
@@ -292,8 +294,13 @@ class ZeDMDComm
   uint8_t m_panelMinRefreshRate = 30;
   uint8_t m_udpDelay = 5;
   uint16_t m_writeAtOnce = ZEDMD_COMM_DEFAULT_SERIAL_WRITE_AT_ONCE;
+  const uint8_t m_allBlack[32768] = {0};
 
   uint8_t m_currentCommand = 0;
+
+  bool m_compression = true;
+  bool m_zoneStream = true;
+  bool m_keepAliveNotSupported = false;
 
   ZeDMD_DeviceType m_deviceType = ZeDMD_DeviceType::ESP32;
 
@@ -306,7 +313,6 @@ class ZeDMDComm
   ZeDMD_LogCallback m_logCallback = nullptr;
   const void* m_logUserData = nullptr;
   uint64_t m_zoneHashes[128] = {0};
-  const uint8_t m_allBlack[32768] = {0};
 
   char m_ignoredDevices[10][32] = {0};
   uint8_t m_ignoredDevicesCounter = 0;

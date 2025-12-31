@@ -272,7 +272,7 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
       }
       else
       {
-        Log("ZeDMD UDP delay could not be detected, falling back to 5ms deafult");
+        Log("ZeDMD UDP delay could not be detected, falling back to 5ms default");
       }
     }
 
@@ -617,7 +617,7 @@ bool ZeDMDWiFi::IsConnected() { return m_connected; }
 
 void ZeDMDWiFi::Reset() {}
 
-bool ZeDMDWiFi::SendChunks(uint8_t* pData, uint16_t size)
+bool ZeDMDWiFi::SendChunks(const uint8_t* pData, uint16_t size)
 {
   if (m_tcp)
   {

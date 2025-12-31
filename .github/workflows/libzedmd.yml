@@ -63,6 +63,10 @@ jobs:
         name: Add autoconf and automake (mac runner)
         run: |
            brew install autoconf automake libtool
+      - if: (matrix.platform == 'linux' && matrix.arch == 'aarch64')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgpiod-dev
       - name: Build libzedmd-${{ matrix.platform }}-${{ matrix.arch }}
         run: |
           ./platforms/${{ matrix.platform }}/${{ matrix.arch }}/external.sh

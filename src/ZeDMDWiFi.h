@@ -34,7 +34,7 @@ class ZeDMDWiFi : public ZeDMDComm
 
  protected:
   bool DoConnect(const char* ip);
-  virtual bool SendChunks(uint8_t* pData, uint16_t size);
+  virtual bool SendChunks(const uint8_t* pData, uint16_t size);
   virtual void Reset();
   bool openTcpConnection();
   bool SendGetRequest(const std::string& path);

@@ -87,6 +87,7 @@ void ZeDMDComm::Run()
             // All frames are sent, move delayed frame into the frames queue.
             if (m_delayedFrameReady)
             {
+              if (m_verbose) Log("libzedmd queuing dealyed command %02X", m_delayedFrame.command);
               m_frames.push(std::move(m_delayedFrame));
               m_delayedFrameReady = false;
               m_delayedFrameMutex.unlock();
@@ -98,7 +99,7 @@ void ZeDMDComm::Run()
             m_frameQueueMutex.unlock();
 
             KeepAlive();
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            std::this_thread::sleep_for(std::chrono::microseconds(10));
 
             continue;
           }
@@ -184,12 +185,23 @@ void ZeDMDComm::QueueCommand(char command, uint8_t value) { QueueCommand(command
 
 void ZeDMDComm::QueueCommand(char command) { QueueCommand(command, nullptr, 0); }
 
-void ZeDMDComm::QueueFrame(uint8_t* data, int size) {
-  QueueFrame(uint8_t* data, int size, false);
-}
+void ZeDMDComm::QueueFrame(uint8_t* data, int size) { QueueFrame(data, size, false); }
 
 void ZeDMDComm::QueueFrame(uint8_t* data, int size, bool rgb888)
 {
+  if (!m_zoneStream)
+  {
+    ZeDMDFrame frame(rgb888 ? ZEDMD_COMM_COMMAND::RGB888Stream : ZEDMD_COMM_COMMAND::RGB565Stream, data, size);
+
+    if (m_verbose) Log("libzedmd queuing command %02X", frame.command);
+
+    m_frameQueueMutex.lock();
+    m_frames.push(std::move(frame));
+    m_frameQueueMutex.unlock();
+
+    return;
+  }
+
   if (m_fullFrameFlag.load(std::memory_order_relaxed))
   {
     m_fullFrameFlag.store(false, std::memory_order_release);
@@ -223,7 +235,7 @@ void ZeDMDComm::QueueFrame(uint8_t* data, int size, bool rgb888)
 
   uint8_t idx = 0;
   uint8_t bitsPerPixel = rgb888 ? 3 : 2;
-  uint16_t zonesBytesLimit = (m_s3 && !m_cdc) ? ZEDMD_S3_ZONES_BYTE_LIMIT : ZEDMD_ZONES_BYTE_LIMIT;
+  uint16_t zonesBytesLimit = (rgb888) ? ZEDMD_ZONES_BYTE_LIMIT_RGB888 : ZEDMD_ZONES_BYTE_LIMIT_RGB565;
   const uint16_t zoneBytes = m_zoneWidth * m_zoneHeight * bitsPerPixel;
   const uint16_t zoneBytesTotal = zoneBytes + 1;
   uint8_t* zone = (uint8_t*)malloc(zoneBytes);
@@ -866,8 +878,33 @@ void ZeDMDComm::RebootToBootloader(bool reenableKeepAive)
 
 bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
 {
-  static uint8_t payload[36864] = {0};
-  memset(payload, 0, 36864);
+  if (!m_zoneStream && !m_compression)
+  {
+    // Direct stream without compression and zones.
+    if (pFrame->command == ZEDMD_COMM_COMMAND::RGB565Stream || pFrame->command == ZEDMD_COMM_COMMAND::RGB888Stream)
+    {
+      for (auto it = pFrame->data.rbegin(); it != pFrame->data.rend(); ++it)
+      {
+        ZeDMDFrameData frameData = *it;
+        if (m_verbose) Log("StreamBytes, command %02X, length %d", pFrame->command, frameData.size);
+
+        if (!SendChunks(frameData.data, frameData.size))
+        {
+          Log("StreamBytes failed");
+          return false;
+        }
+
+        m_lastKeepAlive = std::chrono::steady_clock::now();
+      }
+    }
+
+    m_lastKeepAlive = std::chrono::steady_clock::now();
+    return true;
+  }
+
+  // 256*64*3 (RGB888) = 49152 + headers
+  static uint8_t payload[50176] = {0};
+  memset(payload, 0, 50176);
   memcpy(payload, FRAME_HEADER, FRAME_HEADER_SIZE);
   uint16_t pos = FRAME_HEADER_SIZE;
 
@@ -879,7 +916,8 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
   {
     ZeDMDFrameData frameData = *it;
 
-    if (pFrame->command != ZEDMD_COMM_COMMAND::RGB565ZonesStream)
+    if (!m_compression || (pFrame->command != ZEDMD_COMM_COMMAND::RGB565ZonesStream &&
+                           pFrame->command != ZEDMD_COMM_COMMAND::RGB888ZonesStream))
     {
       memcpy(&payload[pos], CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
       pos += CTRL_CHARS_HEADER_SIZE;
@@ -926,7 +964,8 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
     }
   }
 
-  if (pFrame->command == ZEDMD_COMM_COMMAND::RGB565ZonesStream || pFrame->command == ZEDMD_COMM_COMMAND::RGB888ZonesStream)
+  if (pFrame->command == ZEDMD_COMM_COMMAND::RGB565ZonesStream ||
+      pFrame->command == ZEDMD_COMM_COMMAND::RGB888ZonesStream)
   {
     memcpy(&payload[pos], CTRL_CHARS_HEADER, CTRL_CHARS_HEADER_SIZE);
     pos += CTRL_CHARS_HEADER_SIZE;
@@ -943,7 +982,7 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
   return true;
 }
 
-bool ZeDMDComm::SendChunks(uint8_t* pData, uint16_t size)
+bool ZeDMDComm::SendChunks(const uint8_t* pData, uint16_t size)
 {
 #if !(                                                                                                                \
     (defined(__APPLE__) && ((defined(TARGET_OS_IOS) && TARGET_OS_IOS) || (defined(TARGET_OS_TV) && TARGET_OS_TV))) || \
@@ -1076,7 +1115,7 @@ void ZeDMDComm::KeepAlive()
 {
   auto now = std::chrono::steady_clock::now();
 
-  if (!m_keepAlive)
+  if (!m_keepAlive || m_keepAliveNotSupported)
   {
     m_lastKeepAlive = now;
     return;
@@ -1087,6 +1126,8 @@ void ZeDMDComm::KeepAlive()
     m_lastKeepAlive = now;
     try
     {
+      if (m_verbose) Log("Keep alive ZeDMD connection");
+
       SendChunks(s_keepAliveData.get(), s_keepAliveSize);
     }
     catch (const std::exception& e)

@@ -6,6 +6,8 @@ set(ARCH "x64" CACHE STRING "Arch")
 option(BUILD_SHARED "Option to build shared library" ON)
 option(BUILD_STATIC "Option to build static library" ON)
 option(POST_BUILD_COPY_EXT_LIBS "Option to copy external libraries to build directory" ON)
+option(SPI_SUPPORT "SPI support" OFF)
+add_compile_definitions($<$<BOOL:${SPI_SUPPORT}>:SPI_SUPPORT>)
 
 message(STATUS "PLATFORM: ${PLATFORM}")
 message(STATUS "ARCH: ${ARCH}")
@@ -73,6 +75,8 @@ set(CMAKE_C_VISIBILITY_PRESET hidden)
 set(ZEDMD_SOURCES
    src/ZeDMDComm.h
    src/ZeDMDComm.cpp
+   src/ZeDMDSpi.h
+   src/ZeDMDSpi.cpp
    src/ZeDMDWiFi.h
    src/ZeDMDWiFi.cpp
    src/ZeDMD.h
@@ -80,6 +84,11 @@ set(ZEDMD_SOURCES
    third-party/include/miniz/miniz.h
    third-party/include/miniz/miniz.c
 )
+
+if (ARCH STREQUAL "aarch64")
+   find_package(PkgConfig REQUIRED)
+   pkg_check_modules(GPIOD REQUIRED libgpiod)
+endif()
 
 set(ZEDMD_INCLUDE_DIRS
    src
@@ -110,7 +119,11 @@ if(BUILD_SHARED)
       target_link_directories(zedmd_shared PUBLIC
          third-party/runtime-libs/${PLATFORM}/${ARCH}
       )
-      target_link_libraries(zedmd_shared PUBLIC serialport sockpp)
+      if (ARCH STREQUAL "aarch64")
+         target_link_libraries(zedmd_shared PUBLIC serialport sockpp ${GPIOD_LIBRARIES})
+      else()
+         target_link_libraries(zedmd_shared PUBLIC serialport sockpp)
+      endif()
    elseif(PLATFORM STREQUAL "ios" OR PLATFORM STREQUAL "ios-simulator" OR PLATFORM STREQUAL "tvos")
       target_link_directories(zedmd_shared PUBLIC
          third-party/build-libs/${PLATFORM}/${ARCH}
@@ -215,7 +228,11 @@ if(BUILD_STATIC)
          target_link_directories(zedmd-test-portable PUBLIC
             third-party/runtime-libs/${PLATFORM}/${ARCH}
          )
-         target_link_libraries(zedmd-test-portable PUBLIC zedmd_static serialport sockpp)
+         if (ARCH STREQUAL "aarch64")
+            target_link_libraries(zedmd-test-portable PUBLIC zedmd_static serialport sockpp ${GPIOD_LIBRARIES})
+         else()
+            target_link_libraries(zedmd-test-portable PUBLIC zedmd_static serialport sockpp)
+         endif()
       endif()
 
       if(POST_BUILD_COPY_EXT_LIBS)
@@ -246,7 +263,11 @@ if(BUILD_STATIC)
          target_link_directories(zedmd-client-portable PUBLIC
             third-party/runtime-libs/${PLATFORM}/${ARCH}
          )
-         target_link_libraries(zedmd-client-portable PUBLIC zedmd_static cargs serialport sockpp)
+         if (ARCH STREQUAL "aarch64")
+            target_link_libraries(zedmd-client-portable PUBLIC zedmd_static cargs serialport sockpp ${GPIOD_LIBRARIES})
+         else()
+            target_link_libraries(zedmd-client-portable PUBLIC zedmd_static cargs serialport sockpp)
+         endif()
       endif()
 
       if(POST_BUILD_COPY_EXT_LIBS)
