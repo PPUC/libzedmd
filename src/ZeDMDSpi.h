@@ -9,15 +9,9 @@
 #include "ZeDMDComm.h"
 
 #if defined(SPI_SUPPORT)
-#include <gpiod.h>
 #include <linux/spi/spidev.h>
 
-#define GPIO_CHIP "/dev/gpiochip0"
 #define SPI_DEVICE "/dev/spidev1.0"
-#else
-// Forward declarations so non-Linux builds can compile the stub implementation.
-struct gpiod_chip;
-struct gpiod_line;
 #endif
 
 class ZeDMDSpi : public ZeDMDComm
@@ -52,9 +46,5 @@ class ZeDMDSpi : public ZeDMDComm
   uint32_t m_speed = 72000000;  // 72MHz
   uint8_t m_framePause = 2;     // 2ms
   int m_fileDescriptor = -1;
-#if defined(SPI_SUPPORT)
-  gpiod_chip* m_gpioChip = nullptr;
-  gpiod_line* m_csLine = nullptr;
-#endif
   bool m_connected = false;
 };
