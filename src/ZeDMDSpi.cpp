@@ -18,6 +18,8 @@ namespace
 {
 constexpr uint8_t kSpiBitsPerWord = 8;
 constexpr uint8_t kSpiMode = SPI_MODE_0;
+constexpr unsigned int kCsGpio = 25;  // GPIO25 on Raspberry Pi
+constexpr const char kGpioConsumer[] = "ZeDMDSpi";
 constexpr const char kSpiBufSizePath[] = "/sys/module/spidev/parameters/bufsiz";
 
 uint32_t GetSpiKernelBufSize()
@@ -96,18 +98,54 @@ bool ZeDMDSpi::Connect()
   }
   Log("ZeDMDSpi: set SPI speed %d", m_speed);
 
-  m_connected = true;
-  // Create a short CS signal to switch ZeDMD from loopback to SPI mode.
-  const uint8_t dummy[4] = {0};
-  if (!SendChunks(dummy, 4)) {
-    m_connected = false;
+  m_gpioChip = gpiod_chip_open(GPIO_CHIP);
+  if (!m_gpioChip)
+  {
+    Log("ZeDMDSpi: couldn't open gpio chip %s: %s", GPIO_CHIP, strerror(errno));
+    Disconnect();
+    return false;
   }
 
-  return m_connected;
+  m_csLine = gpiod_chip_get_line(m_gpioChip, kCsGpio);
+  if (!m_csLine)
+  {
+    Log("ZeDMDSpi: couldn't get CS gpio %d: %s", kCsGpio, strerror(errno));
+    Disconnect();
+    return false;
+  }
+
+  if (gpiod_line_request_output(m_csLine, kGpioConsumer, 1) < 0)
+  {
+    Log("ZeDMDSpi: couldn't request CS gpio %d as output: %s", kCsGpio, strerror(errno));
+    Disconnect();
+    return false;
+  }
+
+  // Create a rising edge to switch ZeDMD from loopback to SPI mode.
+  // Keep CS high when idle.
+  gpiod_line_set_value(m_csLine, 0);
+  std::this_thread::sleep_for(std::chrono::microseconds(100));
+  gpiod_line_set_value(m_csLine, 1);
+
+  Log("ZeDMDSpi: signaling via GPIO %d established", kCsGpio);
+
+  m_connected = true;
+  return true;
 }
 
 void ZeDMDSpi::Disconnect()
 {
+  if (m_csLine)
+  {
+    gpiod_line_set_value(m_csLine, 1);
+    gpiod_line_release(m_csLine);
+    m_csLine = nullptr;
+  }
+  if (m_gpioChip)
+  {
+    gpiod_chip_close(m_gpioChip);
+    m_gpioChip = nullptr;
+  }
   if (m_fileDescriptor >= 0)
   {
     close(m_fileDescriptor);
