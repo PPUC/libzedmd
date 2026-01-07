@@ -16,7 +16,7 @@
 
 namespace
 {
-constexpr uint8_t kSpiBitsPerWord = 32;
+constexpr uint8_t kSpiBitsPerWord = 8;
 constexpr uint8_t kSpiMode = SPI_MODE_0;
 constexpr const char kSpiBufSizePath[] = "/sys/module/spidev/parameters/bufsiz";
 
