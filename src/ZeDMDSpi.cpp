@@ -82,15 +82,6 @@ bool ZeDMDSpi::Connect()
     Disconnect();
     return false;
   }
-  // Disable kernel chip-select handling; we drive CS manually on GPIO25.
-#if defined(SPI_NO_CS) && defined(SPI_IOC_WR_MODE32)
-  uint32_t mode32 = kSpiMode | SPI_NO_CS;
-  if (ioctl(m_fileDescriptor, SPI_IOC_WR_MODE32, &mode32) < 0)
-  {
-    Log("ZeDMDSpi: warning - couldn't set SPI_NO_CS: %s", strerror(errno));
-  }
-#endif
-
   uint8_t bitsPerWord = kSpiBitsPerWord;
   if (ioctl(m_fileDescriptor, SPI_IOC_WR_BITS_PER_WORD, &bitsPerWord) < 0)
   {
@@ -193,12 +184,6 @@ bool ZeDMDSpi::SendChunks(const uint8_t* pData, uint16_t size)
   uint32_t remaining = size;
   uint8_t* cursor = (uint8_t*)pData;
 
-  if (m_csLine && gpiod_line_set_value(m_csLine, 0) < 0)
-  {
-    Log("ZeDMDSpi: failed to pull CS low: %s", strerror(errno));
-    return false;
-  }
-
   std::this_thread::sleep_for(std::chrono::microseconds(10));
   const uint32_t spi_kernel_bufsize = GetSpiKernelBufSize();
 
@@ -210,12 +195,12 @@ bool ZeDMDSpi::SendChunks(const uint8_t* pData, uint16_t size)
     transfer.len = remaining;
     transfer.speed_hz = m_speed;
     transfer.bits_per_word = kSpiBitsPerWord;
+    transfer.cs_change = 0;
 
     int res = ioctl(m_fileDescriptor, SPI_IOC_MESSAGE(1), &transfer);
     if (res < 0)
     {
       Log("ZeDMDSpi: SPI write failed: %s", strerror(errno));
-      if (m_csLine) gpiod_line_set_value(m_csLine, 1);
       std::this_thread::sleep_for(std::chrono::microseconds(100));
       return false;
     }
@@ -224,7 +209,6 @@ bool ZeDMDSpi::SendChunks(const uint8_t* pData, uint16_t size)
     if (bytesTransferred != remaining)
     {
       Log("ZeDMDSpi: partial SPI write (%u/%u bytes)", bytesTransferred, remaining);
-      if (m_csLine) gpiod_line_set_value(m_csLine, 1);
       std::this_thread::sleep_for(std::chrono::microseconds(100));
       return false;
     }
@@ -245,6 +229,7 @@ bool ZeDMDSpi::SendChunks(const uint8_t* pData, uint16_t size)
       transfer.len = chunkSize;
       transfer.speed_hz = m_speed;
       transfer.bits_per_word = kSpiBitsPerWord;
+      transfer.cs_change = 0;
       transfers.push_back(transfer);
 
       cursor += chunkSize;
@@ -255,7 +240,6 @@ bool ZeDMDSpi::SendChunks(const uint8_t* pData, uint16_t size)
     if (res < 0)
     {
       Log("ZeDMDSpi: SPI write failed: %s", strerror(errno));
-      if (m_csLine) gpiod_line_set_value(m_csLine, 1);
       std::this_thread::sleep_for(std::chrono::microseconds(100));
       return false;
     }
@@ -265,18 +249,11 @@ bool ZeDMDSpi::SendChunks(const uint8_t* pData, uint16_t size)
     if (bytesTransferred != expected)
     {
       Log("ZeDMDSpi: partial SPI write (%u/%u bytes)", bytesTransferred, expected);
-      if (m_csLine) gpiod_line_set_value(m_csLine, 1);
       std::this_thread::sleep_for(std::chrono::microseconds(100));
       return false;
     }
 
     if (m_verbose) Log("SendChunks, transferred %d, remaining %d", bytesTransferred, 0);
-  }
-
-  if (m_csLine && gpiod_line_set_value(m_csLine, 1) < 0)
-  {
-    Log("ZeDMDSpi: failed to release CS: %s", strerror(errno));
-    return false;
   }
 
   if (m_framePause > 0)

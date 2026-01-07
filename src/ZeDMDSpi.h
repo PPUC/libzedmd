@@ -50,7 +50,7 @@ class ZeDMDSpi : public ZeDMDComm
   bool IsSupportedPlatform() const;
 
   uint32_t m_speed = 72000000;  // 72MHz
-  uint8_t m_framePause = 2;     // 2ms
+  uint8_t m_framePause = 0;     // 0ms
   int m_fileDescriptor = -1;
 #if defined(SPI_SUPPORT)
   gpiod_chip* m_gpioChip = nullptr;
