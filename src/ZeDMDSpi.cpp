@@ -16,7 +16,7 @@
 
 namespace
 {
-constexpr uint8_t kSpiBitsPerWord = 8;
+constexpr uint8_t kSpiBitsPerWord = 32;
 constexpr uint8_t kSpiMode = SPI_MODE_0;
 constexpr const char kSpiBufSizePath[] = "/sys/module/spidev/parameters/bufsiz";
 
@@ -157,6 +157,7 @@ bool ZeDMDSpi::SendChunks(const uint8_t* pData, uint16_t size)
     transfer.len = remaining;
     transfer.speed_hz = m_speed;
     transfer.bits_per_word = kSpiBitsPerWord;
+    transfer.cs_change = 0;
 
     int res = ioctl(m_fileDescriptor, SPI_IOC_MESSAGE(1), &transfer);
     if (res < 0)
@@ -190,6 +191,7 @@ bool ZeDMDSpi::SendChunks(const uint8_t* pData, uint16_t size)
       transfer.len = chunkSize;
       transfer.speed_hz = m_speed;
       transfer.bits_per_word = kSpiBitsPerWord;
+      transfer.cs_change = 0;
       transfers.push_back(transfer);
 
       cursor += chunkSize;
