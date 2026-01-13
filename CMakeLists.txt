@@ -88,6 +88,9 @@ set(ZEDMD_SOURCES
 if (ARCH STREQUAL "aarch64")
    find_package(PkgConfig REQUIRED)
    pkg_check_modules(GPIOD REQUIRED libgpiod)
+   if (GPIOD_VERSION VERSION_GREATER_EQUAL "2.0")
+      set(ZEDMD_GPIOD_API_V2 1)
+   endif()
 endif()
 
 set(ZEDMD_INCLUDE_DIRS
@@ -121,6 +124,9 @@ if(BUILD_SHARED)
       )
       if (ARCH STREQUAL "aarch64")
          target_link_libraries(zedmd_shared PUBLIC serialport sockpp ${GPIOD_LIBRARIES})
+         if (ZEDMD_GPIOD_API_V2)
+            target_compile_definitions(zedmd_shared PUBLIC ZEDMD_GPIOD_API_V2=1)
+         endif()
       else()
          target_link_libraries(zedmd_shared PUBLIC serialport sockpp)
       endif()
@@ -196,6 +202,10 @@ if(BUILD_STATIC)
       set_target_properties(zedmd_static PROPERTIES
          OUTPUT_NAME "zedmd"
       )
+   endif()
+
+   if(PLATFORM STREQUAL "linux" AND ARCH STREQUAL "aarch64" AND ZEDMD_GPIOD_API_V2)
+      target_compile_definitions(zedmd_static PUBLIC ZEDMD_GPIOD_API_V2=1)
    endif()
 
    install(TARGETS zedmd_static
