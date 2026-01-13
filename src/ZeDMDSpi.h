@@ -12,6 +12,10 @@
 #include <gpiod.h>
 #include <linux/spi/spidev.h>
 
+#if (defined(GPIOD_API_VERSION) && (GPIOD_API_VERSION >= 2)) || (defined(GPIOD_VERSION_MAJOR) && (GPIOD_VERSION_MAJOR >= 2))
+#define ZEDMD_GPIOD_API_V2 1
+#endif
+
 #define GPIO_CHIP "/dev/gpiochip0"
 #define SPI_DEVICE "/dev/spidev1.0"
 #else
@@ -54,7 +58,11 @@ class ZeDMDSpi : public ZeDMDComm
   int m_fileDescriptor = -1;
 #if defined(SPI_SUPPORT)
   gpiod_chip* m_gpioChip = nullptr;
+#if defined(ZEDMD_GPIOD_API_V2)
+  gpiod_line_request* m_csLine = nullptr;
+#else
   gpiod_line* m_csLine = nullptr;
+#endif
 #endif
   bool m_connected = false;
 };

@@ -106,6 +106,62 @@ bool ZeDMDSpi::Connect()
     return false;
   }
 
+#if defined(ZEDMD_GPIOD_API_V2)
+  gpiod_line_settings* lineSettings = gpiod_line_settings_new();
+  if (!lineSettings)
+  {
+    Log("ZeDMDSpi: couldn't allocate GPIO line settings: %s", strerror(errno));
+    Disconnect();
+    return false;
+  }
+  gpiod_line_settings_set_direction(lineSettings, GPIOD_LINE_DIRECTION_OUTPUT);
+  gpiod_line_settings_set_output_value(lineSettings, GPIOD_LINE_VALUE_ACTIVE);
+
+  gpiod_line_config* lineConfig = gpiod_line_config_new();
+  if (!lineConfig)
+  {
+    Log("ZeDMDSpi: couldn't allocate GPIO line config: %s", strerror(errno));
+    gpiod_line_settings_free(lineSettings);
+    Disconnect();
+    return false;
+  }
+  if (gpiod_line_config_add_line_settings(lineConfig, &kCsGpio, 1, lineSettings) < 0)
+  {
+    Log("ZeDMDSpi: couldn't configure CS gpio %d: %s", kCsGpio, strerror(errno));
+    gpiod_line_config_free(lineConfig);
+    gpiod_line_settings_free(lineSettings);
+    Disconnect();
+    return false;
+  }
+
+  gpiod_request_config* requestConfig = gpiod_request_config_new();
+  if (!requestConfig)
+  {
+    Log("ZeDMDSpi: couldn't allocate GPIO request config: %s", strerror(errno));
+    gpiod_line_config_free(lineConfig);
+    gpiod_line_settings_free(lineSettings);
+    Disconnect();
+    return false;
+  }
+  gpiod_request_config_set_consumer(requestConfig, kGpioConsumer);
+
+  m_csLine = gpiod_chip_request_lines(m_gpioChip, requestConfig, lineConfig);
+  gpiod_request_config_free(requestConfig);
+  gpiod_line_config_free(lineConfig);
+  gpiod_line_settings_free(lineSettings);
+  if (!m_csLine)
+  {
+    Log("ZeDMDSpi: couldn't request CS gpio %d: %s", kCsGpio, strerror(errno));
+    Disconnect();
+    return false;
+  }
+
+  // Create a rising edge to switch ZeDMD from loopback to SPI mode.
+  // Keep CS high when idle.
+  gpiod_line_request_set_value(m_csLine, kCsGpio, GPIOD_LINE_VALUE_INACTIVE);
+  std::this_thread::sleep_for(std::chrono::microseconds(100));
+  gpiod_line_request_set_value(m_csLine, kCsGpio, GPIOD_LINE_VALUE_ACTIVE);
+#else
   m_csLine = gpiod_chip_get_line(m_gpioChip, kCsGpio);
   if (!m_csLine)
   {
@@ -126,6 +182,7 @@ bool ZeDMDSpi::Connect()
   gpiod_line_set_value(m_csLine, 0);
   std::this_thread::sleep_for(std::chrono::microseconds(100));
   gpiod_line_set_value(m_csLine, 1);
+#endif
 
   Log("ZeDMDSpi: signaling via GPIO %d established", kCsGpio);
 
@@ -137,8 +194,13 @@ void ZeDMDSpi::Disconnect()
 {
   if (m_csLine)
   {
+#if defined(ZEDMD_GPIOD_API_V2)
+    gpiod_line_request_set_value(m_csLine, kCsGpio, GPIOD_LINE_VALUE_ACTIVE);
+    gpiod_line_request_release(m_csLine);
+#else
     gpiod_line_set_value(m_csLine, 1);
     gpiod_line_release(m_csLine);
+#endif
     m_csLine = nullptr;
   }
   if (m_gpioChip)
