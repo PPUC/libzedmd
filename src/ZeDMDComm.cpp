@@ -338,19 +338,28 @@ bool ZeDMDComm::IsQueueEmpty()
 
 void ZeDMDComm::IgnoreDevice(const char* ignore_device)
 {
-  if (sizeof(ignore_device) < 32 && m_ignoredDevicesCounter < 10)
+  if (!ignore_device || m_ignoredDevicesCounter >= 10)
   {
-    strcpy(&m_ignoredDevices[m_ignoredDevicesCounter++][0], ignore_device);
+    return;
   }
+
+  const size_t maxLen = sizeof(m_ignoredDevices[0]) - 1;
+  strncpy(&m_ignoredDevices[m_ignoredDevicesCounter][0], ignore_device, maxLen);
+  m_ignoredDevices[m_ignoredDevicesCounter][maxLen] = '\0';
+  ++m_ignoredDevicesCounter;
 }
 
 void ZeDMDComm::SetDevice(const char* device)
 {
-  if (sizeof(device) < 32)
+  if (!device)
   {
-    strcpy(m_device, device);
-    m_autoDetect = false;
+    return;
   }
+
+  const size_t maxLen = sizeof(m_device) - 1;
+  strncpy(m_device, device, maxLen);
+  m_device[maxLen] = '\0';
+  m_autoDetect = false;
 }
 
 bool ZeDMDComm::Connect()

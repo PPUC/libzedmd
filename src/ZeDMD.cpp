@@ -945,7 +945,7 @@ ZEDMDAPI void ZeDMD_SetLogCallback(ZeDMD* pZeDMD, ZeDMD_LogCallback callback, co
 
 ZEDMDAPI const char* ZeDMD_FormatLogMessage(const char* format, va_list args, const void* pUserData)
 {
-  char buffer[1024];
+  static thread_local char buffer[1024];
   vsnprintf(buffer, sizeof(buffer), format, args);
 
   return buffer;
