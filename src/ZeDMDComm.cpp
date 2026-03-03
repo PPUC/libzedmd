@@ -35,16 +35,26 @@ ZeDMDComm::ZeDMDComm()
 
 ZeDMDComm::~ZeDMDComm()
 {
-  m_stopFlag.store(true, std::memory_order_release);
+  Log("ZeDMDComm destructor start: connected=%d queue_empty=%d delayed=%d", (int)IsConnected(), (int)IsQueueEmpty(),
+      (int)m_delayedFrameReady);
 
+  m_stopFlag.store(true, std::memory_order_release);
   Disconnect();
 
   if (m_pThread)
   {
-    m_pThread->join();
+    Log("ZeDMDComm destructor: joining run thread");
+    if (m_pThread->joinable())
+    {
+      m_pThread->join();
+    }
+    Log("ZeDMDComm destructor: joined run thread");
 
     delete m_pThread;
+    m_pThread = nullptr;
   }
+
+  Log("ZeDMDComm destructor finished");
 }
 
 void ZeDMDComm::SetLogCallback(ZeDMD_LogCallback callback, const void* userData)
@@ -77,50 +87,60 @@ void ZeDMDComm::Run()
         Log("ZeDMDComm run thread starting");
         m_stopFlag.load(std::memory_order_acquire);
 
-        while (IsConnected() && !m_stopFlag.load(std::memory_order_relaxed))
+        try
         {
-          m_frameQueueMutex.lock();
-
-          if (m_frames.empty())
+          while (IsConnected() && !m_stopFlag.load(std::memory_order_relaxed))
           {
-            m_delayedFrameMutex.lock();
-            // All frames are sent, move delayed frame into the frames queue.
-            if (m_delayedFrameReady)
+            m_frameQueueMutex.lock();
+
+            if (m_frames.empty())
             {
-              if (m_verbose) Log("libzedmd queuing dealyed command %02X", m_delayedFrame.command);
-              m_frames.push(std::move(m_delayedFrame));
-              m_delayedFrameReady = false;
+              m_delayedFrameMutex.lock();
+              // All frames are sent, move delayed frame into the frames queue.
+              if (m_delayedFrameReady)
+              {
+                if (m_verbose) Log("libzedmd queuing dealyed command %02X", m_delayedFrame.command);
+                m_frames.push(std::move(m_delayedFrame));
+                m_delayedFrameReady = false;
+                m_delayedFrameMutex.unlock();
+                m_frameQueueMutex.unlock();
+
+                continue;
+              }
               m_delayedFrameMutex.unlock();
               m_frameQueueMutex.unlock();
 
+              KeepAlive();
+              std::this_thread::sleep_for(std::chrono::microseconds(10));
+
               continue;
             }
-            m_delayedFrameMutex.unlock();
+
+            if (m_frames.front().data.empty())
+            {
+              // In case of a simple command, add metadata to indicate that the payload data size is 0.
+              m_frames.front().data.emplace_back(nullptr, 0);
+            }
+            bool success = StreamBytes(&(m_frames.front()));
+            m_frames.pop();
+
             m_frameQueueMutex.unlock();
 
-            KeepAlive();
-            std::this_thread::sleep_for(std::chrono::microseconds(10));
+            if (!success)
+            {
+              Log("ZeDMD StreamBytes failed");
 
-            continue;
+              // Allow ZeDMD to empty its buffers.
+              std::this_thread::sleep_for(std::chrono::milliseconds(8));
+            }
           }
 
-          if (m_frames.front().data.empty())
-          {
-            // In case of a simple command, add metadata to indicate that the payload data size is 0.
-            m_frames.front().data.emplace_back(nullptr, 0);
-          }
-          bool success = StreamBytes(&(m_frames.front()));
-          m_frames.pop();
-
-          m_frameQueueMutex.unlock();
-
-          if (!success)
-          {
-            Log("ZeDMD StreamBytes failed");
-
-            // Allow ZeDMD to empty its buffers.
-            std::this_thread::sleep_for(std::chrono::milliseconds(8));
-          }
+          Log("ZeDMDComm run thread loop exited: connected=%d stop=%d", (int)IsConnected(),
+              (int)m_stopFlag.load(std::memory_order_relaxed));
+        }
+        catch (...)
+        {
+          Log("ZeDMDComm run thread caught unexpected exception");
         }
 
         Log("ZeDMDComm run thread finished");
