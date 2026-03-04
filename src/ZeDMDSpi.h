@@ -12,7 +12,8 @@
 #include <gpiod.h>
 #include <linux/spi/spidev.h>
 
-#if (defined(GPIOD_API_VERSION) && (GPIOD_API_VERSION >= 2)) || (defined(GPIOD_VERSION_MAJOR) && (GPIOD_VERSION_MAJOR >= 2))
+#if (defined(GPIOD_API_VERSION) && (GPIOD_API_VERSION >= 2)) || \
+    (defined(GPIOD_VERSION_MAJOR) && (GPIOD_VERSION_MAJOR >= 2))
 #define ZEDMD_GPIOD_API_V2 1
 #endif
 
@@ -29,6 +30,7 @@ class ZeDMDSpi : public ZeDMDComm
  public:
   ZeDMDSpi() : ZeDMDComm()
   {
+    SetInstanceName("SPI");
     m_compression = false;
     m_zoneStream = false;
     m_keepAliveNotSupported = true;

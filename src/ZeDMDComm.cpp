@@ -35,26 +35,26 @@ ZeDMDComm::ZeDMDComm()
 
 ZeDMDComm::~ZeDMDComm()
 {
-  Log("ZeDMDComm destructor start: connected=%d queue_empty=%d delayed=%d", (int)IsConnected(), (int)IsQueueEmpty(),
-      (int)m_delayedFrameReady);
+  Log("ZeDMDComm[%s@%p] destructor start: connected=%d queue_empty=%d delayed=%d", m_instanceName, (void*)this,
+      (int)IsConnected(), (int)IsQueueEmpty(), (int)m_delayedFrameReady);
 
   m_stopFlag.store(true, std::memory_order_release);
   Disconnect();
 
   if (m_pThread)
   {
-    Log("ZeDMDComm destructor: joining run thread");
+    Log("ZeDMDComm[%s@%p] destructor: joining run thread", m_instanceName, (void*)this);
     if (m_pThread->joinable())
     {
       m_pThread->join();
     }
-    Log("ZeDMDComm destructor: joined run thread");
+    Log("ZeDMDComm[%s@%p] destructor: joined run thread", m_instanceName, (void*)this);
 
     delete m_pThread;
     m_pThread = nullptr;
   }
 
-  Log("ZeDMDComm destructor finished");
+  Log("ZeDMDComm[%s@%p] destructor finished", m_instanceName, (void*)this);
 }
 
 void ZeDMDComm::SetLogCallback(ZeDMD_LogCallback callback, const void* userData)
@@ -84,7 +84,7 @@ void ZeDMDComm::Run()
   m_pThread = new std::thread(
       [this]()
       {
-        Log("ZeDMDComm run thread starting");
+        Log("ZeDMDComm[%s@%p] run thread starting", m_instanceName, (void*)this);
         m_stopFlag.load(std::memory_order_acquire);
 
         try
@@ -135,15 +135,15 @@ void ZeDMDComm::Run()
             }
           }
 
-          Log("ZeDMDComm run thread loop exited: connected=%d stop=%d", (int)IsConnected(),
-              (int)m_stopFlag.load(std::memory_order_relaxed));
+          Log("ZeDMDComm[%s@%p] run thread loop exited: connected=%d stop=%d", m_instanceName, (void*)this,
+              (int)IsConnected(), (int)m_stopFlag.load(std::memory_order_relaxed));
         }
         catch (...)
         {
-          Log("ZeDMDComm run thread caught unexpected exception");
+          Log("ZeDMDComm[%s@%p] run thread caught unexpected exception", m_instanceName, (void*)this);
         }
 
-        Log("ZeDMDComm run thread finished");
+        Log("ZeDMDComm[%s@%p] run thread finished", m_instanceName, (void*)this);
       });
 }
 

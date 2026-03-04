@@ -265,6 +265,14 @@ class ZeDMDComm
   void Log(const char* format, ...);
 
  protected:
+  void SetInstanceName(const char* name)
+  {
+    if (!name) return;
+    const size_t maxLen = sizeof(m_instanceName) - 1;
+    strncpy(m_instanceName, name, maxLen);
+    m_instanceName[maxLen] = '\0';
+  }
+
   virtual bool SendChunks(const uint8_t* pData, uint16_t size);
   virtual void Reset();
   void ClearFrames();
@@ -314,6 +322,7 @@ class ZeDMDComm
   const void* m_logUserData = nullptr;
   uint64_t m_zoneHashes[128] = {0};
 
+  char m_instanceName[8] = "USB";
   char m_ignoredDevices[10][32] = {0};
   uint8_t m_ignoredDevicesCounter = 0;
   char m_device[32] = {0};

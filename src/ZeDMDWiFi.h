@@ -19,7 +19,7 @@
 class ZeDMDWiFi : public ZeDMDComm
 {
  public:
-  ZeDMDWiFi() : ZeDMDComm() {}
+  ZeDMDWiFi() : ZeDMDComm() { SetInstanceName("WiFi"); }
   ~ZeDMDWiFi() { Disconnect(); }
 
   virtual bool Connect(const char* name_or_ip);
