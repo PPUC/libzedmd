@@ -7,7 +7,7 @@ https://ppuc.github.io/libzedmd/docs/html/class_ze_d_m_d.html
 
 ## Compiling
 
-#### Windows (x64)
+#### Windows x64 (MSVC)
 
 ```shell
 platforms/win/x64/external.sh
@@ -15,12 +15,34 @@ cmake -G "Visual Studio 17 2022" -DPLATFORM=win -DARCH=x64 -B build
 cmake --build build --config Release
 ```
 
-#### Windows (x86)
+#### Windows x86 (MSVC)
 
 ```shell
 platforms/win/x86/external.sh
 cmake -G "Visual Studio 17 2022" -A Win32 -DPLATFORM=win -DARCH=x86 -B build
 cmake --build build --config Release
+```
+
+#### Windows MinGW / MSYS2 UCRT64 (x64)
+
+Requires MSYS2 with UCRT64 environment. Install dependencies:
+
+```shell
+pacman -S --noconfirm \
+  make diffutils autoconf automake libtool \
+  mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-libwinpthread \
+  mingw-w64-ucrt-x86_64-cmake
+```
+
+Build (entire build runs inside the MSYS2 UCRT64 shell):
+
+```shell
+MSYSTEM=UCRT64 /c/msys64/usr/bin/bash.exe -l -c "
+  cd \"$(pwd)\" &&
+  platforms/win-mingw/x64/external.sh &&
+  cmake -DCMAKE_BUILD_TYPE=Release -DPLATFORM=win-mingw -DARCH=x64 -B build &&
+  cmake --build build -- -j\$(nproc)
+"
 ```
 
 #### Linux (x64)

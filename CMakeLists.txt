@@ -113,6 +113,12 @@ if(BUILD_SHARED)
       else()
          target_link_libraries(zedmd_shared PUBLIC libserialport sockpp ws2_32)
       endif()
+   elseif(PLATFORM STREQUAL "win-mingw")
+      target_link_directories(zedmd_shared PUBLIC
+         third-party/build-libs/${PLATFORM}/${ARCH}
+         third-party/runtime-libs/${PLATFORM}/${ARCH}
+      )
+      target_link_libraries(zedmd_shared PUBLIC serialport64 sockpp64 ws2_32)
    elseif(PLATFORM STREQUAL "macos")
       target_link_directories(zedmd_shared PUBLIC
          third-party/runtime-libs/${PLATFORM}/${ARCH}
@@ -142,23 +148,32 @@ if(BUILD_SHARED)
       target_link_libraries(zedmd_shared PUBLIC sockpp)
    endif()
 
-   if(PLATFORM STREQUAL "win" AND ARCH STREQUAL "x64")
+   if((PLATFORM STREQUAL "win" OR PLATFORM STREQUAL "win-mingw") AND ARCH STREQUAL "x64")
       set(ZEDMD_OUTPUT_NAME "zedmd64")
    else()
       set(ZEDMD_OUTPUT_NAME "zedmd")
    endif()
 
-   set_target_properties(zedmd_shared PROPERTIES
-      OUTPUT_NAME ${ZEDMD_OUTPUT_NAME}
-      VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}
-   )
+   if(PLATFORM STREQUAL "win-mingw")
+      set_target_properties(zedmd_shared PROPERTIES
+         PREFIX ""
+         IMPORT_PREFIX ""
+         OUTPUT_NAME ${ZEDMD_OUTPUT_NAME}
+         VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}
+      )
+   else()
+      set_target_properties(zedmd_shared PROPERTIES
+         OUTPUT_NAME ${ZEDMD_OUTPUT_NAME}
+         VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}
+      )
+   endif()
 
    install(TARGETS zedmd_shared
       LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
    )
    install(FILES src/ZeDMD.h DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 
-   if(PLATFORM STREQUAL "win" OR PLATFORM STREQUAL "macos" OR PLATFORM STREQUAL "linux")
+   if(PLATFORM STREQUAL "win" OR PLATFORM STREQUAL "win-mingw" OR PLATFORM STREQUAL "macos" OR PLATFORM STREQUAL "linux")
       add_executable(zedmd-test
          src/test.cpp
       )
@@ -179,6 +194,8 @@ if(BUILD_SHARED)
          else()
             target_link_libraries(zedmd-client PUBLIC zedmd_shared cargs)
          endif()
+      elseif(PLATFORM STREQUAL "win-mingw")
+         target_link_libraries(zedmd-client PUBLIC zedmd_shared cargs64)
       else()
          target_link_libraries(zedmd-client PUBLIC zedmd_shared cargs)
       endif()
@@ -194,8 +211,9 @@ if(BUILD_STATIC)
 
    target_include_directories(zedmd_static PUBLIC ${ZEDMD_INCLUDE_DIRS})
 
-   if(PLATFORM STREQUAL "win")
+   if(PLATFORM STREQUAL "win" OR PLATFORM STREQUAL "win-mingw")
       set_target_properties(zedmd_static PROPERTIES
+         PREFIX ""
          OUTPUT_NAME "zedmd_static"
       )
    else()
@@ -213,7 +231,7 @@ if(BUILD_STATIC)
    )
    install(FILES src/ZeDMD.h DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 
-   if(PLATFORM STREQUAL "win" OR PLATFORM STREQUAL "macos" OR PLATFORM STREQUAL "linux")
+   if(PLATFORM STREQUAL "win" OR PLATFORM STREQUAL "win-mingw" OR PLATFORM STREQUAL "macos" OR PLATFORM STREQUAL "linux")
       add_executable(zedmd-test-portable
          src/test.cpp
       )
@@ -229,6 +247,12 @@ if(BUILD_STATIC)
          else()
             target_link_libraries(zedmd-test-portable PUBLIC zedmd_static libserialport sockpp ws2_32)
          endif()
+      elseif(PLATFORM STREQUAL "win-mingw")
+         target_link_directories(zedmd-test-portable PUBLIC
+            third-party/build-libs/${PLATFORM}/${ARCH}
+            third-party/runtime-libs/${PLATFORM}/${ARCH}
+         )
+         target_link_libraries(zedmd-test-portable PUBLIC zedmd_static serialport64 sockpp64 ws2_32)
       elseif(PLATFORM STREQUAL "macos")
          target_link_directories(zedmd-test-portable PUBLIC
             third-party/runtime-libs/${PLATFORM}/${ARCH}
@@ -264,6 +288,12 @@ if(BUILD_STATIC)
          else()
             target_link_libraries(zedmd-client-portable PUBLIC zedmd_static cargs libserialport sockpp ws2_32)
          endif()
+      elseif(PLATFORM STREQUAL "win-mingw")
+         target_link_directories(zedmd-client-portable PUBLIC
+            third-party/build-libs/${PLATFORM}/${ARCH}
+            third-party/runtime-libs/${PLATFORM}/${ARCH}
+         )
+         target_link_libraries(zedmd-client-portable PUBLIC zedmd_static cargs64 serialport64 sockpp64 ws2_32)
       elseif(PLATFORM STREQUAL "macos")
          target_link_directories(zedmd-client-portable PUBLIC
             third-party/runtime-libs/${PLATFORM}/${ARCH}
@@ -286,7 +316,7 @@ if(BUILD_STATIC)
    endif()
 endif()
 
-if(POST_BUILD_COPY_EXT_LIBS AND (PLATFORM STREQUAL "win" OR PLATFORM STREQUAL "macos" OR PLATFORM STREQUAL "linux"))
+if(POST_BUILD_COPY_EXT_LIBS AND (PLATFORM STREQUAL "win" OR PLATFORM STREQUAL "win-mingw" OR PLATFORM STREQUAL "macos" OR PLATFORM STREQUAL "linux"))
    add_custom_target(copy_ext_libs ALL)
 
    if(PLATFORM STREQUAL "win")
@@ -309,6 +339,15 @@ if(POST_BUILD_COPY_EXT_LIBS AND (PLATFORM STREQUAL "win" OR PLATFORM STREQUAL "m
             COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/sockpp.dll" "${CMAKE_BINARY_DIR}"
          )
       endif()
+   elseif(PLATFORM STREQUAL "win-mingw")
+      add_custom_command(TARGET copy_ext_libs POST_BUILD
+         COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libcargs64.dll" "${CMAKE_BINARY_DIR}"
+         COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libserialport64-0.dll" "${CMAKE_BINARY_DIR}"
+         COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libsockpp64.dll" "${CMAKE_BINARY_DIR}"
+         COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libgcc_s_seh-1.dll" "${CMAKE_BINARY_DIR}"
+         COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libstdc++-6.dll" "${CMAKE_BINARY_DIR}"
+         COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/libwinpthread-1.dll" "${CMAKE_BINARY_DIR}"
+      )
    elseif(PLATFORM STREQUAL "macos")
       add_custom_command(TARGET copy_ext_libs POST_BUILD
          COMMAND cp -a "${CMAKE_SOURCE_DIR}/third-party/runtime-libs/${PLATFORM}/${ARCH}/*.dylib" "${CMAKE_BINARY_DIR}/"
