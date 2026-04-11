@@ -227,8 +227,6 @@ void ZeDMDComm::QueueFrame(uint8_t* data, int size, bool rgb888)
     m_fullFrameFlag.store(false, std::memory_order_release);
     ClearFrames();
     memset(m_zoneHashes, 0, sizeof(m_zoneHashes));
-
-    return;
   }
 
   if (0 == memcmp(data, m_allBlack, size))
