@@ -7,6 +7,7 @@ option(BUILD_SHARED "Option to build shared library" ON)
 option(BUILD_STATIC "Option to build static library" ON)
 option(POST_BUILD_COPY_EXT_LIBS "Option to copy external libraries to build directory" ON)
 option(SPI_SUPPORT "SPI support" OFF)
+option(ENABLE_SANITIZERS "Enable AddressSanitizer and UBSan for Debug builds" OFF)
 add_compile_definitions($<$<BOOL:${SPI_SUPPORT}>:SPI_SUPPORT>)
 
 message(STATUS "PLATFORM: ${PLATFORM}")
@@ -15,13 +16,9 @@ message(STATUS "ARCH: ${ARCH}")
 message(STATUS "BUILD_SHARED: ${BUILD_SHARED}")
 message(STATUS "BUILD_STATIC: ${BUILD_STATIC}")
 message(STATUS "POST_BUILD_COPY_EXT_LIBS: ${POST_BUILD_COPY_EXT_LIBS}")
+message(STATUS "ENABLE_SANITIZERS: ${ENABLE_SANITIZERS}")
 
-if(PLATFORM STREQUAL "macos")
-   if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -g")
-      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -g")
-   endif()
-elseif(PLATFORM STREQUAL "ios" OR PLATFORM STREQUAL "ios-simulator")
+if(PLATFORM STREQUAL "ios" OR PLATFORM STREQUAL "ios-simulator")
    set(CMAKE_SYSTEM_NAME iOS)
    if (PLATFORM STREQUAL "ios-simulator")
       set(CMAKE_OSX_SYSROOT iphonesimulator)
@@ -80,6 +77,14 @@ set(CMAKE_C_STANDARD 99)
 
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_C_VISIBILITY_PRESET hidden)
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+   if(ENABLE_SANITIZERS AND (PLATFORM STREQUAL "macos" OR PLATFORM STREQUAL "linux"))
+      set(SANITIZER_FLAGS -fsanitize=address,undefined)
+      add_compile_options(${SANITIZER_FLAGS} -fno-omit-frame-pointer -g)
+      add_link_options(${SANITIZER_FLAGS})
+   endif()
+endif()
 
 set(ZEDMD_SOURCES
    src/ZeDMDComm.h
