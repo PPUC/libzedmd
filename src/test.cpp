@@ -92,7 +92,12 @@ int main(int argc, const char* argv[])
         break;
       }
 
-      fread(buffer, size, 1, fileptr);
+      if (fread(buffer, size, 1, fileptr) != 1)
+      {
+        printf("Failed to read file: %s\n", filename);
+        fclose(fileptr);
+        break;
+      }
       fclose(fileptr);
 
       memcpy(rgb565, buffer, size);
@@ -116,7 +121,19 @@ int main(int argc, const char* argv[])
         snprintf(filename, 33, "test/rgb565_128x32/%04d.raw", i);
         printf("Render raw: %s\n", filename);
         fileptr = fopen(filename, "rb");
-        fread(buffer, size, 1, fileptr);
+
+        if (fileptr == NULL)
+        {
+          printf("Failed to open file: %s\n", filename);
+          break;
+        }
+
+        if (fread(buffer, size, 1, fileptr) != 1)
+        {
+          printf("Failed to read file: %s\n", filename);
+          fclose(fileptr);
+          break;
+        }
         fclose(fileptr);
 
         memcpy(rgb565, buffer, size);
@@ -132,7 +149,19 @@ int main(int argc, const char* argv[])
         snprintf(filename, 33, "test/rgb565_128x32/%04d.raw", i);
         printf("Render raw: %s\n", filename);
         fileptr = fopen(filename, "rb");
-        fread(buffer, size, 1, fileptr);
+
+        if (fileptr == NULL)
+        {
+          printf("Failed to open file: %s\n", filename);
+          break;
+        }
+
+        if (fread(buffer, size, 1, fileptr) != 1)
+        {
+          printf("Failed to read file: %s\n", filename);
+          fclose(fileptr);
+          break;
+        }
         fclose(fileptr);
 
         memcpy(rgb565, buffer, size);
@@ -154,7 +183,19 @@ int main(int argc, const char* argv[])
       snprintf(filename, 33, "test/rgb888_%dx%d/%04d.raw", width, height, i);
       printf("Render raw: %s\n", filename);
       fileptr = fopen(filename, "rb");
-      fread(rgb888, size, 1, fileptr);
+
+      if (fileptr == NULL)
+      {
+        printf("Failed to open file: %s\n", filename);
+        break;
+      }
+
+      if (fread(rgb888, size, 1, fileptr) != 1)
+      {
+        printf("Failed to read file: %s\n", filename);
+        fclose(fileptr);
+        break;
+      }
       fclose(fileptr);
 
       pZeDMD->RenderRgb888(rgb888);

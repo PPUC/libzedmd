@@ -204,7 +204,8 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
 
       if (SendGetRequest("/get_version"))
       {
-        strncpy(m_firmwareVersion, ReceiveCStringPayload(), sizeof(m_firmwareVersion) - 1);
+        std::string firmwareVersion = ReceiveStringPayload();
+        strncpy(m_firmwareVersion, firmwareVersion.c_str(), sizeof(m_firmwareVersion) - 1);
       }
       else
       {
@@ -244,7 +245,7 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
 
       if (SendGetRequest("/get_protocol"))
       {
-        if (strcmp("TCP", ReceiveCStringPayload()) == 0)
+        if (ReceiveStringPayload() == "TCP")
         {
           m_tcp = true;
         }
@@ -610,8 +611,6 @@ std::string ZeDMDWiFi::ReceiveStringPayload()
   // The payload starts after "\r\n\r\n"
   return response.substr(headerEnd + 4);
 }
-
-const char* ZeDMDWiFi::ReceiveCStringPayload() { return ReceiveStringPayload().c_str(); }
 
 bool ZeDMDWiFi::IsConnected() { return m_connected; }
 
