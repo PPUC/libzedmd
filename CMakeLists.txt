@@ -55,7 +55,7 @@ project(zedmd VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}"
 
 if(PLATFORM STREQUAL "win")
    if(ARCH STREQUAL "x86")
-      add_compile_definitions(WIN32)
+      add_compile_definitions(WIN32 _DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
    endif()
 elseif(PLATFORM STREQUAL "macos")
    if (ARCH STREQUAL "arm64")
