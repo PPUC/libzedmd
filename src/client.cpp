@@ -10,6 +10,7 @@
  * --set-debug                    0,1
  * --set-panel-clkphase           0,1
  * --set-panel-driver             0(SHIFTREG),1(FM6124),2(FM6126A),3(ICN2038S),4(MBI5124),5(SM5266P),6(DP3246_SM5368)
+ * --set-panel-line-decoder       0(TYPE138), 1(TYPE595), 2(TYPE_DIRECT), 3(SM5266P), 4(SM5368)
  * --set-panel-i2sspeed           8,16,20
  * --set-panel-latch-blanking     0,1,2,3,4
  * --set-panel-min-refresh-rate   30..120
@@ -40,7 +41,7 @@
 static struct cag_option options[] = {
     {.identifier = 'h', .access_letters = "h", .access_name = "help", .description = "Show zedmd-client help"},
     {.identifier = 'v', .access_letters = "v", .access_name = "version", .description = "Show zedmd-client version"},
-    {.identifier = '5', .access_name = "verbose", .description = "Verbose log messages"},
+    {.identifier = 'x', .access_name = "verbose", .description = "Verbose log messages"},
     {.identifier = 'p',
      .access_letters = "p",
      .access_name = "port",
@@ -67,9 +68,13 @@ static struct cag_option options[] = {
      .access_name = "set-panel-driver",
      .value_name = "VALUE",
      .description = "0(SHIFTREG), 1(FM6124), 2(FM6126A), 3(ICN2038S), 4(MBI5124), 5(SM5266P), 6(DP3246_SM5368)"},
-    {.identifier = '2', .access_name = "set-panel-i2sspeed", .value_name = "VALUE", .description = "8,16,20"},
-    {.identifier = '3', .access_name = "set-panel-latch-blanking", .value_name = "VALUE", .description = "0,1,2,3,4"},
-    {.identifier = '4', .access_name = "set-panel-min-refresh-rate", .value_name = "VALUE", .description = "30..120"},
+    {.identifier = '2',
+     .access_name = "set-panel-line-decoder",
+     .value_name = "VALUE",
+     .description = "0(TYPE138), 1(TYPE595), 2(TYPE_DIRECT), 3(SM5266P), 4(SM5368)"},
+    {.identifier = '3', .access_name = "set-panel-i2sspeed", .value_name = "VALUE", .description = "8,16,20"},
+    {.identifier = '4', .access_name = "set-panel-latch-blanking", .value_name = "VALUE", .description = "0,1,2,3,4"},
+    {.identifier = '5', .access_name = "set-panel-min-refresh-rate", .value_name = "VALUE", .description = "30..120"},
     {.identifier = 'o',
      .access_letters = "o",
      .access_name = "set-rgb-order",
@@ -142,6 +147,7 @@ int main(int argc, char* argv[])
   const char* opt_panel_latch_blanking = NULL;
   const char* opt_panel_min_refresh_rate = NULL;
   const char* opt_panel_driver = NULL;
+  const char* opt_panel_line_decoder = NULL;
   const char* opt_rgb_order = NULL;
   const char* opt_transport = NULL;
   const char* opt_udp_delay = NULL;
@@ -165,7 +171,7 @@ int main(int argc, char* argv[])
         opt_version = true;
         has_other_options_than_h = true;
         break;
-      case '5':
+      case 'x':
         opt_verbose = true;
         break;
       case 'p':
@@ -197,14 +203,18 @@ int main(int argc, char* argv[])
         has_other_options_than_h = true;
         break;
       case '2':
-        opt_panel_i2sspeed = cag_option_get_value(&cag_context);
+        opt_panel_line_decoder = cag_option_get_value(&cag_context);
         has_other_options_than_h = true;
         break;
       case '3':
-        opt_panel_latch_blanking = cag_option_get_value(&cag_context);
+        opt_panel_i2sspeed = cag_option_get_value(&cag_context);
         has_other_options_than_h = true;
         break;
       case '4':
+        opt_panel_latch_blanking = cag_option_get_value(&cag_context);
+        has_other_options_than_h = true;
+        break;
+      case '5':
         opt_panel_min_refresh_rate = cag_option_get_value(&cag_context);
         has_other_options_than_h = true;
         break;
@@ -306,6 +316,17 @@ int main(int argc, char* argv[])
     if (!(panel_driver >= 0 && panel_driver <= 6))
     {
       printf("Error: panel-driver has to between 0 and 6.\n");
+      return -1;
+    }
+  }
+
+  uint8_t panel_line_decoder;
+  if (opt_panel_line_decoder)
+  {
+    panel_line_decoder = (uint8_t)std::stoi(std::string(opt_panel_line_decoder));
+    if (!(panel_line_decoder >= 0 && panel_line_decoder <= 4))
+    {
+      printf("Error: panel-line-decoder has to between 0 and 4.\n");
       return -1;
     }
   }
@@ -531,6 +552,7 @@ int main(int argc, char* argv[])
     printf("panel latch blanking:       %d\n", pZeDMD->GetPanelLatchBlanking());
     printf("panel minimal refresh rate: %d\n", pZeDMD->GetPanelMinRefreshRate());
     printf("panel driver:               %d\n", pZeDMD->GetPanelDriver());
+    printf("panel line decoder:         %d\n", pZeDMD->GetPanelLineDecoder());
     printf("Y-offset:                   %d\n\n", pZeDMD->GetYOffset());
   }
 
@@ -556,6 +578,11 @@ int main(int argc, char* argv[])
   if (opt_panel_driver)
   {
     pZeDMD->SetPanelDriver(panel_driver);
+    save = true;
+  }
+  if (opt_panel_line_decoder)
+  {
+    pZeDMD->SetPanelLineDecoder(panel_line_decoder);
     save = true;
   }
   if (opt_panel_i2sspeed)

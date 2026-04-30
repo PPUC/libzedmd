@@ -360,6 +360,15 @@ class ZEDMDAPI ZeDMD
    */
   uint8_t GetPanelDriver();
 
+  /** @brief Get the panel line decoder
+   *
+   *  Get the line decoder of the LED panels.
+   *  @see https://github.com/PPUC/ZeDMD
+   *
+   *  @return  a value between 0 and 4; 0(SHIFTREG), 1(FM6124), 2(FM6126A), 3(ICN2038S), 4(MBI5124)
+   */
+  uint8_t GetPanelLineDecoder();
+
   /** @brief Get the transport
    *
    *  Get the transport of ZeDMD.
@@ -538,6 +547,15 @@ class ZEDMDAPI ZeDMD
    */
   void SetPanelDriver(uint8_t driver);
 
+  /** @brief Set the panel line decoder
+   *
+   *  Set the line decoder of the LED panels.
+   *  @see https://github.com/PPUC/ZeDMD
+   *
+   *  @param lineDecoder a value between 0 and 4; 0(SHIFTREG), 1(FM6124), 2(FM6126A), 3(ICN2038S), 4(MBI5124)
+   */
+  void SetPanelLineDecoder(uint8_t lineDecoder);
+
   /** @brief Set the transport
    *
    *  Set the transport of ZeDMD. Note, this is just to change ZeDMD's settings, not for connecting.
@@ -696,6 +714,7 @@ extern "C"
   extern ZEDMDAPI uint8_t ZeDMD_GetPanelLatchBlanking(ZeDMD* pZeDMD);
   extern ZEDMDAPI uint8_t ZeDMD_GetPanelMinRefreshRate(ZeDMD* pZeDMD);
   extern ZEDMDAPI uint8_t ZeDMD_GetPanelDriver(ZeDMD* pZeDMD);
+  extern ZEDMDAPI uint8_t ZeDMD_GetPanelLineDecoder(ZeDMD* pZeDMD);
   extern ZEDMDAPI uint8_t ZeDMD_GetTransport(ZeDMD* pZeDMD);
   extern ZEDMDAPI uint8_t ZeDMD_GetUdpDelay(ZeDMD* pZeDMD);
   extern ZEDMDAPI uint16_t ZeDMD_GetUsbPackageSize(ZeDMD* pZeDMD);
@@ -731,6 +750,7 @@ extern "C"
   extern ZEDMDAPI void ZeDMD_SetPanelLatchBlanking(ZeDMD* pZeDMD, uint8_t latchBlanking);
   extern ZEDMDAPI void ZeDMD_SetPanelMinRefreshRate(ZeDMD* pZeDMD, uint8_t minRefreshRate);
   extern ZEDMDAPI void ZeDMD_SetPanelDriver(ZeDMD* pZeDMD, uint8_t driver);
+  extern ZEDMDAPI void ZeDMD_SetPanelLineDecoder(ZeDMD* pZeDMD, uint8_t lineDecoder);
   extern ZEDMDAPI void ZeDMD_SetTransport(ZeDMD* pZeDMD, uint8_t transport);
   extern ZEDMDAPI void ZeDMD_SetUdpDelay(ZeDMD* pZeDMD, uint8_t udpDelay);
   extern ZEDMDAPI void ZeDMD_SetUsbPackageSize(ZeDMD* pZeDMD, uint16_t usbPackageSize);

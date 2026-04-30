@@ -191,6 +191,11 @@ bool ZeDMDWiFi::DoConnect(const char* ip)
               m_deviceType = static_cast<ZeDMD_DeviceType>(std::stoi(item));
               break;
             }
+            case 21:
+            {
+              m_panelLineDecoder = std::stoi(item);
+              break;
+            }
           }
         }
       }

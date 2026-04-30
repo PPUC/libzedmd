@@ -79,6 +79,7 @@ typedef enum
   SetUdpDelay = 0x2e,
   SetUsbPackageSizeMultiplier = 0x2f,
   SetYOffset = 0x30,
+  SetLineDecoder = 0x31,
 
   SetSpeakerLightsBlackThreshold = 100,
   SetSpeakerLightsGammaFactor = 101,
@@ -256,6 +257,7 @@ class ZeDMDComm
   uint8_t GetYOffset() { return m_yOffset; }
   uint8_t GetPanelClockPhase() { return m_panelClkphase; }
   uint8_t GetPanelDriver() { return m_panelDriver; }
+  uint8_t GetPanelLineDecoder() { return m_panelLineDecoder; }
   uint8_t GetPanelI2sSpeed() { return m_panelI2sspeed; }
   uint8_t GetPanelLatchBlanking() { return m_panelLatchBlanking; }
   uint8_t GetPanelMinRefreshRate() { return m_panelMinRefreshRate; }
@@ -297,6 +299,7 @@ class ZeDMDComm
   uint8_t m_yOffset = 0;
   uint8_t m_panelClkphase = 0;
   uint8_t m_panelDriver = 0;
+  uint8_t m_panelLineDecoder = 0;
   uint8_t m_panelI2sspeed = 8;
   uint8_t m_panelLatchBlanking = 2;
   uint8_t m_panelMinRefreshRate = 30;

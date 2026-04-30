@@ -346,6 +346,16 @@ uint8_t ZeDMD::GetPanelDriver()
   return 0;
 }
 
+uint8_t ZeDMD::GetPanelLineDecoder()
+{
+  ZeDMDComm* pActive = GetActiveZeDMD();
+  if (pActive && !m_spi)
+  {
+    return pActive->GetPanelLineDecoder();
+  }
+  return 0;
+}
+
 uint8_t ZeDMD::GetTransport()
 {
   if (ZeDMDComm* pActive = GetActiveZeDMD())
@@ -513,6 +523,17 @@ void ZeDMD::SetPanelDriver(uint8_t driver)
   if (pActive)
   {
     pActive->QueueCommand(ZEDMD_COMM_COMMAND::SetDriver, driver);
+  }
+}
+
+void ZeDMD::SetPanelLineDecoder(uint8_t lineDecoder)
+{
+  ZeDMDComm* pActive = GetActiveZeDMD();
+  if (m_verbose && pActive) pActive->Log("ZeDMD::SetPanelLineDecoder %d", lineDecoder);
+
+  if (pActive)
+  {
+    pActive->QueueCommand(ZEDMD_COMM_COMMAND::SetLineDecoder, lineDecoder);
   }
 }
 
@@ -993,6 +1014,8 @@ ZEDMDAPI uint8_t ZeDMD_GetPanelMinRefreshRate(ZeDMD* pZeDMD) { return pZeDMD->Ge
 
 ZEDMDAPI uint8_t ZeDMD_GetPanelDriver(ZeDMD* pZeDMD) { return pZeDMD->GetPanelDriver(); };
 
+ZEDMDAPI uint8_t ZeDMD_GetPanelLineDecoder(ZeDMD* pZeDMD) { return pZeDMD->GetPanelLineDecoder(); };
+
 ZEDMDAPI uint8_t ZeDMD_GetTransport(ZeDMD* pZeDMD) { return pZeDMD->GetTransport(); };
 
 ZEDMDAPI uint8_t ZeDMD_GetUdpDelay(ZeDMD* pZeDMD) { return pZeDMD->GetUdpDelay(); };
@@ -1064,6 +1087,8 @@ ZEDMDAPI void ZeDMD_SetPanelMinRefreshRate(ZeDMD* pZeDMD, uint8_t minRefreshRate
 }
 
 ZEDMDAPI void ZeDMD_SetPanelDriver(ZeDMD* pZeDMD, uint8_t driver) { pZeDMD->SetPanelDriver(driver); }
+
+ZEDMDAPI void ZeDMD_SetPanelLineDecoder(ZeDMD* pZeDMD, uint8_t lineDecoder) { pZeDMD->SetPanelLineDecoder(lineDecoder); }
 
 ZEDMDAPI void ZeDMD_SetTransport(ZeDMD* pZeDMD, uint8_t transport) { pZeDMD->SetTransport(transport); }
 
