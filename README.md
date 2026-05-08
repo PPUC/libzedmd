@@ -7,19 +7,35 @@ https://ppuc.github.io/libzedmd/docs/html/class_ze_d_m_d.html
 
 ## Compiling
 
-#### Windows x64 (MSVC)
+#### Windows (x64)
+
+Requires MSYS2 for building external dependencies:
+
+```shell
+pacman -S --noconfirm make diffutils \
+  mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-libwinpthread \
+  mingw-w64-ucrt-x86_64-cmake
+```
 
 ```shell
 platforms/win/x64/external.sh
-cmake -G "Visual Studio 17 2022" -DPLATFORM=win -DARCH=x64 -B build
+cmake -G "Visual Studio 18 2026" -DPLATFORM=win -DARCH=x64 -B build
 cmake --build build --config Release
 ```
 
-#### Windows x86 (MSVC)
+#### Windows (x86)
+
+Requires MSYS2 for building external dependencies:
+
+```shell
+pacman -S --noconfirm make diffutils \
+  mingw-w64-i686-gcc mingw-w64-i686-libwinpthread \
+  mingw-w64-i686-cmake
+```
 
 ```shell
 platforms/win/x86/external.sh
-cmake -G "Visual Studio 17 2022" -A Win32 -DPLATFORM=win -DARCH=x86 -B build
+cmake -G "Visual Studio 18 2026" -A Win32 -DPLATFORM=win -DARCH=x86 -B build
 cmake --build build --config Release
 ```
 

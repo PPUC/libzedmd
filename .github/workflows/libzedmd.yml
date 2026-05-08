@@ -46,9 +46,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: windows-2025, platform: win, arch: x64, type: Release }
-          - { os: windows-2025, platform: win, arch: x64, type: Debug }
-          - { os: windows-2025, platform: win, arch: x86, type: Release }
+          - { os: windows-2025-vs2026, platform: win, arch: x64, type: Release }
+          - { os: windows-2025-vs2026, platform: win, arch: x64, type: Debug }
+          - { os: windows-2025-vs2026, platform: win, arch: x86, type: Release }
           - { os: windows-2025, platform: win-mingw, arch: x64, type: Release }
           - { os: macos-15, platform: macos, arch: arm64, type: Release }
           - { os: macos-15, platform: macos, arch: x64, type: Release }
@@ -64,7 +64,22 @@ jobs:
       # install dependencies
       #
       - if: (matrix.platform == 'win')
-        uses: microsoft/setup-msbuild@v2
+        uses: microsoft/setup-msbuild@v3
+      - if: (matrix.platform == 'win')
+        run: |
+          if [[ "${{ matrix.arch }}" == "x64" ]]; then
+            /c/msys64/usr/bin/bash.exe -l -c "pacman -S --noconfirm \
+              make diffutils autoconf automake libtool \
+              mingw-w64-ucrt-x86_64-gcc \
+              mingw-w64-ucrt-x86_64-libwinpthread \
+              mingw-w64-ucrt-x86_64-cmake"
+          else
+            /c/msys64/usr/bin/bash.exe -l -c "pacman -S --noconfirm \
+              make diffutils autoconf automake libtool \
+              mingw-w64-i686-gcc \
+              mingw-w64-i686-libwinpthread \
+              mingw-w64-i686-cmake"
+          fi
       - if: (matrix.platform == 'win-mingw')
         run: |
           /c/msys64/usr/bin/bash.exe -l -c "pacman -S --noconfirm \
@@ -87,13 +102,13 @@ jobs:
           ./platforms/${{ matrix.platform }}/${{ matrix.arch }}/external.sh
           if [[ "${{ matrix.arch }}" == "x64" ]]; then
             cmake \
-              -G "Visual Studio 17 2022" \
+              -G "Visual Studio 18 2026" \
               -DPLATFORM=${{ matrix.platform }} \
               -DARCH=${{ matrix.arch }} \
               -B build
           else
             cmake \
-              -G "Visual Studio 17 2022" \
+              -G "Visual Studio 18 2026" \
               -A Win32 \
               -DPLATFORM=${{ matrix.platform }} \
               -DARCH=${{ matrix.arch }} \
