@@ -9,7 +9,7 @@
  * --set-brightness               0..15
  * --set-debug                    0,1
  * --set-panel-clkphase           0,1
- * --set-panel-driver             0(SHIFTREG),1(FM6124),2(FM6126A),3(ICN2038S),4(MBI5124),5(SM5266P),6(DP3246_SM5368)
+ * --set-panel-driver             0(SHIFTREG),1(FM6124),2(FM6126A),3(ICN2038S),4(MBI5124),5(SM5266P),6(DP3246)
  * --set-panel-line-decoder       0(TYPE138), 1(TYPE595), 2(TYPE_DIRECT), 3(SM5266P), 4(SM5368)
  * --set-panel-i2sspeed           8,16,20
  * --set-panel-latch-blanking     0,1,2,3,4
@@ -67,7 +67,7 @@ static struct cag_option options[] = {
     {.identifier = '1',
      .access_name = "set-panel-driver",
      .value_name = "VALUE",
-     .description = "0(SHIFTREG), 1(FM6124), 2(FM6126A), 3(ICN2038S), 4(MBI5124), 5(SM5266P), 6(DP3246_SM5368)"},
+     .description = "0(SHIFTREG), 1(FM6124), 2(FM6126A), 3(ICN2038S), 4(MBI5124), 5(SM5266P), 6(DP3246)"},
     {.identifier = '2',
      .access_name = "set-panel-line-decoder",
      .value_name = "VALUE",
