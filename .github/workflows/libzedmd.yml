@@ -191,13 +191,8 @@ jobs:
         name: Prepare artifacts (win)
         run: |
           mkdir tmp
-          if [[ "${{ matrix.arch }}" == "x64" ]]; then
-            cp build/${{ matrix.type }}/*64.lib tmp
-          else
-            cp build/${{ matrix.type }}/*.lib tmp
-          fi
+          cp build/${{ matrix.type }}/*.lib tmp
           cp build/${{ matrix.type }}/*.dll tmp
-          cp build/*.dll tmp
           cp build/${{ matrix.type }}/zedmd-client-portable.exe tmp
           cp build/${{ matrix.type }}/zedmd-client.exe tmp
           cp build/${{ matrix.type }}/zedmd-test-portable.exe tmp
