@@ -6,6 +6,7 @@ source ./platforms/config.sh
 
 echo "Building libraries..."
 echo "  LIBFRAMEUTIL_SHA: ${LIBFRAMEUTIL_SHA}"
+ppuc_print_dependency_source LIBFRAMEUTIL libframeutil "${LIBFRAMEUTIL_SHA}"
 echo "  SOCKPP_SHA: ${SOCKPP_SHA}"
 echo ""
 
@@ -18,19 +19,19 @@ else
 fi
 
 rm -rf external
-mkdir external
+mkdir -p \
+   external \
+   third-party/include \
+   third-party/build-libs/android/arm64-v8a \
+   third-party/runtime-libs/android/arm64-v8a
 cd external
 
 #
 # copy libframeutil
 #
 
-curl -sL https://github.com/ppuc/libframeutil/archive/${LIBFRAMEUTIL_SHA}.tar.gz -o libframeutil-${LIBFRAMEUTIL_SHA}.tar.gz
-tar xzf libframeutil-${LIBFRAMEUTIL_SHA}.tar.gz
-mv libframeutil-${LIBFRAMEUTIL_SHA} libframeutil
-cd libframeutil
-cp include/* ../../third-party/include
-cd ..
+ppuc_prepare_dependency_source libframeutil "${LIBFRAMEUTIL_SHA}" "https://github.com/ppuc/libframeutil/archive/${LIBFRAMEUTIL_SHA}.tar.gz"
+cp libframeutil/include/* ${PPUC_SOURCE_ROOT}/third-party/include
 
 #
 # build sockpp and copy to external
@@ -52,6 +53,6 @@ cmake \
    -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
    -B build
 cmake --build build -- -j${NUM_PROCS}
-cp -r include/sockpp ../../third-party/include/
-cp build/libsockpp.so ../../third-party/runtime-libs/android/arm64-v8a/
+cp -r include/sockpp ${PPUC_SOURCE_ROOT}/third-party/include/
+cp build/libsockpp.so ${PPUC_SOURCE_ROOT}/third-party/runtime-libs/android/arm64-v8a/
 cd ..

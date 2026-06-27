@@ -8,13 +8,18 @@ echo "Building libraries..."
 echo "  CARGS_SHA: ${CARGS_SHA}"
 echo "  LIBSERIALPORT_SHA: ${LIBSERIALPORT_SHA}"
 echo "  LIBFRAMEUTIL_SHA: ${LIBFRAMEUTIL_SHA}"
+ppuc_print_dependency_source LIBFRAMEUTIL libframeutil "${LIBFRAMEUTIL_SHA}"
 echo "  SOCKPP_SHA: ${SOCKPP_SHA}"
 echo ""
 
 NUM_PROCS=$(nproc)
 
 rm -rf external
-mkdir external
+mkdir -p \
+   external \
+   third-party/include \
+   third-party/build-libs/win-mingw/x64 \
+   third-party/runtime-libs/win-mingw/x64
 cd external
 
 #
@@ -31,9 +36,9 @@ cmake \
    -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
    -B build
 cmake --build build -- -j${NUM_PROCS}
-cp include/cargs.h ../../third-party/include/
-cp build/libcargs64.dll.a ../../third-party/build-libs/win-mingw/x64/
-cp build/libcargs64.dll ../../third-party/runtime-libs/win-mingw/x64/
+cp include/cargs.h ${PPUC_SOURCE_ROOT}/third-party/include/
+cp build/libcargs64.dll.a ${PPUC_SOURCE_ROOT}/third-party/build-libs/win-mingw/x64/
+cp build/libcargs64.dll ${PPUC_SOURCE_ROOT}/third-party/runtime-libs/win-mingw/x64/
 cd ..
 
 #
@@ -44,25 +49,21 @@ curl -sL https://github.com/sigrokproject/libserialport/archive/${LIBSERIALPORT_
 tar xzf libserialport-${LIBSERIALPORT_SHA}.tar.gz
 mv libserialport-${LIBSERIALPORT_SHA} libserialport
 cd libserialport
-cp libserialport.h ../../third-party/include
+cp libserialport.h ${PPUC_SOURCE_ROOT}/third-party/include
 sed -i.bak 's/libserialport\.la/libserialport64.la/g; s/libserialport_la/libserialport64_la/g' Makefile.am
 ./autogen.sh
 ./configure
 make -j${NUM_PROCS}
-cp .libs/libserialport64.dll.a ../../third-party/build-libs/win-mingw/x64/
-cp .libs/libserialport64-0.dll ../../third-party/runtime-libs/win-mingw/x64/
+cp .libs/libserialport64.dll.a ${PPUC_SOURCE_ROOT}/third-party/build-libs/win-mingw/x64/
+cp .libs/libserialport64-0.dll ${PPUC_SOURCE_ROOT}/third-party/runtime-libs/win-mingw/x64/
 cd ..
 
 #
 # copy libframeutil
 #
 
-curl -sL https://github.com/ppuc/libframeutil/archive/${LIBFRAMEUTIL_SHA}.tar.gz -o libframeutil-${LIBFRAMEUTIL_SHA}.tar.gz
-tar xzf libframeutil-${LIBFRAMEUTIL_SHA}.tar.gz
-mv libframeutil-${LIBFRAMEUTIL_SHA} libframeutil
-cd libframeutil
-cp include/* ../../third-party/include
-cd ..
+ppuc_prepare_dependency_source libframeutil "${LIBFRAMEUTIL_SHA}" "https://github.com/ppuc/libframeutil/archive/${LIBFRAMEUTIL_SHA}.tar.gz"
+cp libframeutil/include/* ${PPUC_SOURCE_ROOT}/third-party/include
 
 #
 # build sockpp and copy to external
@@ -77,9 +78,9 @@ cmake \
    -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
    -B build
 cmake --build build -- -j${NUM_PROCS}
-cp -r include/sockpp ../../third-party/include/
-cp build/libsockpp64.dll.a ../../third-party/build-libs/win-mingw/x64/
-cp build/libsockpp64.dll ../../third-party/runtime-libs/win-mingw/x64/
+cp -r include/sockpp ${PPUC_SOURCE_ROOT}/third-party/include/
+cp build/libsockpp64.dll.a ${PPUC_SOURCE_ROOT}/third-party/build-libs/win-mingw/x64/
+cp build/libsockpp64.dll ${PPUC_SOURCE_ROOT}/third-party/runtime-libs/win-mingw/x64/
 cd ..
 
 #
@@ -88,6 +89,6 @@ cd ..
 
 UCRT64_BIN="${MINGW_PREFIX}/bin"
 
-cp "${UCRT64_BIN}/libgcc_s_seh-1.dll" ../third-party/runtime-libs/win-mingw/x64/
-cp "${UCRT64_BIN}/libstdc++-6.dll" ../third-party/runtime-libs/win-mingw/x64/
-cp "${UCRT64_BIN}/libwinpthread-1.dll" ../third-party/runtime-libs/win-mingw/x64/
+cp "${UCRT64_BIN}/libgcc_s_seh-1.dll" ${PPUC_SOURCE_ROOT}/third-party/runtime-libs/win-mingw/x64/
+cp "${UCRT64_BIN}/libstdc++-6.dll" ${PPUC_SOURCE_ROOT}/third-party/runtime-libs/win-mingw/x64/
+cp "${UCRT64_BIN}/libwinpthread-1.dll" ${PPUC_SOURCE_ROOT}/third-party/runtime-libs/win-mingw/x64/

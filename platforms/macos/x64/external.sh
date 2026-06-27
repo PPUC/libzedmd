@@ -8,13 +8,18 @@ echo "Building libraries..."
 echo "  CARGS_SHA: ${CARGS_SHA}"
 echo "  LIBSERIALPORT_SHA: ${LIBSERIALPORT_SHA}"
 echo "  LIBFRAMEUTIL_SHA: ${LIBFRAMEUTIL_SHA}"
+ppuc_print_dependency_source LIBFRAMEUTIL libframeutil "${LIBFRAMEUTIL_SHA}"
 echo "  SOCKPP_SHA: ${SOCKPP_SHA}"
 echo ""
 
 NUM_PROCS=$(sysctl -n hw.ncpu)
 
 rm -rf external
-mkdir external
+mkdir -p \
+   external \
+   third-party/include \
+   third-party/build-libs/macos/x64 \
+   third-party/runtime-libs/macos/x64
 cd external
 
 #
@@ -31,8 +36,8 @@ cmake \
    -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
    -B build
 cmake --build build -- -j${NUM_PROCS}
-cp include/cargs.h ../../third-party/include/
-cp build/libcargs.dylib ../../third-party/runtime-libs/macos/x64/
+cp include/cargs.h ${PPUC_SOURCE_ROOT}/third-party/include/
+cp build/libcargs.dylib ${PPUC_SOURCE_ROOT}/third-party/runtime-libs/macos/x64/
 cd ..
 
 #
@@ -43,24 +48,20 @@ curl -sL https://github.com/sigrokproject/libserialport/archive/${LIBSERIALPORT_
 tar xzf libserialport-${LIBSERIALPORT_SHA}.tar.gz
 mv libserialport-${LIBSERIALPORT_SHA} libserialport
 cd libserialport
-cp libserialport.h ../../third-party/include
+cp libserialport.h ${PPUC_SOURCE_ROOT}/third-party/include
 ./autogen.sh
 ./configure --host=x86_64-apple-darwin CFLAGS="-arch x86_64" LDFLAGS="-Wl,-install_name,@rpath/libserialport.dylib"
 make -j${NUM_PROCS}
-cp .libs/libserialport.a ../../third-party/build-libs/macos/x64
-cp -a .libs/libserialport.{dylib,*.dylib} ../../third-party/runtime-libs/macos/x64
+cp .libs/libserialport.a ${PPUC_SOURCE_ROOT}/third-party/build-libs/macos/x64
+cp -a .libs/libserialport.{dylib,*.dylib} ${PPUC_SOURCE_ROOT}/third-party/runtime-libs/macos/x64
 cd ..
 
 #
 # copy libframeutil
 #
 
-curl -sL https://github.com/ppuc/libframeutil/archive/${LIBFRAMEUTIL_SHA}.tar.gz -o libframeutil-${LIBFRAMEUTIL_SHA}.tar.gz
-tar xzf libframeutil-${LIBFRAMEUTIL_SHA}.tar.gz
-mv libframeutil-${LIBFRAMEUTIL_SHA} libframeutil
-cd libframeutil
-cp include/* ../../third-party/include
-cd ..
+ppuc_prepare_dependency_source libframeutil "${LIBFRAMEUTIL_SHA}" "https://github.com/ppuc/libframeutil/archive/${LIBFRAMEUTIL_SHA}.tar.gz"
+cp libframeutil/include/* ${PPUC_SOURCE_ROOT}/third-party/include
 
 #
 # build sockpp and copy to external
@@ -77,6 +78,6 @@ cmake \
    -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
    -B build
 cmake --build build -- -j${NUM_PROCS}
-cp -r include/sockpp ../../third-party/include/
-cp -a build/libsockpp.{dylib,*.dylib} ../../third-party/runtime-libs/macos/x64/
+cp -r include/sockpp ${PPUC_SOURCE_ROOT}/third-party/include/
+cp -a build/libsockpp.{dylib,*.dylib} ${PPUC_SOURCE_ROOT}/third-party/runtime-libs/macos/x64/
 cd ..
