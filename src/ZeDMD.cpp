@@ -731,12 +731,10 @@ bool ZeDMD::Open(uint16_t width, uint16_t height)
 
 bool ZeDMD::OpenSpi(uint32_t speed, uint8_t framePause, uint16_t width, uint16_t height)
 {
-  uint16_t realHeight = height == 16 ? 32 : height; // 128x16 is rendered as 128x32
-
   m_pZeDMDSpi->SetSpeed(speed);
   m_pZeDMDSpi->SetFramePause(framePause);
   m_pZeDMDSpi->SetWidth(width);
-  m_pZeDMDSpi->SetHeight(realHeight);
+  m_pZeDMDSpi->SetHeight(height);
 
   m_spi = m_pZeDMDSpi->Connect();
 
@@ -747,7 +745,7 @@ bool ZeDMD::OpenSpi(uint32_t speed, uint8_t framePause, uint16_t width, uint16_t
 
     m_pFrameBuffer = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
     m_pScaledFrameBuffer = (uint8_t*)malloc(ZEDMD_MAX_WIDTH * ZEDMD_MAX_HEIGHT * 3);
-    m_pRgb565Buffer = (uint8_t*)malloc(width * realHeight * 2);
+    m_pRgb565Buffer = (uint8_t*)malloc(width * height * 2);
 
     m_pZeDMDSpi->Run();
   }
