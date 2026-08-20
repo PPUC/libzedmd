@@ -81,16 +81,19 @@ typedef enum
   SetYOffset = 0x30,
   SetLineDecoder = 0x31,
 
-  SetSpeakerLightsBlackThreshold = 100,
-  SetSpeakerLightsGammaFactor = 101,
-  SetSpeakerLightsLeftNumLeds = 102,
-  SetSpeakerLightsLeftLedType = 103,
-  SetSpeakerLightsLeftMode = 104,
-  SetSpeakerLightsLeftColor = 105,
-  SetSpeakerLightsRightNumLeds = 106,
-  SetSpeakerLightsRightLedType = 107,
-  SetSpeakerLightsRightMode = 108,
-  SetSpeakerLightsRightColor = 109,
+  // Host triggered light effect on an addressable LED channel (PPUCDMD).
+  // Payload, 20 bytes big endian:
+  //   [0]     channel, or 0xff to target every channel at once
+  //   [1]     flags, bit 0 = store as this channel's default effect
+  //   [2..3]  duration in milliseconds, 0 = endless
+  //   [4]     mode, a raw WS2812FX FX_MODE_* value
+  //   [5..6]  speed, WS2812FX native
+  //   [7]     options, REVERSE / FADE_* / GAMMA / SIZE_*
+  //   [8..19] three RGBW colors
+  // Re-sending the effect that is already running only refreshes its timer.
+  // Replaces the never implemented SetSpeakerLights* block, which assumed a
+  // left/right model the firmware does not have.
+  SetLightEffect = 100,
 
   RGB888ZonesStream = 0x04,
   RGB565ZonesStream = 0x05,

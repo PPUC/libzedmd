@@ -471,6 +471,86 @@ void ZeDMD::SetBrightness(uint8_t brightness)
   }
 }
 
+bool ZeDMD::OpenLightEffectChannel(const char* device)
+{
+  if (!m_spi)
+  {
+    // Light effects only exist on a PPUCDMD, where SPI carries the frames and a
+    // separate UART carries control. With frames on USB or WiFi the device has
+    // no addressable LED channels and no second channel to reach them on.
+    m_pZeDMDComm->Log("ZeDMD::OpenLightEffectChannel requires frames on SPI, ignoring");
+    return false;
+  }
+
+  if (m_lightEffectChannel) return true;
+
+  // The device is mandatory: ZeDMDComm::Connect() only scans when no device is
+  // set, and on a PPUC machine that scan would reach /dev/ttyAMA0, which
+  // carries the RS485 bus for the IO boards. Probing opens it read/write, sets
+  // it to 921600 8N1 and writes handshake bytes onto a live bus. Never scan
+  // from here.
+  if (!device || 0 == *device)
+  {
+    m_pZeDMDComm->Log("ZeDMD::OpenLightEffectChannel requires an explicit device, refusing to scan");
+    return false;
+  }
+
+  m_pZeDMDComm->SetDevice(device);
+  m_lightEffectChannel = m_pZeDMDComm->Connect();
+
+  if (m_lightEffectChannel)
+  {
+    // Commands only. This channel never carries frames, the SPI link does.
+    m_pZeDMDComm->Run();
+    m_pZeDMDComm->Log("ZeDMD::OpenLightEffectChannel opened");
+  }
+  else
+  {
+    m_pZeDMDComm->Log("ZeDMD::OpenLightEffectChannel could not connect");
+  }
+
+  return m_lightEffectChannel;
+}
+
+bool ZeDMD::IsLightEffectChannelOpen() const { return m_lightEffectChannel; }
+
+void ZeDMD::SetLightEffect(uint8_t channel, uint8_t mode, uint16_t speed, uint8_t options,
+                           const uint32_t colors[3], uint16_t durationMs, bool isDefault)
+{
+  // Deliberately not GetActiveZeDMD(): that is the SPI transport carrying the
+  // frames, which is a one way stream with no framing for commands and drops
+  // everything except ClearScreen. Light effects go over the UART instead.
+  if (!m_lightEffectChannel)
+  {
+    m_pZeDMDComm->Log("ZeDMD::SetLightEffect ignored, call OpenLightEffectChannel() first");
+    return;
+  }
+
+  if (m_verbose)
+    m_pZeDMDComm->Log("ZeDMD::SetLightEffect channel=%d mode=%d speed=%d duration=%d default=%d", channel, mode, speed,
+                      durationMs, isDefault ? 1 : 0);
+
+  uint8_t payload[20];
+  payload[0] = channel;
+  payload[1] = isDefault ? 0x01 : 0x00;
+  payload[2] = (uint8_t)(durationMs >> 8);
+  payload[3] = (uint8_t)(durationMs & 0xff);
+  payload[4] = mode;
+  payload[5] = (uint8_t)(speed >> 8);
+  payload[6] = (uint8_t)(speed & 0xff);
+  payload[7] = options;
+  for (uint8_t i = 0; i < 3; i++)
+  {
+    const uint32_t color = colors ? colors[i] : 0;
+    payload[8 + (i * 4)] = (uint8_t)((color >> 24) & 0xff);
+    payload[9 + (i * 4)] = (uint8_t)((color >> 16) & 0xff);
+    payload[10 + (i * 4)] = (uint8_t)((color >> 8) & 0xff);
+    payload[11 + (i * 4)] = (uint8_t)(color & 0xff);
+  }
+
+  m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetLightEffect, payload, sizeof(payload));
+}
+
 void ZeDMD::SetPanelClockPhase(uint8_t clockPhase)
 {
   ZeDMDComm* pActive = GetActiveZeDMD();

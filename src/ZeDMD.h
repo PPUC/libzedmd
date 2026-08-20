@@ -607,6 +607,76 @@ class ZEDMDAPI ZeDMD
    */
   void SaveSettings();
 
+  /** @brief Trigger a light effect on an addressable LED channel
+   *
+   *  Switches the running WS2812FX effect on one of the DMD's addressable LED
+   *  channels. The stripe configuration itself, number of LEDs and RGB/RGBW,
+   *  is set in the DMD's own menu and cannot be changed from here.
+   *
+   *  An effect either runs until the next one is sent (duration 0), or for
+   *  duration milliseconds, after which the channel returns to its default
+   *  effect. Marking an effect as the default stores it and runs it endlessly;
+   *  duration is ignored in that case.
+   *
+   *  Re-sending the effect that is already running refreshes its timer without
+   *  restarting the animation, so a repeatedly triggered event extends smoothly.
+   *
+   *  Pass LIGHT_EFFECT_ALL_CHANNELS as the channel to target every channel at
+   *  once. Each channel is still evaluated independently, so one that is
+   *  already running this effect keeps running it uninterrupted.
+   *
+   *  Requires a firmware with the UART control channel (PPUCDMD). The SPI
+   *  transport carries frames only and ignores this command.
+   *
+   *  @param channel the addressable LED channel, 0 based, or LIGHT_EFFECT_ALL_CHANNELS
+   *  @param mode a raw WS2812FX FX_MODE_* value, must be below the firmware's mode count
+   *  @param speed WS2812FX native speed
+   *  @param options WS2812FX segment options, REVERSE / FADE_* / GAMMA / SIZE_*
+   *  @param colors three RGBW colors
+   *  @param durationMs run time in milliseconds, 0 means endless
+   *  @param isDefault store this effect as the channel's default
+   */
+  static constexpr uint8_t LIGHT_EFFECT_ALL_CHANNELS = 0xff;
+
+  /** @brief Open the UART control channel used for light effects
+   *
+   *  On a PPUCDMD the SPI link carries frames only: it is a one way DMA stream
+   *  with no framing for commands, so ZeDMDSpi drops everything except
+   *  ClearScreen. Light effects therefore travel over a second, independent
+   *  serial connection to the same device.
+   *
+   *  Call this after OpenSpi(). It fails if frames are not on SPI, because
+   *  that is the only configuration where a DMD with addressable LED channels
+   *  and a separate control UART exists.
+   *
+   *  The device is mandatory and this call never scans the available ports.
+   *  On a PPUC machine /dev/ttyAMA0 carries the RS485 bus that drives the IO
+   *  boards: probing it would open it read/write, reconfigure its baud rate and
+   *  write handshake bytes onto a live bus. If you use the scanning form of
+   *  Open() anywhere on such a machine, exclude that port with IgnoreDevice().
+   *
+   *  @param device the serial device, required. On a Raspberry Pi 4 family
+   *                board wired on GPIO 12/13 this is UART5, which needs
+   *                dtoverlay=uart5 and is NOT /dev/ttyAMA0 (the primary UART on
+   *                GPIO 14/15, and the RS485 bus on a PPUC machine); check
+   *                ls -l /dev/serial* /dev/ttyAMA* for the real node.
+   *  @return true if the control channel is open
+   *
+   *  @see OpenSpi()
+   *  @see SetLightEffect()
+   *  @see IgnoreDevice()
+   */
+  bool OpenLightEffectChannel(const char* device);
+
+  /** @brief Whether the light effect control channel is open
+   *
+   *  @see OpenLightEffectChannel()
+   */
+  bool IsLightEffectChannelOpen() const;
+
+  void SetLightEffect(uint8_t channel, uint8_t mode, uint16_t speed, uint8_t options,
+                      const uint32_t colors[3], uint16_t durationMs = 0, bool isDefault = false);
+
   /** @brief Enable upscaling on the client side
    *
    *  If enabled, the content will centered and scaled up to
@@ -676,6 +746,8 @@ class ZEDMDAPI ZeDMD
   bool m_usb = false;
   bool m_wifi = false;
   bool m_spi = false;
+  // Separate UART control channel, only used alongside SPI frames (PPUCDMD).
+  bool m_lightEffectChannel = false;
   bool m_hd = false;
   bool m_upscaling = false;
   bool m_rgb888 = false;
