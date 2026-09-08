@@ -1001,7 +1001,14 @@ int ZeDMD::Scale888(uint8_t* pScaledFrame, uint8_t* pFrame, uint8_t bytes)
   }
   else if (scale == 2)
   {
-    FrameUtil::Helper::ScaleUp(pScaledFrame, pFrame, m_romWidth, m_romHeight, bits);
+    // Scale2xPreserve rather than reference Scale2x: reference Scale2x rounds a
+    // convex corner by taking a neighbour, and where that neighbour is empty the
+    // source pixel is lost. DMD content is mostly text, often only five pixels
+    // tall, where that erosion makes letters like S, R and C unreadable. The
+    // preserve variant keeps the centre in exactly that case, so nothing the
+    // source lit is dropped; on artwork it changes well under 1% of pixels.
+    FrameUtil::Helper::ScaleUpBy(FrameUtil::ScalingAlgorithm::Scale2xPreserve, pScaledFrame, pFrame, m_romWidth,
+                                 m_romHeight, bits);
     if (frameWidth > (m_romWidth * 2) || frameHeight > (m_romHeight * 2))
     {
       uint8_t* pUncenteredFrame = (uint8_t*)malloc(bufferSize);
