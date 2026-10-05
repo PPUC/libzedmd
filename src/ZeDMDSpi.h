@@ -18,7 +18,7 @@
 #endif
 
 #define GPIO_CHIP "/dev/gpiochip0"
-#define SPI_DEVICE "/dev/spidev1.0"
+#define SPI_DEVICE "/dev/spidev0.0"
 #else
 // Forward declarations so non-Linux builds can compile the stub implementation.
 struct gpiod_chip;
