@@ -13,6 +13,8 @@
 #include <inttypes.h>
 #include <stdarg.h>
 
+#include <atomic>
+#include <condition_variable>
 #include <cstdio>
 #include <cstring>
 #include <mutex>
@@ -341,6 +343,10 @@ class ZeDMDComm
   std::queue<ZeDMDFrame> m_frames;
   std::thread* m_pThread;
   std::mutex m_frameQueueMutex;
+  // Wakes the run thread when a frame is queued or the connection stops.
+  std::condition_variable m_frameQueueCv;
+  // Set while the run thread streams a frame it already took off the queue.
+  std::atomic<bool> m_frameInFlight{false};
   ZeDMDFrame m_delayedFrame = {0};
   std::mutex m_delayedFrameMutex;
   bool m_delayedFrameReady = false;

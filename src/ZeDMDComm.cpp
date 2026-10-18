@@ -39,6 +39,7 @@ ZeDMDComm::~ZeDMDComm()
       (int)IsConnected(), (int)IsQueueEmpty(), (int)m_delayedFrameReady);
 
   m_stopFlag.store(true, std::memory_order_release);
+  m_frameQueueCv.notify_all();
   Disconnect();
 
   if (m_pThread)
@@ -91,7 +92,7 @@ void ZeDMDComm::Run()
         {
           while (IsConnected() && !m_stopFlag.load(std::memory_order_relaxed))
           {
-            m_frameQueueMutex.lock();
+            std::unique_lock<std::mutex> lock(m_frameQueueMutex);
 
             if (m_frames.empty())
             {
@@ -103,28 +104,47 @@ void ZeDMDComm::Run()
                 m_frames.push(std::move(m_delayedFrame));
                 m_delayedFrameReady = false;
                 m_delayedFrameMutex.unlock();
-                m_frameQueueMutex.unlock();
 
                 continue;
               }
               m_delayedFrameMutex.unlock();
-              m_frameQueueMutex.unlock();
 
+              lock.unlock();
               KeepAlive();
-              std::this_thread::sleep_for(std::chrono::microseconds(10));
+              lock.lock();
+
+              // Sleep until a frame arrives instead of polling. The timeout keeps the keep alive and the connection
+              // check running.
+              m_frameQueueCv.wait_for(lock, std::chrono::milliseconds(50),
+                                      [this]()
+                                      {
+                                        if (m_stopFlag.load(std::memory_order_relaxed) || !m_frames.empty())
+                                          return true;
+                                        std::lock_guard<std::mutex> delayedLock(m_delayedFrameMutex);
+                                        return m_delayedFrameReady;
+                                      });
 
               continue;
             }
 
-            if (m_frames.front().data.empty())
+            ZeDMDFrame frame = std::move(m_frames.front());
+            m_frames.pop();
+            m_frameInFlight.store(true, std::memory_order_release);
+
+            // Zone streams are deltas that must not be dropped, so holding the lock while sending keeps producers in
+            // step with the link. Full frames get replaced by newer ones in QueueFrame(), so don't block producers
+            // while a frame is on the wire.
+            if (!m_zoneStream) lock.unlock();
+
+            if (frame.data.empty())
             {
               // In case of a simple command, add metadata to indicate that the payload data size is 0.
-              m_frames.front().data.emplace_back(nullptr, 0);
+              frame.data.emplace_back(nullptr, 0);
             }
-            bool success = StreamBytes(&(m_frames.front()));
-            m_frames.pop();
+            bool success = StreamBytes(&frame);
 
-            m_frameQueueMutex.unlock();
+            m_frameInFlight.store(false, std::memory_order_release);
+            if (lock.owns_lock()) lock.unlock();
 
             if (!success)
             {
@@ -196,6 +216,7 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size)
   m_frameQueueMutex.lock();
   m_frames.push(std::move(frame));
   m_frameQueueMutex.unlock();
+  m_frameQueueCv.notify_one();
 
   // Next streaming needs to be complete, except black zones.
   memset(m_zoneHashes, ZEDMD_COMM_COMMAND::ClearScreen == command ? 1 : 0, sizeof(m_zoneHashes));
@@ -216,8 +237,19 @@ void ZeDMDComm::QueueFrame(uint8_t* data, int size, bool rgb888)
     if (m_verbose) Log("libzedmd queuing command %02X", frame.command);
 
     m_frameQueueMutex.lock();
-    m_frames.push(std::move(frame));
+    // A full frame supersedes a full frame that is still waiting, so only the newest one goes out. This keeps the
+    // latency at one frame on the wire, even if frames arrive faster than the link can send them.
+    if (!m_frames.empty() && (m_frames.back().command == ZEDMD_COMM_COMMAND::RGB565Stream ||
+                              m_frames.back().command == ZEDMD_COMM_COMMAND::RGB888Stream))
+    {
+      m_frames.back() = std::move(frame);
+    }
+    else
+    {
+      m_frames.push(std::move(frame));
+    }
     m_frameQueueMutex.unlock();
+    m_frameQueueCv.notify_one();
 
     return;
   }
@@ -244,6 +276,7 @@ void ZeDMDComm::QueueFrame(uint8_t* data, int size, bool rgb888)
     m_frameQueueMutex.lock();
     m_frames.push(std::move(frame));
     m_frameQueueMutex.unlock();
+    m_frameQueueCv.notify_one();
 
     // Use "1" as hash for black.
     memset(m_zoneHashes, 1, sizeof(m_zoneHashes));
@@ -333,6 +366,7 @@ void ZeDMDComm::QueueFrame(uint8_t* data, int size, bool rgb888)
     m_frames.push(std::move(frame));
     m_frameQueueMutex.unlock();
   }
+  m_frameQueueCv.notify_one();
 }
 
 bool ZeDMDComm::FillDelayed()
@@ -350,7 +384,8 @@ bool ZeDMDComm::FillDelayed()
 bool ZeDMDComm::IsQueueEmpty()
 {
   m_frameQueueMutex.lock();
-  bool empty = m_frames.empty();
+  // A frame taken off the queue counts until it is sent, so Flush() waits for it.
+  bool empty = m_frames.empty() && !m_frameInFlight.load(std::memory_order_acquire);
   m_frameQueueMutex.unlock();
   return empty;
 }
