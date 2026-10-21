@@ -674,8 +674,23 @@ class ZEDMDAPI ZeDMD
    */
   bool IsLightEffectChannelOpen() const;
 
-  void SetLightEffect(uint8_t channel, uint8_t mode, uint16_t speed, uint8_t options,
-                      const uint32_t colors[3], uint16_t durationMs = 0, bool isDefault = false);
+  /** @brief Start a light effect on an addressable LED channel
+   *
+   *  Queued on the light effect channel; the frames on SPI never wait for it.
+   *
+   *  @param brightness a scale of the brightness set on the device, 255 keeps it
+   */
+  void SetLightEffect(uint8_t channel, uint8_t mode, uint16_t speed, uint8_t options, const uint32_t colors[3],
+                      uint16_t durationMs = 0, bool isDefault = false, uint8_t brightness = 255);
+
+  /** @brief Return a channel to the device's own light setting
+   *
+   *  Drops the effect and the default the host set, so the channel shows what
+   *  the device's menu sets up again.
+   *
+   *  @param channel the channel, or LIGHT_EFFECT_ALL_CHANNELS
+   */
+  void ResetLightEffect(uint8_t channel = LIGHT_EFFECT_ALL_CHANNELS);
 
   /** @brief Enable upscaling on the client side
    *

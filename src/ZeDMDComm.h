@@ -85,14 +85,20 @@ typedef enum
   SetLineDecoder = 0x31,
 
   // Host triggered light effect on an addressable LED channel (PPUCDMD).
-  // Payload, 20 bytes big endian:
+  // Payload, 21 bytes big endian:
   //   [0]     channel, or 0xff to target every channel at once
-  //   [1]     flags, bit 0 = store as this channel's default effect
-  //   [2..3]  duration in milliseconds, 0 = endless
+  //   [1]     flags, bit 0 = store as this channel's default effect (until the
+  //           device restarts or bit 1 comes), bit 1 = drop the host's effect
+  //           and default and return to the device's own (menu) setting; the
+  //           other bytes are then ignored
+  //   [2..3]  duration in milliseconds, 0 = endless; after it the channel
+  //           plays its default effect
   //   [4]     mode, a raw WS2812FX FX_MODE_* value
   //   [5..6]  speed, WS2812FX native
   //   [7]     options, REVERSE / FADE_* / GAMMA / SIZE_*
-  //   [8..19] three RGBW colors
+  //   [8..19] three colors, 0xWWRRGGBB each
+  //   [20]    brightness, a scale of the brightness set on the device (255:
+  //           as set there); a 20 byte payload means 255
   // Re-sending the effect that is already running only refreshes its timer.
   // Replaces the never implemented SetSpeakerLights* block, which assumed a
   // left/right model the firmware does not have.

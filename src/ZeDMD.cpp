@@ -514,8 +514,8 @@ bool ZeDMD::OpenLightEffectChannel(const char* device)
 
 bool ZeDMD::IsLightEffectChannelOpen() const { return m_lightEffectChannel; }
 
-void ZeDMD::SetLightEffect(uint8_t channel, uint8_t mode, uint16_t speed, uint8_t options,
-                           const uint32_t colors[3], uint16_t durationMs, bool isDefault)
+void ZeDMD::SetLightEffect(uint8_t channel, uint8_t mode, uint16_t speed, uint8_t options, const uint32_t colors[3],
+                           uint16_t durationMs, bool isDefault, uint8_t brightness)
 {
   // Deliberately not GetActiveZeDMD(): that is the SPI transport carrying the
   // frames, which is a one way stream with no framing for commands and drops
@@ -530,7 +530,7 @@ void ZeDMD::SetLightEffect(uint8_t channel, uint8_t mode, uint16_t speed, uint8_
     m_pZeDMDComm->Log("ZeDMD::SetLightEffect channel=%d mode=%d speed=%d duration=%d default=%d", channel, mode, speed,
                       durationMs, isDefault ? 1 : 0);
 
-  uint8_t payload[20];
+  uint8_t payload[21];
   payload[0] = channel;
   payload[1] = isDefault ? 0x01 : 0x00;
   payload[2] = (uint8_t)(durationMs >> 8);
@@ -547,6 +547,23 @@ void ZeDMD::SetLightEffect(uint8_t channel, uint8_t mode, uint16_t speed, uint8_
     payload[10 + (i * 4)] = (uint8_t)((color >> 8) & 0xff);
     payload[11 + (i * 4)] = (uint8_t)(color & 0xff);
   }
+  payload[20] = brightness;
+
+  m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetLightEffect, payload, sizeof(payload));
+}
+
+void ZeDMD::ResetLightEffect(uint8_t channel)
+{
+  if (!m_lightEffectChannel)
+  {
+    m_pZeDMDComm->Log("ZeDMD::ResetLightEffect ignored, call OpenLightEffectChannel() first");
+    return;
+  }
+
+  uint8_t payload[21] = {0};
+  payload[0] = channel;
+  payload[1] = 0x02;
+  payload[20] = 255;
 
   m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetLightEffect, payload, sizeof(payload));
 }
