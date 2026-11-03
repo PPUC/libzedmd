@@ -4,6 +4,8 @@
  *  Connecting ZeDMD devices.
  */
 #pragma once
+#include "ZeDMDLightPacket.h"
+#include <mutex>
 
 #define ZEDMD_VERSION_MAJOR 0   // X Digits
 #define ZEDMD_VERSION_MINOR 11  // Max 2 Digits
@@ -625,8 +627,8 @@ class ZEDMDAPI ZeDMD
    *  once. Each channel is still evaluated independently, so one that is
    *  already running this effect keeps running it uninterrupted.
    *
-   *  Requires a firmware with the UART control channel (PPUCDMD). The SPI
-   *  transport carries frames only and ignores this command.
+   *  Requires firmware with version-1 SPI effect trailers (PPUCDMD). The SPI
+   *  trailer carries these changes with the next submitted frame.
    *
    *  @param channel the addressable LED channel, 0 based, or LIGHT_EFFECT_ALL_CHANNELS
    *  @param mode a raw WS2812FX FX_MODE_* value, must be below the firmware's mode count
@@ -638,35 +640,12 @@ class ZEDMDAPI ZeDMD
    */
   static constexpr uint8_t LIGHT_EFFECT_ALL_CHANNELS = 0xff;
 
-  /** @brief Open the UART control channel used for light effects
+  /** @brief Query the SPI channel used for light effects
    *
-   *  On a PPUCDMD the SPI link carries frames only: it is a one way DMA stream
-   *  with no framing for commands, so ZeDMDSpi drops everything except
-   *  ClearScreen. Light effects therefore travel over a second, independent
-   *  serial connection to the same device.
-   *
-   *  Call this after OpenSpi(). It fails if frames are not on SPI, because
-   *  that is the only configuration where a DMD with addressable LED channels
-   *  and a separate control UART exists.
-   *
-   *  The device is mandatory and this call never scans the available ports.
-   *  On a PPUC machine /dev/ttyAMA0 carries the RS485 bus that drives the IO
-   *  boards: probing it would open it read/write, reconfigure its baud rate and
-   *  write handshake bytes onto a live bus. If you use the scanning form of
-   *  Open() anywhere on such a machine, exclude that port with IgnoreDevice().
-   *
-   *  @param device the serial device, required. On a Raspberry Pi 4 family
-   *                board wired on GPIO 12/13 this is UART5, which needs
-   *                dtoverlay=uart5 and is NOT /dev/ttyAMA0 (the primary UART on
-   *                GPIO 14/15, and the RS485 bus on a PPUC machine); check
-   *                ls -l /dev/serial* /dev/ttyAMA* for the real node.
-   *  @return true if the control channel is open
-   *
-   *  @see OpenSpi()
-   *  @see SetLightEffect()
-   *  @see IgnoreDevice()
+   *  Compatibility query for the SPI light channel. The device argument is ignored.
+   *  SPI frames always carry a fixed effect trailer; no UART is opened.
    */
-  bool OpenLightEffectChannel(const char* device);
+  bool OpenLightEffectChannel(const char* device = nullptr);
 
   /** @brief Whether the light effect control channel is open
    *
@@ -730,6 +709,7 @@ class ZEDMDAPI ZeDMD
    *  @param frame the RGB frame
    */
   void RenderRgb888(uint8_t* frame);
+  void RenderRgb888(uint8_t* frame, const ZeDMDLightPacket& effects);
 
   /** @brief Render a RGB565 frame
    *
@@ -738,6 +718,7 @@ class ZEDMDAPI ZeDMD
    *  @param frame the RGB565 frame
    */
   void RenderRgb565(uint16_t* frame);
+  void RenderRgb565(uint16_t* frame, const ZeDMDLightPacket& effects);
 
  private:
   bool UpdateFrameBuffer888(uint8_t* pFrame);
@@ -761,8 +742,10 @@ class ZEDMDAPI ZeDMD
   bool m_usb = false;
   bool m_wifi = false;
   bool m_spi = false;
-  // Separate UART control channel, only used alongside SPI frames (PPUCDMD).
-  bool m_lightEffectChannel = false;
+  // Pending changes collected for the next SPI frame trailer.
+  std::mutex m_lightMutex;
+  ZeDMDLightPacket m_pendingLights;
+  void QueueSpiFrame(uint8_t* frame, int size, const ZeDMDLightPacket& effects);
   bool m_hd = false;
   bool m_upscaling = false;
   bool m_rgb888 = false;

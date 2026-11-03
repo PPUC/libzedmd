@@ -63,6 +63,10 @@ bool ZeDMDSpi::Connect()
     return false;
   }
 
+  if (GetSpiKernelBufSize() < uint32_t(m_width) * m_height * 2 + ZeDMDLightPacket::Size + 128) {
+    Log("ZeDMDSpi: frame plus effect trailer requires spidev.bufsiz=65536; refusing to start");
+    return false;
+  }
   if (m_connected)
   {
     return true;
@@ -237,98 +241,49 @@ void ZeDMDSpi::QueueCommand(char command, uint8_t* buffer, int size)
   }
 }
 
-bool ZeDMDSpi::SendChunks(const uint8_t* pData, uint16_t size)
+bool ZeDMDSpi::SendChunks(const uint8_t* data, uint16_t size) { return Transfer(data, size, nullptr); }
+
+bool ZeDMDSpi::SendFrameWithEffects(const uint8_t* data, uint16_t size, const uint8_t* effects)
 {
-  if (!m_connected || m_fileDescriptor < 0)
-  {
-    Log("ZeDMDSpi: device not connected");
-    return false;
-  }
+  return Transfer(data, size, effects);
+}
 
+bool ZeDMDSpi::Transfer(const uint8_t* data, uint16_t size, const uint8_t* effects)
+{
+  if (!m_connected || m_fileDescriptor < 0) return false;
+  const uint32_t limit = GetSpiKernelBufSize();
+  std::vector<spi_ioc_transfer> transfers;
   uint32_t remaining = size;
-  uint8_t* cursor = (uint8_t*)pData;
-
-  std::this_thread::sleep_for(std::chrono::microseconds(10));
-  const uint32_t spi_kernel_bufsize = GetSpiKernelBufSize();
-
-  if (remaining <= spi_kernel_bufsize)
-  {
-    struct spi_ioc_transfer transfer;
-    memset(&transfer, 0, sizeof(transfer));
-    transfer.tx_buf = reinterpret_cast<__u64>(cursor);
-    transfer.len = remaining;
+  while (remaining) {
+    spi_ioc_transfer transfer{};
+    transfer.tx_buf = reinterpret_cast<__u64>(data);
+    transfer.len = std::min<uint32_t>(remaining, limit);
     transfer.speed_hz = m_speed;
     transfer.bits_per_word = kSpiBitsPerWord;
-    transfer.cs_change = 0;
-
-    int res = ioctl(m_fileDescriptor, SPI_IOC_MESSAGE(1), &transfer);
-    if (res < 0)
-    {
-      Log("ZeDMDSpi: SPI write failed: %s", strerror(errno));
-      std::this_thread::sleep_for(std::chrono::microseconds(100));
-      return false;
-    }
-
-    const uint32_t bytesTransferred = static_cast<uint32_t>(res);
-    if (bytesTransferred != remaining)
-    {
-      Log("ZeDMDSpi: partial SPI write (%u/%u bytes)", bytesTransferred, remaining);
-      std::this_thread::sleep_for(std::chrono::microseconds(100));
-      return false;
-    }
-
-    if (m_verbose) Log("SendChunks, transferred %d, remaining %d", bytesTransferred, 0);
+    data += transfer.len;
+    remaining -= transfer.len;
+    transfers.push_back(transfer);
   }
-  else
-  {
-    std::vector<spi_ioc_transfer> transfers;
-    transfers.reserve((remaining + spi_kernel_bufsize - 1) / spi_kernel_bufsize);
-
-    while (remaining > 0)
-    {
-      uint32_t chunkSize = std::min<uint32_t>(remaining, spi_kernel_bufsize);
-      struct spi_ioc_transfer transfer;
-      memset(&transfer, 0, sizeof(transfer));
-      transfer.tx_buf = reinterpret_cast<__u64>(cursor);
-      transfer.len = chunkSize;
-      transfer.speed_hz = m_speed;
-      transfer.bits_per_word = kSpiBitsPerWord;
-      transfer.cs_change = 0;
-      transfers.push_back(transfer);
-
-      cursor += chunkSize;
-      remaining -= chunkSize;
-    }
-
-    int res = ioctl(m_fileDescriptor, SPI_IOC_MESSAGE(transfers.size()), transfers.data());
-    if (res < 0)
-    {
-      Log("ZeDMDSpi: SPI write failed: %s", strerror(errno));
-      std::this_thread::sleep_for(std::chrono::microseconds(100));
-      return false;
-    }
-
-    const uint32_t bytesTransferred = static_cast<uint32_t>(res);
-    const uint32_t expected = size;
-    if (bytesTransferred != expected)
-    {
-      Log("ZeDMDSpi: partial SPI write (%u/%u bytes)", bytesTransferred, expected);
-      std::this_thread::sleep_for(std::chrono::microseconds(100));
-      return false;
-    }
-
-    if (m_verbose) Log("SendChunks, transferred %d, remaining %d", bytesTransferred, 0);
+  if (effects) {
+    // The PIO receiver switches from frame DMA to effect DMA in its IRQ.
+    transfers.back().delay_usecs = 50;
+    spi_ioc_transfer transfer{};
+    transfer.tx_buf = reinterpret_cast<__u64>(effects);
+    transfer.len = ZeDMDLightPacket::Size;
+    transfer.speed_hz = m_speed;
+    transfer.bits_per_word = kSpiBitsPerWord;
+    transfers.push_back(transfer);
   }
-
-  if (m_framePause > 0)
-  {
-    std::this_thread::sleep_for(std::chrono::milliseconds(m_framePause));
+  const int expected = size + (effects ? ZeDMDLightPacket::Size : 0);
+  const int result = ioctl(m_fileDescriptor, SPI_IOC_MESSAGE(transfers.size()), transfers.data());
+  if (result != expected) {
+    Log("ZeDMDSpi: incomplete frame/effects transfer: %d/%d (%s)", result, expected, strerror(errno));
+    std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    return false;
   }
-  else
-  {
-    std::this_thread::sleep_for(std::chrono::microseconds(100));
-  }
-
+  // Allow trailer validation and rearming before the next frame.
+  if (m_framePause) std::this_thread::sleep_for(std::chrono::milliseconds(m_framePause));
+  else std::this_thread::sleep_for(std::chrono::microseconds(100));
   return true;
 }
 
@@ -351,5 +306,6 @@ void ZeDMDSpi::Reset() {}
 void ZeDMDSpi::QueueCommand(char command, uint8_t* buffer, int size) { ZeDMDComm::QueueCommand(command, buffer, size); }
 
 bool ZeDMDSpi::SendChunks(const uint8_t*, uint16_t) { return false; }
+bool ZeDMDSpi::SendFrameWithEffects(const uint8_t*, uint16_t, const uint8_t*) { return false; }
 
 #endif  // __linux__

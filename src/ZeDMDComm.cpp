@@ -129,6 +129,18 @@ void ZeDMDComm::Run()
 
             ZeDMDFrame frame = std::move(m_frames.front());
             m_frames.pop();
+            ZeDMDLightPacket effects;
+            bool hasEffects = false;
+            if (!m_zoneStream && !m_compression &&
+                frame.command == ZEDMD_COMM_COMMAND::RGB565Stream && !m_frames.empty() &&
+                m_frames.front().command == ZEDMD_COMM_COMMAND::SetLightEffect) {
+              const auto& trailer = m_frames.front().data.front();
+              if (trailer.size == ZeDMDLightPacket::Size) {
+                memcpy(effects.bytes, trailer.data, sizeof(effects.bytes));
+                m_frames.pop();
+                hasEffects = true;
+              }
+            }
             m_frameInFlight.store(true, std::memory_order_release);
 
             // Zone streams are deltas that must not be dropped, so holding the lock while sending keeps producers in
@@ -141,7 +153,7 @@ void ZeDMDComm::Run()
               // In case of a simple command, add metadata to indicate that the payload data size is 0.
               frame.data.emplace_back(nullptr, 0);
             }
-            bool success = StreamBytes(&frame);
+            bool success = StreamBytes(&frame, hasEffects ? effects.bytes : nullptr);
 
             m_frameInFlight.store(false, std::memory_order_release);
             if (lock.owns_lock()) lock.unlock();
@@ -225,6 +237,22 @@ void ZeDMDComm::QueueCommand(char command, uint8_t* data, int size)
 void ZeDMDComm::QueueCommand(char command, uint8_t value) { QueueCommand(command, &value, 1); }
 
 void ZeDMDComm::QueueCommand(char command) { QueueCommand(command, nullptr, 0); }
+
+void ZeDMDComm::QueueFrameWithEffects(uint8_t* data, int size, const ZeDMDLightPacket& effects)
+{
+  if (!IsConnected()) return;
+  ZeDMDLightPacket packet = effects;
+  packet.Seal();
+  ZeDMDFrame frame(ZEDMD_COMM_COMMAND::RGB565Stream, data, size);
+  ZeDMDFrame trailer(ZEDMD_COMM_COMMAND::SetLightEffect, packet.bytes, sizeof(packet.bytes));
+  {
+    std::lock_guard<std::mutex> lock(m_frameQueueMutex);
+    // Publish the complete pair. SPI never replaces one half of a pair.
+    m_frames.push(std::move(frame));
+    m_frames.push(std::move(trailer));
+  }
+  m_frameQueueCv.notify_one();
+}
 
 void ZeDMDComm::QueueFrame(uint8_t* data, int size) { QueueFrame(data, size, false); }
 
@@ -940,19 +968,22 @@ void ZeDMDComm::RebootToBootloader(bool reenableKeepAive)
   Flush(reenableKeepAive);
 }
 
-bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame)
+bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame, const uint8_t* effects)
 {
+  m_currentCommand = pFrame->command;
   if (!m_zoneStream && !m_compression)
   {
     // Direct stream without compression and zones.
-    if (pFrame->command == ZEDMD_COMM_COMMAND::RGB565Stream || pFrame->command == ZEDMD_COMM_COMMAND::RGB888Stream)
+    if (pFrame->command == ZEDMD_COMM_COMMAND::RGB565Stream || pFrame->command == ZEDMD_COMM_COMMAND::RGB888Stream ||
+        pFrame->command == ZEDMD_COMM_COMMAND::SetLightEffect)
     {
       for (auto it = pFrame->data.rbegin(); it != pFrame->data.rend(); ++it)
       {
         ZeDMDFrameData frameData = *it;
         if (m_verbose) Log("StreamBytes, command %02X, length %d", pFrame->command, frameData.size);
 
-        if (!SendChunks(frameData.data, frameData.size))
+        if (!(effects ? SendFrameWithEffects(frameData.data, frameData.size, effects)
+                      : SendChunks(frameData.data, frameData.size)))
         {
           Log("StreamBytes failed");
           return false;

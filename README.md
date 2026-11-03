@@ -116,3 +116,12 @@ platforms/android/arm64-v8a/external.sh
 cmake -DPLATFORM=android -DARCH=arm64-v8a -DCMAKE_BUILD_TYPE=Release -B build
 cmake --build build
 ```
+
+## SPI light effects
+
+SPI uses a fixed 192-byte versioned effect trailer after every RGB565 frame.
+Update host and RP2350 firmware together and set `spidev.bufsiz=65536`.
+The frame/effects render overloads publish a complete pair; ordinary render
+calls send an empty trailer. `SetLightEffect`/`ResetLightEffect` collect changes
+for the next submitted frame. `OpenLightEffectChannel` is now a compatibility
+query and does not open a serial device. See `tests/README.md` for queue tests.

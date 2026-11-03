@@ -185,7 +185,7 @@ if(BUILD_SHARED)
    install(TARGETS zedmd_shared
       LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
    )
-   install(FILES src/ZeDMD.h DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
+   install(FILES src/ZeDMD.h src/ZeDMDLightPacket.h DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 
    if(PLATFORM STREQUAL "win" OR PLATFORM STREQUAL "win-mingw" OR PLATFORM STREQUAL "macos" OR PLATFORM STREQUAL "linux")
       add_executable(zedmd-test
@@ -243,7 +243,7 @@ if(BUILD_STATIC)
    install(TARGETS zedmd_static
       LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
    )
-   install(FILES src/ZeDMD.h DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
+   install(FILES src/ZeDMD.h src/ZeDMDLightPacket.h DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 
    if(PLATFORM STREQUAL "win" OR PLATFORM STREQUAL "win-mingw" OR PLATFORM STREQUAL "macos" OR PLATFORM STREQUAL "linux")
       add_executable(zedmd-test-portable

@@ -471,58 +471,17 @@ void ZeDMD::SetBrightness(uint8_t brightness)
   }
 }
 
-bool ZeDMD::OpenLightEffectChannel(const char* device)
-{
-  if (!m_spi)
-  {
-    // Light effects only exist on a PPUCDMD, where SPI carries the frames and a
-    // separate UART carries control. With frames on USB or WiFi the device has
-    // no addressable LED channels and no second channel to reach them on.
-    m_pZeDMDComm->Log("ZeDMD::OpenLightEffectChannel requires frames on SPI, ignoring");
-    return false;
-  }
+bool ZeDMD::OpenLightEffectChannel(const char*) { return m_spi; }
 
-  if (m_lightEffectChannel) return true;
-
-  // The device is mandatory: ZeDMDComm::Connect() only scans when no device is
-  // set, and on a PPUC machine that scan would reach /dev/ttyAMA0, which
-  // carries the RS485 bus for the IO boards. Probing opens it read/write, sets
-  // it to 921600 8N1 and writes handshake bytes onto a live bus. Never scan
-  // from here.
-  if (!device || 0 == *device)
-  {
-    m_pZeDMDComm->Log("ZeDMD::OpenLightEffectChannel requires an explicit device, refusing to scan");
-    return false;
-  }
-
-  m_pZeDMDComm->SetDevice(device);
-  m_lightEffectChannel = m_pZeDMDComm->Connect();
-
-  if (m_lightEffectChannel)
-  {
-    // Commands only. This channel never carries frames, the SPI link does.
-    m_pZeDMDComm->Run();
-    m_pZeDMDComm->Log("ZeDMD::OpenLightEffectChannel opened");
-  }
-  else
-  {
-    m_pZeDMDComm->Log("ZeDMD::OpenLightEffectChannel could not connect");
-  }
-
-  return m_lightEffectChannel;
-}
-
-bool ZeDMD::IsLightEffectChannelOpen() const { return m_lightEffectChannel; }
+bool ZeDMD::IsLightEffectChannelOpen() const { return m_spi; }
 
 void ZeDMD::SetLightEffect(uint8_t channel, uint8_t mode, uint16_t speed, uint8_t options, const uint32_t colors[3],
                            uint16_t durationMs, bool isDefault, uint8_t brightness)
 {
-  // Deliberately not GetActiveZeDMD(): that is the SPI transport carrying the
-  // frames, which is a one way stream with no framing for commands and drops
-  // everything except ClearScreen. Light effects go over the UART instead.
-  if (!m_lightEffectChannel)
+  // Save changes for the next SPI frame trailer; never open or probe a UART.
+  if (!m_spi)
   {
-    m_pZeDMDComm->Log("ZeDMD::SetLightEffect ignored, call OpenLightEffectChannel() first");
+    m_pZeDMDComm->Log("ZeDMD::SetLightEffect ignored, SPI is not connected");
     return;
   }
 
@@ -549,14 +508,21 @@ void ZeDMD::SetLightEffect(uint8_t channel, uint8_t mode, uint16_t speed, uint8_
   }
   payload[20] = brightness;
 
-  m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetLightEffect, payload, sizeof(payload));
+  std::lock_guard<std::mutex> lock(m_lightMutex);
+  for (unsigned i = 0; i < 4; ++i) {
+    if (channel != 0xff && channel != i) continue;
+    const unsigned slot = i + ((payload[1] & 3) ? 0 : 4);
+    memcpy(m_pendingLights.bytes + 8 + 21*slot, payload, 21);
+    m_pendingLights.bytes[8 + 21*slot] = i;
+    m_pendingLights.bytes[5] |= 1u << slot;
+  }
 }
 
 void ZeDMD::ResetLightEffect(uint8_t channel)
 {
-  if (!m_lightEffectChannel)
+  if (!m_spi)
   {
-    m_pZeDMDComm->Log("ZeDMD::ResetLightEffect ignored, call OpenLightEffectChannel() first");
+    m_pZeDMDComm->Log("ZeDMD::ResetLightEffect ignored, SPI is not connected");
     return;
   }
 
@@ -565,7 +531,14 @@ void ZeDMD::ResetLightEffect(uint8_t channel)
   payload[1] = 0x02;
   payload[20] = 255;
 
-  m_pZeDMDComm->QueueCommand(ZEDMD_COMM_COMMAND::SetLightEffect, payload, sizeof(payload));
+  std::lock_guard<std::mutex> lock(m_lightMutex);
+  for (unsigned i = 0; i < 4; ++i) {
+    if (channel != 0xff && channel != i) continue;
+    const unsigned slot = i + ((payload[1] & 3) ? 0 : 4);
+    memcpy(m_pendingLights.bytes + 8 + 21*slot, payload, 21);
+    m_pendingLights.bytes[8 + 21*slot] = i;
+    m_pendingLights.bytes[5] |= 1u << slot;
+  }
 }
 
 void ZeDMD::SetPanelClockPhase(uint8_t clockPhase)
@@ -866,21 +839,38 @@ void ZeDMD::ClearScreen()
   }
 }
 
+void ZeDMD::QueueSpiFrame(uint8_t* frame, int size, const ZeDMDLightPacket& effects)
+{
+  std::lock_guard<std::mutex> lock(m_lightMutex);
+  ZeDMDLightPacket merged = m_pendingLights;
+  for (unsigned i = 0; i < 8; ++i)
+    if (effects.bytes[5] & (1u << i)) memcpy(merged.bytes + 8 + 21*i, effects.bytes + 8 + 21*i, 21);
+  merged.bytes[5] |= effects.bytes[5];
+  m_pZeDMDSpi->QueueFrameWithEffects(frame, size, merged);
+  m_pendingLights = ZeDMDLightPacket{};
+}
+
 void ZeDMD::EnableTrueRgb888(bool enable) { m_rgb888 = enable; }
 
-void ZeDMD::RenderRgb888(uint8_t* pFrame)
+void ZeDMD::RenderRgb888(uint8_t* pFrame) { RenderRgb888(pFrame, ZeDMDLightPacket{}); }
+
+void ZeDMD::RenderRgb888(uint8_t* pFrame, const ZeDMDLightPacket& effects)
 {
   ZeDMDComm* pActive = GetActiveZeDMD();
   if (m_verbose && pActive) pActive->Log("ZeDMD::RenderRgb888");
 
-  if (!pActive || !UpdateFrameBuffer888(pFrame))
+  if (!pActive) return;
+  bool pendingLights;
+  { std::lock_guard<std::mutex> lock(m_lightMutex); pendingLights = m_pendingLights.bytes[5] != 0; }
+  const bool changed = UpdateFrameBuffer888(pFrame);
+  if (!changed && !(m_spi && (effects.bytes[5] || pendingLights)))
   {
     return;
   }
 
   int bufferSize = Scale888(m_pScaledFrameBuffer, m_pFrameBuffer, 3);
 
-  if (m_rgb888)
+  if (m_rgb888 && !m_spi)
   {
     pActive->QueueFrame(m_pScaledFrameBuffer, bufferSize, true);
   }
@@ -896,23 +886,31 @@ void ZeDMD::RenderRgb888(uint8_t* pFrame)
       m_pRgb565Buffer[i * 2] = tmp & 0xFF;
     }
 
-    pActive->QueueFrame(m_pRgb565Buffer, rgb565Size * 2);
+    if (m_spi) QueueSpiFrame(m_pRgb565Buffer, rgb565Size * 2, effects);
+    else pActive->QueueFrame(m_pRgb565Buffer, rgb565Size * 2);
   }
 }
 
-void ZeDMD::RenderRgb565(uint16_t* pFrame)
+void ZeDMD::RenderRgb565(uint16_t* pFrame) { RenderRgb565(pFrame, ZeDMDLightPacket{}); }
+
+void ZeDMD::RenderRgb565(uint16_t* pFrame, const ZeDMDLightPacket& effects)
 {
   ZeDMDComm* pActive = GetActiveZeDMD();
   if (m_verbose && pActive) pActive->Log("ZeDMD::RenderRgb565");
 
-  if (!pActive || !UpdateFrameBuffer565(pFrame))
+  if (!pActive) return;
+  bool pendingLights;
+  { std::lock_guard<std::mutex> lock(m_lightMutex); pendingLights = m_pendingLights.bytes[5] != 0; }
+  const bool changed = UpdateFrameBuffer565(pFrame);
+  if (!changed && !(m_spi && (effects.bytes[5] || pendingLights)))
   {
     return;
   }
 
   int size = Scale565(m_pScaledFrameBuffer, pFrame, is_bigendian());
 
-  pActive->QueueFrame(m_pScaledFrameBuffer, size);
+  if (m_spi) QueueSpiFrame(m_pScaledFrameBuffer, size, effects);
+  else pActive->QueueFrame(m_pScaledFrameBuffer, size);
 }
 
 bool ZeDMD::UpdateFrameBuffer888(uint8_t* pFrame)

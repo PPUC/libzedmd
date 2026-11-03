@@ -1,4 +1,5 @@
 #pragma once
+#include "ZeDMDLightPacket.h"
 
 #if defined(__APPLE__)
 #include <TargetConditionals.h>
@@ -245,7 +246,8 @@ class ZeDMDComm
 
   void Run();
   void Flush(bool reenableKeepAive = true);
-  void QueueFrame(uint8_t* buffer, int size);
+  virtual void QueueFrame(uint8_t* buffer, int size);
+  void QueueFrameWithEffects(uint8_t* buffer, int size, const ZeDMDLightPacket& effects);
   void QueueFrame(uint8_t* buffer, int size, bool rgb888);
   virtual void QueueCommand(char command, uint8_t* buffer, int size);
   void QueueCommand(char command);
@@ -287,6 +289,9 @@ class ZeDMDComm
     m_instanceName[maxLen] = '\0';
   }
 
+  virtual bool SendFrameWithEffects(const uint8_t* data, uint16_t size, const uint8_t* effects) {
+    return SendChunks(data, size) && SendChunks(effects, ZeDMDLightPacket::Size);
+  }
   virtual bool SendChunks(const uint8_t* pData, uint16_t size);
   virtual void Reset();
   void ClearFrames();
@@ -330,7 +335,7 @@ class ZeDMDComm
  private:
   bool Connect(char* pName);
   bool Handshake(char* pDevice);
-  bool StreamBytes(ZeDMDFrame* pFrame);
+  bool StreamBytes(ZeDMDFrame* pFrame, const uint8_t* effects = nullptr);
   void KeepAlive();
 
   ZeDMD_LogCallback m_logCallback = nullptr;

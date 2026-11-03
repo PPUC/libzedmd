@@ -41,6 +41,7 @@ class ZeDMDSpi : public ZeDMDComm
   void Disconnect() override;
   bool IsConnected() override;
   using ZeDMDComm::QueueCommand;
+  void QueueFrame(uint8_t* buffer, int size) override { QueueFrameWithEffects(buffer, size, ZeDMDLightPacket{}); }
   void QueueCommand(char command, uint8_t* buffer, int size) override;
 
   void SetSpeed(uint32_t speed) { m_speed = speed; }
@@ -49,11 +50,13 @@ class ZeDMDSpi : public ZeDMDComm
   void SetHeight(uint16_t height) { m_height = height; }
 
  protected:
+  bool SendFrameWithEffects(const uint8_t* data, uint16_t size, const uint8_t* effects) override;
   bool SendChunks(const uint8_t* pData, uint16_t size) override;
   void Reset() override;
 
  private:
   bool IsSupportedPlatform() const;
+  bool Transfer(const uint8_t* data, uint16_t size, const uint8_t* effects);
 
   uint32_t m_speed = 72000000;  // 72MHz
   uint8_t m_framePause = 0;     // 0ms
