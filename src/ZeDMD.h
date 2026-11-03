@@ -640,22 +640,12 @@ class ZEDMDAPI ZeDMD
    */
   static constexpr uint8_t LIGHT_EFFECT_ALL_CHANNELS = 0xff;
 
-  /** @brief Query the SPI channel used for light effects
-   *
-   *  Compatibility query for the SPI light channel. The device argument is ignored.
-   *  SPI frames always carry a fixed effect trailer; no UART is opened.
-   */
-  bool OpenLightEffectChannel(const char* device = nullptr);
-
-  /** @brief Whether the light effect control channel is open
-   *
-   *  @see OpenLightEffectChannel()
-   */
-  bool IsLightEffectChannelOpen() const;
+  /** @brief Whether the current display transport is SPI. */
+  bool IsSpi() const { return m_spi; }
 
   /** @brief Start a light effect on an addressable LED channel
    *
-   *  Queued on the light effect channel; the frames on SPI never wait for it.
+   *  Collected for the next submitted SPI frame trailer; does not open a connection.
    *
    *  @param brightness a scale of the brightness set on the device, 255 keeps it
    */

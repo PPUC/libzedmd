@@ -133,7 +133,7 @@ void ZeDMDComm::Run()
             bool hasEffects = false;
             if (!m_zoneStream && !m_compression &&
                 frame.command == ZEDMD_COMM_COMMAND::RGB565Stream && !m_frames.empty() &&
-                m_frames.front().command == ZEDMD_COMM_COMMAND::SetLightEffect) {
+                m_frames.front().command == ZEDMD_COMM_COMMAND::SpiEffectTrailer) {
               const auto& trailer = m_frames.front().data.front();
               if (trailer.size == ZeDMDLightPacket::Size) {
                 memcpy(effects.bytes, trailer.data, sizeof(effects.bytes));
@@ -244,7 +244,7 @@ void ZeDMDComm::QueueFrameWithEffects(uint8_t* data, int size, const ZeDMDLightP
   ZeDMDLightPacket packet = effects;
   packet.Seal();
   ZeDMDFrame frame(ZEDMD_COMM_COMMAND::RGB565Stream, data, size);
-  ZeDMDFrame trailer(ZEDMD_COMM_COMMAND::SetLightEffect, packet.bytes, sizeof(packet.bytes));
+  ZeDMDFrame trailer(ZEDMD_COMM_COMMAND::SpiEffectTrailer, packet.bytes, sizeof(packet.bytes));
   {
     std::lock_guard<std::mutex> lock(m_frameQueueMutex);
     // Publish the complete pair. SPI never replaces one half of a pair.
@@ -975,7 +975,7 @@ bool ZeDMDComm::StreamBytes(ZeDMDFrame* pFrame, const uint8_t* effects)
   {
     // Direct stream without compression and zones.
     if (pFrame->command == ZEDMD_COMM_COMMAND::RGB565Stream || pFrame->command == ZEDMD_COMM_COMMAND::RGB888Stream ||
-        pFrame->command == ZEDMD_COMM_COMMAND::SetLightEffect)
+        pFrame->command == ZEDMD_COMM_COMMAND::SpiEffectTrailer)
     {
       for (auto it = pFrame->data.rbegin(); it != pFrame->data.rend(); ++it)
       {

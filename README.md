@@ -123,5 +123,5 @@ SPI uses a fixed 192-byte versioned effect trailer after every RGB565 frame.
 Update host and RP2350 firmware together and set `spidev.bufsiz=65536`.
 The frame/effects render overloads publish a complete pair; ordinary render
 calls send an empty trailer. `SetLightEffect`/`ResetLightEffect` collect changes
-for the next submitted frame. `OpenLightEffectChannel` is now a compatibility
-query and does not open a serial device. See `tests/README.md` for queue tests.
+for the next submitted frame. `IsSpi()` reports the selected transport; no
+separate light connection is opened. See `tests/README.md` for queue tests.

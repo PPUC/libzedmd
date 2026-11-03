@@ -471,14 +471,10 @@ void ZeDMD::SetBrightness(uint8_t brightness)
   }
 }
 
-bool ZeDMD::OpenLightEffectChannel(const char*) { return m_spi; }
-
-bool ZeDMD::IsLightEffectChannelOpen() const { return m_spi; }
-
 void ZeDMD::SetLightEffect(uint8_t channel, uint8_t mode, uint16_t speed, uint8_t options, const uint32_t colors[3],
                            uint16_t durationMs, bool isDefault, uint8_t brightness)
 {
-  // Save changes for the next SPI frame trailer; never open or probe a UART.
+  // Save changes for the next SPI frame trailer.
   if (!m_spi)
   {
     m_pZeDMDComm->Log("ZeDMD::SetLightEffect ignored, SPI is not connected");
