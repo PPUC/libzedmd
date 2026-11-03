@@ -6,10 +6,11 @@
 #pragma once
 #include "ZeDMDLightPacket.h"
 #include <mutex>
+#include <vector>
 
 #define ZEDMD_VERSION_MAJOR 0   // X Digits
-#define ZEDMD_VERSION_MINOR 11  // Max 2 Digits
-#define ZEDMD_VERSION_PATCH 1   // Max 2 Digits
+#define ZEDMD_VERSION_MINOR 12  // Max 2 Digits
+#define ZEDMD_VERSION_PATCH 0   // Max 2 Digits
 
 #define _ZEDMD_STR(x) #x
 #define ZEDMD_STR(x) _ZEDMD_STR(x)
@@ -645,12 +646,21 @@ class ZEDMDAPI ZeDMD
 
   /** @brief Start a light effect on an addressable LED channel
    *
-   *  Collected for the next submitted SPI frame trailer; does not open a connection.
+   *  Sent in the trailer of the last frame, which goes out again for it, or of
+   *  the first frame if none has been sent yet.
    *
    *  @param brightness a scale of the brightness set on the device, 255 keeps it
    */
   void SetLightEffect(uint8_t channel, uint8_t mode, uint16_t speed, uint8_t options, const uint32_t colors[3],
                       uint16_t durationMs = 0, bool isDefault = false, uint8_t brightness = 255);
+
+  /** @brief Send a packet of light effect changes, see SetLightEffect()
+   *
+   *  For a host that collects the changes in the SPI trailer format itself.
+   *  Changes still waiting are merged with these as ZeDMDLightPacket::Merge()
+   *  describes.
+   */
+  void SendLightEffects(const ZeDMDLightPacket& effects);
 
   /** @brief Return a channel to the device's own light setting
    *
@@ -735,6 +745,8 @@ class ZEDMDAPI ZeDMD
   // Pending changes collected for the next SPI frame trailer.
   std::mutex m_lightMutex;
   ZeDMDLightPacket m_pendingLights;
+  // The last RGB565 frame on SPI, to carry light changes while the picture stays.
+  std::vector<uint8_t> m_lastSpiFrame;
   void QueueSpiFrame(uint8_t* frame, int size, const ZeDMDLightPacket& effects);
   bool m_hd = false;
   bool m_upscaling = false;

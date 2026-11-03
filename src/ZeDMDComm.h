@@ -85,9 +85,9 @@ typedef enum
   SetYOffset = 0x30,
   SetLineDecoder = 0x31,
 
-  // Internal queue entry for the fixed SPI trailer, paired with RGB565Stream.
-  // This is not a serial command. Wire format: ZeDMDLightPacket.h.
-  SpiEffectTrailer = 100,
+  // Internal queue entry: an RGB565 frame (data[0]) and its fixed SPI trailer
+  // (data[1]). This is not a serial command. Wire format: ZeDMDLightPacket.h.
+  SpiFrameWithEffects = 100,
 
   RGB888ZonesStream = 0x04,
   RGB565ZonesStream = 0x05,
@@ -319,7 +319,7 @@ class ZeDMDComm
  private:
   bool Connect(char* pName);
   bool Handshake(char* pDevice);
-  bool StreamBytes(ZeDMDFrame* pFrame, const uint8_t* effects = nullptr);
+  bool StreamBytes(ZeDMDFrame* pFrame);
   void KeepAlive();
 
   ZeDMD_LogCallback m_logCallback = nullptr;

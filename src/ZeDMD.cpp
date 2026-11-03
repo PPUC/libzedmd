@@ -504,14 +504,9 @@ void ZeDMD::SetLightEffect(uint8_t channel, uint8_t mode, uint16_t speed, uint8_
   }
   payload[20] = brightness;
 
-  std::lock_guard<std::mutex> lock(m_lightMutex);
-  for (unsigned i = 0; i < 4; ++i) {
-    if (channel != 0xff && channel != i) continue;
-    const unsigned slot = i + ((payload[1] & 3) ? 0 : 4);
-    memcpy(m_pendingLights.bytes + 8 + 21*slot, payload, 21);
-    m_pendingLights.bytes[8 + 21*slot] = i;
-    m_pendingLights.bytes[5] |= 1u << slot;
-  }
+  ZeDMDLightPacket change;
+  change.Add(payload);
+  SendLightEffects(change);
 }
 
 void ZeDMD::ResetLightEffect(uint8_t channel)
@@ -524,17 +519,25 @@ void ZeDMD::ResetLightEffect(uint8_t channel)
 
   uint8_t payload[21] = {0};
   payload[0] = channel;
-  payload[1] = 0x02;
+  payload[1] = ZeDMDLightPacket::FlagReset;
   payload[20] = 255;
 
+  ZeDMDLightPacket change;
+  change.Add(payload);
+  SendLightEffects(change);
+}
+
+void ZeDMD::SendLightEffects(const ZeDMDLightPacket& effects)
+{
+  if (!m_spi || effects.Empty()) return;
+
   std::lock_guard<std::mutex> lock(m_lightMutex);
-  for (unsigned i = 0; i < 4; ++i) {
-    if (channel != 0xff && channel != i) continue;
-    const unsigned slot = i + ((payload[1] & 3) ? 0 : 4);
-    memcpy(m_pendingLights.bytes + 8 + 21*slot, payload, 21);
-    m_pendingLights.bytes[8 + 21*slot] = i;
-    m_pendingLights.bytes[5] |= 1u << slot;
-  }
+  m_pendingLights.Merge(effects);
+  // Nothing displayed yet: the changes go with the first frame.
+  if (m_lastSpiFrame.empty()) return;
+  // The picture may not change for a long time, so send the last one again to carry the changes now.
+  m_pZeDMDSpi->QueueFrameWithEffects(m_lastSpiFrame.data(), (int)m_lastSpiFrame.size(), m_pendingLights);
+  m_pendingLights.Clear();
 }
 
 void ZeDMD::SetPanelClockPhase(uint8_t clockPhase)
@@ -824,7 +827,14 @@ void ZeDMD::ClearScreen()
   ZeDMDComm* pActive = GetActiveZeDMD();
   if (m_verbose && pActive) pActive->Log("ZeDMD::ClearScreen");
 
-  if (pActive)
+  if (m_spi)
+  {
+    // A black frame with its trailer, which also becomes the picture SendLightEffects() repeats.
+    const int size = m_pZeDMDSpi->GetWidth() * m_pZeDMDSpi->GetHeight() * 2;
+    memset(m_pRgb565Buffer, 0, size);
+    QueueSpiFrame(m_pRgb565Buffer, size, ZeDMDLightPacket{});
+  }
+  else if (pActive)
   {
     pActive->QueueCommand(ZEDMD_COMM_COMMAND::ClearScreen);
   }
@@ -838,12 +848,10 @@ void ZeDMD::ClearScreen()
 void ZeDMD::QueueSpiFrame(uint8_t* frame, int size, const ZeDMDLightPacket& effects)
 {
   std::lock_guard<std::mutex> lock(m_lightMutex);
-  ZeDMDLightPacket merged = m_pendingLights;
-  for (unsigned i = 0; i < 8; ++i)
-    if (effects.bytes[5] & (1u << i)) memcpy(merged.bytes + 8 + 21*i, effects.bytes + 8 + 21*i, 21);
-  merged.bytes[5] |= effects.bytes[5];
-  m_pZeDMDSpi->QueueFrameWithEffects(frame, size, merged);
-  m_pendingLights = ZeDMDLightPacket{};
+  m_pendingLights.Merge(effects);
+  m_pZeDMDSpi->QueueFrameWithEffects(frame, size, m_pendingLights);
+  m_pendingLights.Clear();
+  m_lastSpiFrame.assign(frame, frame + size);
 }
 
 void ZeDMD::EnableTrueRgb888(bool enable) { m_rgb888 = enable; }

@@ -63,8 +63,10 @@ bool ZeDMDSpi::Connect()
     return false;
   }
 
-  if (GetSpiKernelBufSize() < uint32_t(m_width) * m_height * 2 + ZeDMDLightPacket::Size + 128) {
-    Log("ZeDMDSpi: frame plus effect trailer requires spidev.bufsiz=65536; refusing to start");
+  // A frame and its trailer go in one transfer, which spidev limits to its buffer size.
+  if (GetSpiKernelBufSize() < uint32_t(m_width) * m_height * 2 + ZeDMDLightPacket::Size)
+  {
+    Log("ZeDMDSpi: frame plus effect trailer exceed spidev.bufsiz, set spidev.bufsiz=65536; refusing to start");
     return false;
   }
   if (m_connected)
@@ -229,8 +231,8 @@ void ZeDMDSpi::QueueCommand(char command, uint8_t* buffer, int size)
   switch (command)
   {
     case ZEDMD_COMM_COMMAND::ClearScreen:
-      // Queue a black frame instead of sending it directly, to not interleave with the run thread's transfer.
-      if (FillDelayed()) ClearFrames();
+      // Queue a black frame instead of sending it directly, to not interleave with the run thread's transfer. It
+      // replaces a waiting frame and keeps that frame's light changes.
       QueueFrame((uint8_t*)m_allBlack, GetWidth() * GetHeight() * 2);  // RGB565
       break;
 
@@ -241,7 +243,13 @@ void ZeDMDSpi::QueueCommand(char command, uint8_t* buffer, int size)
   }
 }
 
-bool ZeDMDSpi::SendChunks(const uint8_t* data, uint16_t size) { return Transfer(data, size, nullptr); }
+bool ZeDMDSpi::SendChunks(const uint8_t* data, uint16_t size)
+{
+  // The receiver expects a trailer after every frame, so a frame without light changes gets an empty one.
+  ZeDMDLightPacket empty;
+  empty.Seal();
+  return Transfer(data, size, empty.bytes);
+}
 
 bool ZeDMDSpi::SendFrameWithEffects(const uint8_t* data, uint16_t size, const uint8_t* effects)
 {
@@ -251,37 +259,33 @@ bool ZeDMDSpi::SendFrameWithEffects(const uint8_t* data, uint16_t size, const ui
 bool ZeDMDSpi::Transfer(const uint8_t* data, uint16_t size, const uint8_t* effects)
 {
   if (!m_connected || m_fileDescriptor < 0) return false;
-  const uint32_t limit = GetSpiKernelBufSize();
-  std::vector<spi_ioc_transfer> transfers;
-  uint32_t remaining = size;
-  while (remaining) {
-    spi_ioc_transfer transfer{};
-    transfer.tx_buf = reinterpret_cast<__u64>(data);
-    transfer.len = std::min<uint32_t>(remaining, limit);
-    transfer.speed_hz = m_speed;
-    transfer.bits_per_word = kSpiBitsPerWord;
-    data += transfer.len;
-    remaining -= transfer.len;
-    transfers.push_back(transfer);
+
+  // Frame and trailer in one transfer, without a gap: the receiver's DMA moves from the frame buffer to the trailer
+  // buffer by itself (chained channels), so nothing on either side has to react in between.
+  const uint32_t total = uint32_t(size) + ZeDMDLightPacket::Size;
+  if (total > GetSpiKernelBufSize())
+  {
+    Log("ZeDMDSpi: frame and trailer (%u bytes) exceed spidev.bufsiz", total);
+    return false;
   }
-  if (effects) {
-    // The PIO receiver switches from frame DMA to effect DMA in its IRQ.
-    transfers.back().delay_usecs = 50;
-    spi_ioc_transfer transfer{};
-    transfer.tx_buf = reinterpret_cast<__u64>(effects);
-    transfer.len = ZeDMDLightPacket::Size;
-    transfer.speed_hz = m_speed;
-    transfer.bits_per_word = kSpiBitsPerWord;
-    transfers.push_back(transfer);
-  }
-  const int expected = size + (effects ? ZeDMDLightPacket::Size : 0);
-  const int result = ioctl(m_fileDescriptor, SPI_IOC_MESSAGE(transfers.size()), transfers.data());
-  if (result != expected) {
-    Log("ZeDMDSpi: incomplete frame/effects transfer: %d/%d (%s)", result, expected, strerror(errno));
+  m_transferBuffer.resize(total);
+  memcpy(m_transferBuffer.data(), data, size);
+  memcpy(m_transferBuffer.data() + size, effects, ZeDMDLightPacket::Size);
+
+  spi_ioc_transfer transfer{};
+  transfer.tx_buf = reinterpret_cast<__u64>(m_transferBuffer.data());
+  transfer.len = total;
+  transfer.speed_hz = m_speed;
+  transfer.bits_per_word = kSpiBitsPerWord;
+
+  const int result = ioctl(m_fileDescriptor, SPI_IOC_MESSAGE(1), &transfer);
+  if (result != (int)total)
+  {
+    Log("ZeDMDSpi: incomplete frame/effects transfer: %d/%u (%s)", result, total, strerror(errno));
     std::this_thread::sleep_for(std::chrono::milliseconds(2));
     return false;
   }
-  // Allow trailer validation and rearming before the next frame.
+  // The receiver restarts its state machine and re-arms DMA after each trailer.
   if (m_framePause) std::this_thread::sleep_for(std::chrono::milliseconds(m_framePause));
   else std::this_thread::sleep_for(std::chrono::microseconds(100));
   return true;

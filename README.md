@@ -119,9 +119,13 @@ cmake --build build
 
 ## SPI light effects
 
-SPI uses a fixed 192-byte versioned effect trailer after every RGB565 frame.
-Update host and RP2350 firmware together and set `spidev.bufsiz=65536`.
-The frame/effects render overloads publish a complete pair; ordinary render
-calls send an empty trailer. `SetLightEffect`/`ResetLightEffect` collect changes
-for the next submitted frame. `IsSpi()` reports the selected transport; no
-separate light connection is opened. See `tests/README.md` for queue tests.
+SPI uses a fixed 192-byte versioned effect trailer after every RGB565 frame,
+in the same transfer. Update host and RP2350 firmware together and set
+`spidev.bufsiz=65536`. The frame/effects render overloads queue a complete pair;
+ordinary render calls send an empty trailer. `SetLightEffect`,
+`ResetLightEffect` and `SendLightEffects` send their changes with the last
+frame again, so they never wait for the picture to change. At most one pair
+waits: a newer one replaces its picture and merges the light changes, as
+`ZeDMDLightPacket::Merge()` describes. `IsSpi()` reports the selected
+transport; no separate light connection is opened. See `tests/README.md` for
+the tests.

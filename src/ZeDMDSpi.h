@@ -61,6 +61,8 @@ class ZeDMDSpi : public ZeDMDComm
   uint32_t m_speed = 72000000;  // 72MHz
   uint8_t m_framePause = 0;     // 0ms
   int m_fileDescriptor = -1;
+  // A frame and its trailer, contiguous for one SPI transfer.
+  std::vector<uint8_t> m_transferBuffer;
 #if defined(SPI_SUPPORT)
   gpiod_chip* m_gpioChip = nullptr;
 #if defined(ZEDMD_GPIOD_API_V2)
